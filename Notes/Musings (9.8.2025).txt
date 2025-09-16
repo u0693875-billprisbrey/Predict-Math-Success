@@ -1,0 +1,50 @@
+I'd like to find math course sequences
+I'd like to look at the avg grade per instructor
+Which ones are taken in Yr 1?  By FTF?
+
+In course sequences, what predicts the later grades?
+
+Am I limited to UAIR data?  Can I see what else is in SDW/BIPR?
+
+Cough up your course sequencing work
+
+Cough up DFWI work -- I converted the grades to ordinals, right?
+
+Propose a graph database
+
+Is there any point in doing clustering, and -then- seeing which cluster has the highest GPA?
+
+I also need to review Whitney notes and watch the training videos.  (Transcribe them?)
+
+What's the degree of coordination with Whitney?  On this whole project?  It's not my place to organize it, so . . . .  should I?  What if I don't?
+
+I'd like to, in the context of the math courses ---
+
+lots of aggregations and tables.
+
+figure out GPA distribution per course
+
+aggregate GPA per instructor + course
+
+what's the highest section count
+
+capacity distribution (absolute and percentage)
+
+repeat courses per student
+
+do I have any "50" level courses?
+
+number of students.  
+
+Aggregate number of classes per student
+
+
+
+
+
+
+
+
+
+
+

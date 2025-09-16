@@ -1,0 +1,1003 @@
+---
+title: "Math Courses Exploratory Data Analysis"
+author: "Bill Prisbrey"
+date: "2025-09-10"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+
+```
+
+```{r load}
+
+##########
+## LOAD ##
+##########
+
+mathCourses <- readRDS(here::here("Data", "Math_data.rds" ))
+# mathSKim <- readRDS(here::here("Query and skim", "Math_Courses_Skim.rds")) # Look into Quendo>>UAIR-Data-Sources-Described for the skim and a report that displays it.
+
+
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+# tempted to order this by term, then course, then emplid
+
+
+# identify popular, high volume courses
+mostPopCourses <- c("MATH_1010", "MATH_1030", "MATH_1050", "MATH_1060", "MATH_1070", "MATH_1090", "MATH_1210", "MATH_1220", "MATH_2210", "MATH_2250") # identified via hierarchical clustering later in this report
+
+mostPopFilter <- mathCourses$course %in% mostPopCourses
+extractFilter <- mathCourses$TERMEXTRACT == "E"
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+popCourses <- mathCourses[mostPopFilter & extractFilter & !mathLabFilter,]
+
+# I could check and see I never have duplicate EMPLIDs per course
+
+```
+
+
+```{r eval=FALSE}
+
+
+# investigate labs
+
+# > unique(mathCourses[mathCourses$CATNBR %in% highVolCourses & mathCourses$TERMEXTRACT == "E",c("GRADE", "GRADEGPA") ])
+#       GRADE GRADEGPA
+# 9406      A-      3.7
+#9407    <NA>       NA
+#9409       B      3.0
+#9411       I       NA
+#9413       D      1.0
+#9419      CR       NA
+#9421      B+      3.3
+#9423       E      0.0
+#9425       V       NA
+#9430       C      2.0
+#9431      EU      0.0
+#9434       A      4.0
+#9435      C-      1.7
+#9443      C+      2.3
+#9450      D-      0.7
+#9460      B-      2.7
+#9503       W       NA
+#9623      D+      1.3
+#9648      NC       NA
+#361925             NA
+
+
+# unique(mathCourses[mathCourses$CATNBR %in% highVolCourses & mathCourses$TERMEXTRACT == "E",c("UNITS", "GRADEGPA") ])
+#        UNITS GRADEGPA
+# 9406       4      3.7
+# 9407       4       NA
+# 9409       4      3.0
+# 9413       3      1.0
+# 9419       3       NA
+# 9421       4      3.3
+# 9423       4      0.0
+# 9424       3      3.7
+# 9428       3      3.3
+# 9430       3      2.0
+# 9431       3      0.0
+# 9434       3      4.0
+# 9435       3      1.7
+# 9443       3      2.3
+# 9450       4      0.7
+# 9452       2      0.0
+# 9460       3      2.7
+# 9461       4      4.0
+# 9462       3      3.0
+# 9466       2      3.3
+# 9476       4      1.0
+# 9501       2      3.0
+# 9502       4      2.0
+# 9530       4      2.7
+# 9538       2      4.0
+# 9552       3      0.7
+# 9602       4      1.7
+# 9616       4      2.3
+# 9623       3      1.3
+# 9907       4      1.3
+# 10052      2       NA
+# 10321      2      1.0
+# 10351      2      2.7
+# 10492      2      3.7
+# 10646      2      2.0
+# 10673      2      1.7
+# 11313      2      2.3
+# 12096      2      1.3
+# 23819      2      0.7
+# 148362     0       NA
+
+
+# > unique(mathCourses[mathCourses$CATNBR %in% highVolCourses & mathCourses$TERMEXTRACT == "E",c("UNITS", "GRADE", "GRADEGPA") ])
+#        UNITS GRADE GRADEGPA
+# 9406       4    A-      3.7
+# 9407       4  <NA>       NA
+# 9409       4     B      3.0
+# 9411       4     I       NA
+# 9413       3     D      1.0
+# 9419       3    CR       NA
+# 9421       4    B+      3.3
+# 9423       4     E      0.0
+# 9424       3    A-      3.7
+# 9425       3     V       NA
+# 9428       3    B+      3.3
+# 9430       3     C      2.0
+# 9431       3    EU      0.0
+# 9434       3     A      4.0
+# 9435       3    C-      1.7
+# 9436       3     E      0.0
+# 9443       3    C+      2.3
+# 9450       4    D-      0.7
+# 9452       2     E      0.0
+# 9460       3    B-      2.7
+# 9461       4     A      4.0
+# 9462       3     B      3.0
+# 9466       2    B+      3.3
+# 9476       4     D      1.0
+# 9501       2     B      3.0
+# 9502       4     C      2.0
+# 9503       4     W       NA
+# 9520       3     W       NA
+# 9530       4    B-      2.7
+# 9538       2     A      4.0
+# 9552       3    D-      0.7
+# 9602       4    C-      1.7
+# 9616       4    C+      2.3
+# 9623       3    D+      1.3
+# 9648       3    NC       NA
+# 9736       3  <NA>       NA
+# 9760       3     I       NA
+# 9907       4    D+      1.3
+# 9998       4     V       NA
+# 10052      2     W       NA
+# 10154      4    CR       NA
+# 10156      4    EU      0.0
+# 10321      2     D      1.0
+# 10351      2    B-      2.7
+# 10492      2    A-      3.7
+# 10646      2     C      2.0
+# 10673      2    C-      1.7
+# 11313      2    C+      2.3
+# 12096      2    D+      1.3
+# 12754      2    CR       NA
+# 14223      4    NC       NA
+# 22715      2  <NA>       NA
+# 22720      2     V       NA
+# 23529      2    NC       NA
+# 23819      2    D-      0.7
+# 41600      2    EU      0.0
+# 44309      2     I       NA
+# 148362     0  <NA>       NA
+# 361925     0             NA
+# 362849     4             NA
+# 461100     3             NA
+
+# I think I can just filter UNITS == 0 and NA values (?)
+
+mathLabFilter <- mostPopFilter &
+  extractFilter &
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+table(mathCourses[mathLabFilter, "UNITS"], useNA = "always") 
+
+#     0     2     3     4  <NA> 
+# 23844    67   396   995     0 
+
+# I guess all those zero values are the labs? # filter adjusted
+
+popCourses <- mathCourses[mostPopFilter & extractFilter & !mathLabFilter,]
+
+
+
+```
+
+
+
+
+## EXECUTIVE SUMMARY
+
+TBD
+
+## OBJECTIVES   
+
+  (1)  Identify popular math courses
+  (2)  Explore variability in grading by instructor
+  (3)  Identify common sequences of math courses
+  (10) Publish skim description of the data    
+
+
+## (1) Identify popular math courses
+
+```{r}
+
+# UNSTABLE CLUSTERS --- kinda exasperating.  Probably in the assignment or the plot
+# or repeating the clustering without re-creating the aggregation
+
+students_per_course <- aggregate(cbind(EMPLID, INSTEMPLID) ~ course , data = mathCourses[extractFilter & !mathLabFilter,], function(x) {length(unique(x))} )
+
+# names(students_per_course) <- c("SUBJECT_COURSE","EMPLID","INSTEMPLID")
+
+rownames(students_per_course) <- students_per_course[,1]
+students_per_course <- students_per_course[,-1]
+
+set.seed(43)
+students_per_course_cluster <- students_per_course[,-2] |>
+#  log1p() |> 
+  scale() |>
+  dist(method = "euclidean") |> # binary dist with single method is very strange
+  hclust(method = "complete") # liking average, complete
+
+students_per_course$clust <- cutree(students_per_course_cluster, k = 3)
+
+# Scatterplot
+
+plot(x = log(students_per_course[,"EMPLID"]),
+     y = log(students_per_course[,"INSTEMPLID"]),
+     pch = c(rep(1,1), rep(19,10))[students_per_course[,"clust"]],
+     col = c("darkgoldenrod1","purple", "dodgerblue", "aquamarine3", "chocolate" , "forestgreen", "blue")[students_per_course[,3]],
+     xlab = "Count of students (log)",
+     ylab = "Count of instructors (log)",
+     main = "Course Attendance\nbroken into three clusters"
+     )
+
+# Table
+
+library(kableExtra)
+
+students_per_course |>
+  (\(x){merge(x, unique(mathCourses[,c("course","TITLE")]), by.x = "row.names", by.y = "course" )})() |> # add the title
+  (\(x){x[x$clust %in% 2:3,]} )() |> # filter to my small clusters
+  (\(x){x[order(x$EMPLID, decreasing = TRUE),] })() |> # descending order of students
+  (\(x){x$col <- cell_spec(
+    x$clust,
+    "html",
+    color = "white",
+    background = c("white","purple", "dodgerblue")[x$clust]
+    ); 
+  return(x)})() |> # add a column with the desired colors
+  (\(x){x[,-which(colnames(x) %in% c("clust"))]})() |> # remove cluster column
+kbl(caption = "Count of students and instructors per course",
+    col.names = c("Course", "Students", "Instructors", "Title", "Cluster"),
+  row.names = FALSE,
+  escape = FALSE
+    ) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    font_size = 13
+  )
+  
+# most 
+
+# ok, that's looking pretty good.
+# let's put that down for today.
+
+# mostPopCourses <- row.names(students_per_course[students_per_course$clust != 1,])
+
+#> mostPopCourses
+# [1] "MATH_1010" "MATH_1030" "MATH_1050" "MATH_1060" "MATH_1070" "MATH_1090"
+# [7] "MATH_1210" "MATH_1220" "MATH_2210" "MATH_2250"
+
+# unique(mathCourses[mathCourses$course %in% row.names(students_per_course[students_per_course$clust != 1,]), c("CATNBR", "TITLE") ])
+
+# "CATNBR" doesn't mean what I think it means.
+
+# unique(mathCourses[mathCourses$course %in% row.names(students_per_course[!students_per_course$clust %in% c(1,2,4,5),]), c("SUBJECT_CD", "CATNBR", "TITLE") ])
+
+
+
+```
+
+## (2) Explore variability in grading by instructor
+
+```{r}
+
+#######################################
+## CALCULATE Z-SCORES PER INSTRUCTOR ##
+#######################################
+
+
+# Find the mean GPA per course per instructor
+courseInstGPA <- aggregate(GRADEGPA ~ course + INSTEMPLID, data = popCourses, mean)
+
+# Find the number of students per course per instructor
+courseStudentCount <- aggregate(EMPLID ~ course + INSTEMPLID, data = popCourses, length)
+
+# check
+extra_rows <- merge(
+  courseStudentCount,
+  courseInstGPA,
+  by = c("course", "INSTEMPLID"), # replace with your actual key columns
+  all.x = TRUE
+)
+
+# keep only those with no match
+extra_rows <- extra_rows[is.na(extra_rows[, ncol(extra_rows)]), ]
+
+# not sure what is up with these four classes; it will need some investigation
+
+# Avg GPA per course
+courseMeanGPA <- aggregate(GRADEGPA ~ course, data = popCourses, mean, na.rm = TRUE)
+
+# Standard error per instructor
+
+courseInstSE <- aggregate(GRADEGPA ~ course + INSTEMPLID, data = popCourses, function(x){
+  
+  sd(x, na.rm = TRUE)/ sqrt(sum(!is.na(x)))
+  
+})
+
+courseInst <- Reduce(function(x, y) merge(x, y, by = c("course", "INSTEMPLID"), all = TRUE),
+                    list(courseInstGPA, courseStudentCount, courseInstSE))
+
+courseInst <- merge(courseInst, courseMeanGPA, by = "course", all.x = TRUE)
+
+names(courseInst) <- c("course", "INSTEMPLID","GPA.mean", "student_count","GPA.se","GPA.course")
+
+courseInst$zscore <-  (courseInst$GPA.mean - courseInst$GPA.course)/courseInst$GPA.se
+
+
+```
+
+```{r eval=FALSE}
+
+##################
+## PLOT SANDBOX ##
+##################
+
+# Color according to the z-score
+library(viridis)
+n_colors <- 8
+z_scaled <- round((courseInst$zscore - min(courseInst$zscore, na.rm = TRUE)) / (max(courseInst$zscore, na.rm=TRUE) - min(courseInst$zscore, na.rm = TRUE)) * (n_colors - 1)) + 1
+
+plot(x = courseInst$GPA.mean,
+     y = log(courseInst$student_count),
+     col = viridis(n_colors)[z_scaled])
+
+
+plot(x = courseInst$zscore,
+     y = log(courseInst$student_count),
+     col = viridis(n_colors)[z_scaled])
+
+
+z_colors <- ifelse(abs(courseInst$zscore) > 1.96, "darkorange",          # extreme
+                 ifelse(abs(courseInst$zscore) > 1, "goldenrod",    # moderate
+                        "skyblue"))
+
+z_pch <- ifelse(abs(courseInst$zscore) > 1.96, 19,          # extreme
+                 ifelse(abs(courseInst$zscore) > 1, 0,    # moderate
+                        1))
+
+plot(x = courseInst$zscore,
+     y = log(courseInst$student_count),
+     col = z_colors,
+     pch = z_pch)
+
+
+plot(x = courseInst$GPA.mean,
+     y = log(courseInst$student_count),
+     col = z_colors,
+     pch = z_pch,
+     xlab = "Instructor GPA",
+     ylab = "Log of student count",
+     main = "Instructor strictness by z-score")
+
+# Density plot
+plot(density(courseInst$zscore), 
+     main = "Density of zscore", 
+     xlab = "zscore")
+abline(v = 0, lwd = 3, col = "dodgerblue")
+rect(xleft = -1.96, ybottom = 0, xright = 1.96, ytop = 0.15, col = "aliceblue")
+points(density(courseInst$zscore),type = "l")
+# I'd like to color the background according to z-scores, and that will take a little bit of work
+
+
+hist(courseInst$zscore[!is.na(courseInst$zscore)], 
+     breaks = 20, 
+     freq = FALSE, 
+     col = "lightgray", 
+     main = "Histogram with Density", 
+     xlab = "zscore")
+
+lines(density(courseInst$zscore[!is.na(courseInst$zscore)]), col = "blue", lwd = 2)
+
+
+hist(courseInst$zscore[!is.na(courseInst$zscore)],
+     breaks = c(min(courseInst$zscore, na.rm = TRUE), -5:5, max(courseInst$zscore, na.rm = TRUE)),
+                freq = FALSE,
+                col = c("red","yellow","green"),
+                main = "Histo-WHAT?",
+                xlab = "Z-score"
+     )
+     
+
+
+
+```
+
+
+```{r fig.height=9, fig.width=9}
+
+#################
+## FOREST PLOT ##
+#################
+
+par(mfrow = c(5,2), mar = c(0,2,0,0), oma = c(2,2,2,0))
+
+invisible(
+  lapply(mostPopCourses, function(x){
+   
+  plotData <- courseInst[courseInst$course == x, ]
+  
+  plotData <- plotData[order(plotData$zscore, decreasing = FALSE),]
+
+  z_colors <- ifelse(abs(plotData$zscore) > 1.96, "darkorange",          # extreme
+                 ifelse(abs(plotData$zscore) > 1, "goldenrod",    # moderate
+                        "skyblue"))
+
+  z_pch <- ifelse(abs(plotData$zscore) > 1.96, 19,          # extreme
+                 ifelse(abs(plotData$zscore) > 1, 0,    # moderate
+                        1))
+
+  plot(plotData$GPA.mean,
+       col = z_colors,
+       pch = z_pch,
+       xaxt = "n")  
+    
+  abline(h = unique(plotData$GPA.course), col = "lightgreen", lwd = 2)
+
+
+segments(x0 = 1:nrow(plotData),
+         y0 = plotData$GPA.mean + 1.96 * plotData$GPA.se,
+         x1 = 1:nrow(plotData),
+         y1 = plotData$GPA.mean - 1.96 * plotData$GPA.se)
+  
+par(new = TRUE)
+  plot(plotData$GPA.mean,
+       col = z_colors,
+       pch = z_pch,
+       xaxt = "n")
+
+
+legend("topleft", x)
+
+  })
+)
+
+mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "GPA Confidence interval per instructor")
+mtext(outer = TRUE, side = 1, line = 0.5, text = "Instructor sorted by z-score")
+mtext(outer = TRUE, side = 2, line = 0.5, text = "Mean instructor GPA")
+
+```
+
+
+```{r eval = FALSE}
+
+#########################
+## FOREST PLOT SANDBOX ##
+#########################
+
+
+plotData <- courseInst[courseInst$course == "MATH_1010", ]
+
+plotData <- plotData[order(plotData$zscore, decreasing = FALSE),]
+
+z_colors <- ifelse(abs(plotData$zscore) > 1.96, "darkorange",          # extreme
+                 ifelse(abs(plotData$zscore) > 1, "goldenrod",    # moderate
+                        "skyblue"))
+
+z_pch <- ifelse(abs(plotData$zscore) > 1.96, 19,          # extreme
+                 ifelse(abs(plotData$zscore) > 1, 0,    # moderate
+                        1))
+
+plot(plotData$GPA.mean,
+     col = z_colors,
+     pch = z_pch)
+
+abline(h = unique(plotData$GPA.course), col = "lightgreen", lwd = 2)
+
+
+segments(x0 = 1:nrow(plotData),
+         y0 = plotData$GPA.mean + 1.96 * plotData$GPA.se,
+         x1 = 1:nrow(plotData),
+         y1 = plotData$GPA.mean - 1.96 * plotData$GPA.se)
+           
+# I kinda like this.  Let's get the colors to match the terraced plot below.
+
+# Nice!  This makes a good combo graphic.
+# My terraced graphic (below)j just got a lot bigger, I think
+
+# rotating to match the GPA scale as below
+# it ain't bad, but doesn't tell me how many students
+# are at these extremes.
+
+plot(y = plotData$zscore,
+  x=plotData$GPA.mean,
+     col = z_colors,
+     pch = z_pch)
+
+# The error bars make it unreadable now
+segments(x0 = plotData$GPA.mean + 1.96 * plotData$GPA.se,
+         y0 = plotData$zscore,
+         x1 = plotData$GPA.mean - 1.96 * plotData$GPA.se,
+         y1 = plotData$zscore)
+
+
+```
+
+
+```{r fig.height=9, fig.width=9}
+
+  z_colors <- ifelse(abs(courseInst$zscore) > 1.96, "darkorange",          # extreme
+                 ifelse(abs(courseInst$zscore) > 1, "goldenrod",    # moderate
+                        "skyblue"))
+
+  z_pch <- ifelse(abs(courseInst$zscore) > 1.96, 19,          # extreme
+                 ifelse(abs(courseInst$zscore) > 1, 0,    # moderate
+                        1))
+
+
+
+par(mfrow = c(5,2), mar = c(2,2,0,0), oma = c(2,2,2,0))
+
+invisible(
+lapply(mostPopCourses, function(x){
+  
+  plotFilter <- courseInst$course == x
+  
+  plot(x = courseInst$GPA.mean[plotFilter],
+     y = log(courseInst$student_count[plotFilter]),
+     col = z_colors[plotFilter],
+     pch = z_pch[plotFilter],
+     xlab = "Instructor GPA",
+     ylab = "Log of student count" #,
+     # main = paste(x, "\ninstructor strictness by z-score")
+     )
+
+  legend("topright", x)
+  
+})
+
+)
+
+mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor variability in student grades")
+mtext(outer = TRUE, side = 1, line = 0.5, text = "Mean instructor GPA")
+mtext(outer = TRUE, side = 2, line = 0.5, text = "Student count (log)")
+
+```
+
+
+```{r}
+
+# I want a table that is % of instructors and students below 1.96, in the middle, and greater than 1.96.  
+
+# And varies by more than 0.3
+
+courseInst$mean.diff <- courseInst$GPA.mean - courseInst$GPA.course
+
+courseInst$diff.flag <- cut(courseInst$mean.diff, c(min(courseInst$mean.diff, na.rm = TRUE), -0.6,-0.3,0,0.3,0.6,max(courseInst$mean.diff, na.rm = TRUE)))
+
+courseInst$zflag <- cut(courseInst$zscore, c(min(courseInst$zscore, na.rm=TRUE), -1.96, -1, 0, 1, 1.96, max(courseInst$zscore, na.rm=TRUE)))
+
+diffBySig <- xtabs(student_count ~ zflag + diff.flag, data = courseInst)
+
+library(pheatmap)
+library(grid)
+
+
+diffBySig |>
+  proportions() |>
+  (\(x){x*100})() |>
+  as.matrix() |>
+    pheatmap(
+      main = "Percentage of Students by Mean GPA Shift and Z-Score",
+  cluster_rows = FALSE,   # turn off row dendrogram
+  cluster_cols = FALSE,   # turn off column dendrogram
+  display_numbers = TRUE, # show values
+  number_format = "%.0f", # integer formatting (no decimals)
+  fontsize_number = 10,   # size of numbers
+  color = colorRampPalette(c("white", "lightblue", "blue"))(50)
+)
+
+grid.text("Mean GPA shift", y = unit(0.03, "npc"))
+# grid.text("Along the left",   x = unit(0.02, "npc"), rot = 90)
+# grid.text("Along the top",    y = unit(0.98, "npc"))
+grid.text("Z score",  x = unit(0.905, "npc"), rot = 270)
+
+# this makes it look like a third are pushed too high or too low
+
+# I'd like to draw a red rectangle around them,
+# but it's getting kinda hard
+
+grid.rect(
+  x = 0.5,          # horizontal position (0 = left, 1 = right)
+  y = 0.5,          # vertical position (0 = bottom, 1 = top)
+  width = 0.3,      # width of the rectangle
+  height = 0.2,     # height of the rectangle
+  gp = gpar(
+    col = "red",    # border color
+    fill = NA,      # transparent inside
+    lwd = 4         # border thickness
+  )
+)
+
+```
+
+```{r eval=FALSE}
+
+# I prefer the heatmap (above)
+
+byZscore <- aggregate(student_count ~ zflag, data = courseInst, sum)
+
+byZscore$student_count_percentage <- proportions(byZscore$student_count)*100
+
+byZscore <- aggregate(INSTEMPLID ~ zflag, data = courseInst, length) |>
+  (\(agg){merge(byZscore, agg, all.x = TRUE, by = "zflag" ) })()
+
+names(byZscore)[names(byZscore) %in% "INSTEMPLID"] <- 
+
+```
+
+Conclusion:  
+
+  (1) That there is large variation in grading between instructors    
+  
+  (2) That student abilities are not randomly distributed and there is some kind of sorting going on    
+  
+  (3) That [x]percentage of students are shifted by at least 0.3 GPA at a 95% significance level
+
+
+Possible next steps:    
+
+Predict instructor z-score using:   
+
+  (1) Use student-level information (test scores, high school GPA, high school transcript)    
+  (2) Use class-level information (timing, duration, percent of capacity)   
+  (3) Use instructor-level information (years of experience, research load)     
+
+
+## Frequent Fliers
+
+```{r}
+
+
+table(popCourses$EMPLID) |> (\(x){x[order(x, decreasing = TRUE)]})() |> hist(main = "Repeat course appearances", xlab = "Count of appearances", ylab = "Count of students")
+
+table(popCourses$EMPLID) |> (\(x){x[order(x, decreasing = TRUE)]})() |> head()
+
+# 00072741 00480481 00672216 00744364 00834999 00179799 
+#      20       17       16       16       16       15
+
+# Let's look at these guys a little closer
+
+
+```
+
+Probably worth investigating further.   
+
+
+```{r eval=FALSE}
+
+# Find the avg GPA per class
+aggFilter <- mathCourses$CATNBR %in% highVolCourses
+courseGPA <- aggregate(GRADEGPA ~ CATNBR, data = mathCourses[aggFilter,], mean)
+
+# Find the mean GPA per class per instructor
+courseInstGPA <- aggregate(GRADEGPA ~ CATNBR + INSTEMPLID, data = mathCourses[aggFilter,], mean)
+
+# Find the standard error per teacher
+courseInstSE <- aggregate(GRADEGPA ~ CATNBR + INSTEMPLID, data = mathCourses[aggFilter,], 
+                          function(x) {sd(x)/(length(x)^0.5) }
+                          )
+
+# Find the number of students per instructor
+studentsPerInst <- aggregate(EMPLID ~ INSTEMPLID + CATNBR, data = mathCourses[aggFilter,], length)
+
+
+# Find the number of classes per instructor
+courseInstGPA <- aggregate(GRADEGPA ~ CATNBR + INSTEMPLID, data = mathCourses[aggFilter,], mean)
+
+# Avg class size per instructor
+courseInstGPA <- aggregate(GRADEGPA ~ CATNBR + INSTEMPLID, data = mathCourses[aggFilter,], mean)
+
+# it turns out I'm not understanding this data at all.  AT. ALL.
+
+# I'll need to spend some time with a data dictionary.
+
+
+``` 
+
+
+
+```{r eval=FALSE}
+
+students_per_course <- aggregate(cbind(EMPLID, INSTEMPLID) ~ CATNBR, data = mathCourses, function(x) {length(unique(x))} )
+
+rownames(students_per_course) <- students_per_course[,1]
+students_per_course <- students_per_course[,-1]
+
+students_per_courseCluster <- students_per_course |>
+  scale() |>
+  dist() |>
+  hclust() 
+
+
+
+cutree(students_per_courseCluster, k = 3) |> 
+  table()
+
+students_per_course$clust <- cutree(students_per_courseCluster, k = 3)
+
+# Let's experiment with a scatterplot
+
+plot(x = students_per_course[,1],
+     y = students_per_course[,2],
+     col = c("red","green", "blue")[students_per_course[,3]] )
+
+# man, isn't that fascinating right there
+
+students_per_course$clust <- cutree(students_per_courseCluster, k = 4)
+
+# Let's experiment with a scatterplot
+
+plot(x = log(students_per_course[,1]),
+     y = log(students_per_course[,2]),
+     col = c("red","green", "blue", "aquamarine3", "purple" , "forestgreen", "dodgerblue")[students_per_course[,3]] )
+
+# ok, this is a really interesting division.
+
+# I like two or five --- actually five, because it's a nice cut ... except, where's the fourth?
+
+# o.k., I like four clusters
+
+plotFilter <- students_per_course$clust == 4
+
+plot(x = students_per_course[plotFilter,1],
+     y = students_per_course[plotFilter,2],
+     col = c("red","green", "blue", "aquamarine3", "purple" , "forestgreen")[students_per_course[plotFilter,3]] )
+
+
+highVolCourses <- row.names(students_per_course[students_per_course$clust != 1,])
+
+# > highVolCourses
+#  [1] "1010" "1030" "1050" "1060" "1070" "1090" "1210" "1220" "2210" "2250"
+
+# let's look at course numbers less than 1010
+
+plotFilter <- as.numeric(row.names(students_per_course)) < 1010
+
+plot(x = students_per_course[plotFilter,1],
+     y = students_per_course[plotFilter,2],
+     col = c("red","green", "blue", "aquamarine3", "purple" , "forestgreen")[students_per_course[plotFilter,3]] )
+
+
+# wow, there's a lot of them!
+
+View(students_per_course[plotFilter,])
+
+# maybe this is asking for it's own clustering
+
+View(mathCourses[mathCourses$CATNBR == 990,])
+
+# what are we deailng with here
+
+remedialFilter <- mathCourses$CATNBR < 1010 
+unique(mathCourses[remedialFilter,c("CATNBR","TITLE")])
+
+# wow ... def not part of the sequence!
+# Humoursly, I picked up "Aromatherapy"
+
+# What I probably want:
+# 40 Bridging Math to Algebra
+# 950 Preparatory Algebra
+# 101 Intrm Algebra
+# 121 Calculus I
+# 362 Math for Economists
+# 190 Coll Alg Bus/Soc Sci
+# 109 College Algebra Bus/Soc Sci
+# 107 Intro Stat Inference
+# 317 SAS Lab I
+# 318 SAS Lab II
+# 105 College Algebra
+# 106 Trigonometry
+# 122 Calculus II
+# 130 Intro Quantitative Reasoning
+# 104 Intro Stat Thinking
+# 990 Elementary Algebra
+# 15  Precalculus Review
+# 501 Intro to Probability
+# 225 Diff Equ & Lin Algebra
+# 103 Intro Quant Reasoning
+# 101 Math: Algebra + (Age 12-17)
+# 10  Intermediate Algebra Review
+# 536 Elem Math Lrng Methods
+# 800 Math Refresher
+# 1000 Mathemaphobia
+# 50 Calculus Review for MStat
+# 1000 How to Conquer Math
+# 801 Math Refresher
+# 13 Bridge to Engineering Calculus
+# 108 Precalculus
+# 607 Mathematical Statistics
+# 221 Calculus III
+# 105 Coll Alg
+# 503 Survey of Stat Pkgs
+# 9 Preparation for MATH 990
+# 696 Spec Topic in Stat
+
+# ok, I'm tired of manually curating.
+# Looks like the "CATNBR" is not unique (annoying!)
+# and that I can't just look at CATNBR < 1000 to find the remedial math classes
+
+# Better double-check my high-volume courses
+
+bigFilter <- mathCourses$CATNBR %in% as.numeric(highVolCourses) 
+unique(mathCourses[bigFilter,c("CATNBR","TITLE")])
+
+# what kinds of grades are we dealing with here?
+
+unique(mathCourses[,c("GRADE", "GRADEGPA")])
+
+       GRADE GRADEGPA
+1       <NA>       NA
+3         C-      1.7
+4         B-      2.7
+6          A      4.0
+8         CR       NA
+11        B+      3.3
+13         E      0.0
+14         C      2.0
+19        NC       NA
+24        EU      0.0
+26        C+      2.3
+28         V       NA
+34        A-      3.7
+37         B      3.0
+88         T       NA
+107        D      1.0
+136       D+      1.3
+200       D-      0.7
+449        I       NA
+2525       W       NA
+64611     B+       NA
+64662      B       NA
+64709      D       NA
+64782      E       NA
+64868      C       NA
+65680     EU       NA
+65950      A       NA
+65992     C+       NA
+66124     B-       NA
+66262     D+       NA
+66372     C-       NA
+66573     A-       NA
+67582     D-       NA
+361925             NA
+
+# that's anything BUT clean
+# given that my SQL was pretty big, let's tighten that up a little bit
+
+unique(mathCourses[bigFilter,c("GRADE", "GRADEGPA")])
+
+       GRADE GRADEGPA
+1       <NA>       NA
+3         C-      1.7
+8         CR       NA
+9          A      4.0
+11        B+      3.3
+13         E      0.0
+14         C      2.0
+19        NC       NA
+23        B-      2.7
+26        C+      2.3
+28         V       NA
+36        A-      3.7
+37         B      3.0
+107        D      1.0
+136       D+      1.3
+200       D-      0.7
+248       EU      0.0
+449        I       NA
+2525       W       NA
+361925             NA
+389692     E       NA
+623984    D+       NA
+
+# and do an aggregation
+
+instGPA <- aggregate(GRADEGPA ~ CATNBR + INSTEMPLID, data = mathCourses[bigFilter,], mean, na.rm = TRUE)
+
+instCount <- aggregate(EMPLID ~ CATNBR + INSTEMPLID, data = mathCourses[bigFilter,], length)
+
+tommy <- merge(instGPA, instCount, by = c("INSTEMPLID", "CATNBR"))
+
+# let's cluster that
+
+tommyCluster <- tommy[,3:4] |>
+  scale() |>
+  dist() |>
+  hclust() 
+
+tommy$clust <- cutree(tommyCluster, k = 8)
+
+# let's scatter that
+
+plot(y = log(tommy[,"EMPLID"]),
+     x = tommy[,"GRADEGPA"],
+     col = c("red","green", "blue", "orange", "purple" ,  "brown", "forestgreen", "dodgerblue" )[tommy[,"clust"]]
+     )
+
+# four isn't bad
+# five is o.k.  I have low, high, and then three levels of volume
+# six is better -- let's see what seven does
+# seven nicely identifies very high graders (very easy teachers (?))
+# eight pulls out the very low graders
+
+# it's not a bad graphic.  Kinda wanna draw lines around the clusters, or shade them
+# and put them in a box
+
+abline(v = mean(tommy[,"GRADEGPA"]), col = "pink", lwd=2)
+
+# let's see which instructors don't overlap with the mean
+
+
+
+
+```
+
+  
+## OBJECTIVE 10: SKIM
+
+```{r eval=FALSE}
+
+print(mathSkim, include_summary = TRUE, n = 0)
+
+```
+

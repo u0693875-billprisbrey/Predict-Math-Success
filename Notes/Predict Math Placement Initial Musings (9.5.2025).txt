@@ -1,0 +1,90 @@
+Predict Math Placement
+9.5.2025 Musings
+
+The history is interesting.  They completely abolished the placement test as an over-reach, or beyond the recommendation, because they found that they could predict math class placement as good as the placement test.  Or, it sounds like -- the model didn't improve in accuracy when they added the placement test in.
+
+This sounds like two classic errors.  First, the mis-interpretation of the model and it's implications resulting in a dramatic and shocking over-reach in completely getting rid of placement tests.  Second, it's not wise to criticize a model I haven't seen, but I wonder how they controlled for the presence or absence of the placement test?  If it was used in the real world, then it would have influenced the actual decisions made and that's difficult to control for.  
+
+What they are asking for, and what they actually want to do, are slightly different.  On the one hand, they are looking for information about success in year one math for first-time freshman with the in
+
+Let me re-phrase this another way.
+
+What the complaint is:
+ - The math placement is now universally required and it's a burden or a topic of complaint.
+ - Is there a middle ground between all-or-nothing?  Do all students really need to take the placement test?  Can we confidently recommend some classes to some students so they don't have to take the test?
+
+What they are looking for:
+ - It almost sounds like they want something punchy: simple, obvious, actionable, and accurate.
+ - More accurately, they want to use the limited information at hand (GPA, test scores, anything else we can cough up) to give a recommendation, explain the confidence around the recommendation, and make the recommendation easily predicated on available information so the advisor will confidently act on it.
+
+ - I think they mostly want clarity around the edge cases.
+
+ - I take that back -- first, they want to know if there are any obvious or high-confidence cases, obvious exceptions, where an incoming test isn't needed.
+    -- Second, the placement test might help the most in the edge cases, or the borders or gray areas that could go either way.
+
+ - What do I do with a low high school GPA and a high test score?  Good at math, but not good at studying?  Maybe the math was never challenging enough so they didn't do it, and another simple math class is the worst possible thing we can do?
+
+ - Sounds like a great place for using SHAP values. 	
+
+ - Time since the last math class will be HIGHLY predictive, I think.
+
+ - Any information or insights picked up on the way could be really helpful.	
+
+ - I could review my work on the DFWI, as it will probably be similar
+
+ - They seem to really like the logistic regression.  Is it the binary that is so useful?  I could use some time reviewing this approach.  Causal?  Interpretable?
+
+ - I have some documents to review.
+
+ - I wonder how much I can lead them away from "punchy" ?  And can I create my own consulting company based on this concept?
+
+ - The doc she gave me to read really tried to dumb things down.  How much was lost in that?
+
+ - I'd like to create a GitHub project.  What to call it?
+
+ - It's going to end up as several projects.  Overall, I'd call it "Recommend Math Placement" more than "Predict Math Success", but "Predict Math Success" is probably the first piece.
+
+- Luis specifically opened up the analysis: causal, association, correlation, prediction, all are fine.	
+
+- If we use this predictive model, then we need to adhere to the ethics standards (and I wonder if that website is still up under Trump?  I guess I should have down-loaded it!)
+
+- The success criteria are also opened up:
+  Class GPA,  retention, years to graduate, consequent success (probably do some interesting student comparisons there, as in one student took Math 1010 then 2010, the other only 2010, so how'd they both do in 3010?)
+
+- Thinking of my process, what are the factors that make IT go up?  What are the factors that make IT go down?
+   In this case, what is "IT"?  I guess I'll step away from the question of take-or-not-take the assessment test, and just look at math success.	
+
+- I almost want to start from the furthest success metric, and move my way back in.
+  For example, can I look at educational ROI and math class?
+  Can I align the predictors for the math class to educational ROI?
+  Why do universities even have an ROI?  It's an interesting metric.
+  Swap out educational ROI to years-to-graduate.  How is math success predictive of that?  How are the predictors of math success align with years to graduate?  How causal is that math success actually?  If they pass this math class, will they flunk out eventually anyway (and we should weed them sooner than later?)
+
+
+- I am really worried about the new generation of students, based on all that I'm reading.  The bottom quintile really shouldn't be in college, and the top quintile today could not keep up with what I did in college 20 years ago.  (I wish I kept my assignments!)  This means a historical analysis might not be helpful.
+
+- What is this co-req document?  Page after page after page on why you need to incude the people who drop out or fail to enroll in your comparisons, not just the failure rate.  That's a lot of pages for what should have been the obviously correct comparison.  Thankfully they finally said "survivor bias."  (!!!)
+
+WOW this is a lot of hand-holding.	
+
+Also, why is our peer a community college in Denver?
+
+- 	
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
