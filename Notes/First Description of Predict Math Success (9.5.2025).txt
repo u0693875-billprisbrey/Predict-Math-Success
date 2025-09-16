@@ -1,0 +1,57 @@
+First Description of Predict Math Success
+Luis Oquendo and Liz Conder
+9.5.2025
+
+We have a big need to address "Math Course Placement" on campus.  
+
+We gotta make sure students get into math in their first year.  Some analyses  that show a percentage of folks in math, descriptively, predicts retention.  Past work has shown evaluating old placement testing.  New one, "Alex", by math department.  We had an old one, took a break from using a placement test, then solely relied on ACT and GPA, but feedback from advisors is that self-placement into math was wrong.  
+
+Luis has 2 philosophies.
+
+But placement test making a comeback as new "ALEX."
+
+Do we have enough math classes?  Capacity?  If we don't can get them into the right math or skip math if they don't need the introductory?
+
+One project is MATH PLACEMENT.  What doing to place students in proper math class?  Succeeding?  Predictor variables (obviously GPA for one.)  What do we accept as success?  A grade?  C grade?
+
+First and foremost is the predictive variables of higher grades, Assoc, correlation, prediction, causality, in grades on math when they step into the U.  AP courses, enrollment courses, We don't have much.
+
+Collaborative project with Whitney.   It's really holistic because we do have to incorporate and think about where they are placing themselves.  Maybe doing it later on -- but anyway.
+
+Share the work that a Strong Start, national research that suggests high school GPA is highly predictive.
+
+Business problem or solv and support in short term, is, can inputs when a student is admitted, and can we suggest with levels of confidence, what math class they would be successful in?  (Defining success is critical.)
+
+Based on High School GPA -- highly likely here, but possibly do Math 2010 with a lower grade?  By next spring we'd hope to have provided data on for internal folks to make decisions.  Remove burden from student in taking the placement test.  
+
+Goal is to inform them to the point that they can AVOID taking the placement test.  
+
+The placement test has not gone well.  Students aren't taking it; don't want to take it.
+
+How predictive are the inputs to help them avoid the test.
+
+Years and years ago, we showed that you don't need the Accu-Placer.  Our inputs were sufficient.  As accurate without the test!   Problem is -- basically said, "Fine!  Don't need test!"  Not really our recommendation.   It became a negotiation between the student and advisor.  We missed out on the prescription of what math class to be in.
+
+This question is, "How to get the student into the right math?"  Anything we find along the way is super-valuable in real-time.  So many people working on this concept.
+
+Timeline -- by Thanksgiving? --> We need something solid by Jan/Feb, maybe March.  If we're in March with a plan then we'll have a slew of incoming students.  We don't need to be frantic in the fall, but solid work on this in fall and put the bow on it in January.
+
+Liz:  If we have findings to implement, registration in the fall opens up in the spring as we work towards things.  Any insights we can deliver along the way are very helpful to the planning and the pieces.
+
+What data can I use, including letter of application? --> Anything that came in with admissions application.  ACT, SAT, High School GPA, maybe a math AP class and those grades are in, the core data elements.  Previous students we have their course-taking data.  We don't care about their second year we want to see their first year.  And what grade they achieved and their major.  For ENGR majors, a limitation in the data is not predictable.  
+
+Demographic indicators (in-state vs out-of-state).  
+
+This might predict DFWI, another piece, and retention is in our data.  Math is a big predictor of failure to retain!
+
+Essays -- interesting to look at, but we can look at "readily available data" we have.  Whatever elements our data consumers can easily access and do it very quickly.  It needs to be very accessible.  The advisors and dep't chairs working with these day-in and day-out need to be able to interpret and access the student variables.    If we do something that's prescriptive, it needs to be easy.  
+
+Can I look at grades in subsequent course? --> Yes.  Everything is on the table.  We want to make sure everything is inline and in-scope.  With this stuff, there are so many analyses to branch out of it.  A strong foundation here and can branch elsewhere.  Around the corner is writing placements, but math gets way more complicated as a 
+
+Scope? --> First time freshman is the goal.  Transfer students is something we can get to later.
+
+Next steps:  I will get in contact with the other team members and set something up for more detail.  If I come up with a list of questions, we can plan to meet in more detail in the coming weeks.  
+
+People will be so excited for this work; it will be really and really helpful and well-received on campus.
+
+"STRONG START" toolkit talks about co-requisites and that's an interesting read and grounding on national work, by "Complete College America" on student success pieces.
