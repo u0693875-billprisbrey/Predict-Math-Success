@@ -250,13 +250,17 @@ TBD
 
 ## OBJECTIVES   
 
-  (1)  Identify popular math courses
+  (1)  Identify highest enrollment math courses
   (2)  Explore variability in grading by instructor
   (3)  Identify common sequences of math courses
   (10) Publish skim description of the data    
 
 
-## (1) Identify popular math courses
+## (1) Identify high enrollment math courses
+
+The math courses with the largest enrollment in the database (dating back to 2005) are Math 1050, 1210, and 1010, with greater than 20,000 enrolled students in each.  (Students who re-enroll are counted for every time they enroll.)
+
+Hierarchical clustering identifies seven more high enrollment courses differentiated by a natural break (as can be seen in the graphic, "Course attendance broken into three clusters.")  These courses are Math 1220, 1030, 1060, 2210, 1090, 1070, and 2250.
 
 ```{r}
 
@@ -287,7 +291,7 @@ plot(x = log(students_per_course[,"EMPLID"]),
      col = c("darkgoldenrod1","purple", "dodgerblue", "aquamarine3", "chocolate" , "forestgreen", "blue")[students_per_course[,3]],
      xlab = "Count of students (log)",
      ylab = "Count of instructors (log)",
-     main = "Course Attendance\nbroken into three clusters"
+     main = "Course attendance\nbroken into three clusters"
      )
 
 # Table
@@ -339,6 +343,20 @@ kbl(caption = "Count of students and instructors per course",
 ```
 
 ## (2) Explore variability in grading by instructor
+
+Grading is examined for these ten courses on an instructor-by-course basis.  
+
+An overall population mean GPA per course is calculated across all instructors.  Each instructor's mean GPA per course is calculated.  A standard error per instructor-course combination is estimated as the standard deviation of student GPAs divided by the square root of the number of students. 
+
+A z-score is then calculated per instructor as the instructor mean minus the population mean divided by the instructor's standard error.
+
+These are represented graphically in the two visualizations below.    
+
+The number of instructor-course combinations are tallied by their mean GPA shift and z scores, where a z score less than -1.96 or greater than 1.96 are significantly different at the 95% confidence level.  This is shown in the first table, "Count of instructors by mean GPA shift and z-score."
+
+The percentage of the total enrollment population in the instructor-course combinations are also shown in the second table, "Percentage of students by mean GPA shift and z-score."
+
+
 
 ```{r}
 
@@ -612,7 +630,7 @@ lapply(mostPopCourses, function(x){
 
 )
 
-mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor Mean GPA by Number of Students (Log Scale)")
+mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor mean GPAs by number of students (log scale)")
 mtext(outer = TRUE, side = 1, line = 0.5, text = "Mean instructor GPA")
 mtext(outer = TRUE, side = 2, line = 0.5, text = "Student count (log)")
 
@@ -649,7 +667,7 @@ teachersBySig |>
   #(\(x){x*100})() |>
   as.matrix() |>
     pheatmap(
-      main = "Count of instructors by mean GPA shift and z-score",
+      main = "Count of instructor-course combinations by mean GPA shift and z-score",
   cluster_rows = FALSE,   # turn off row dendrogram
   cluster_cols = FALSE,   # turn off column dendrogram
   display_numbers = TRUE, # show values
@@ -768,7 +786,7 @@ table(popCourses$EMPLID) |> (\(x){x[order(x, decreasing = TRUE)]})() |> head()
 
 ```
 
-Count of repeat students per course and the number of DFWI students per course may be good inidicators of poor math placement.    
+Count of repeat students per course and the number of DFWI students per course may be good indicators of poor math placement.    
 
 
 ```{r eval=FALSE}
