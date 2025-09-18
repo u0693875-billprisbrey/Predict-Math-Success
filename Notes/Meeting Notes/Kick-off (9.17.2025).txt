@@ -1,0 +1,235 @@
+
+Math Placement Project Discussion
+Kick-off meeting
+9.17.2025
+
+PEOPLE:  Luis Oquendo, Sarah Kim, Whitney Holt, Bill Prisbrey
+
+ACTION ITEMS:
+- Bill to lightly correct his business framing document and send to Sarah and Whitney (DONE)
+- Look at cohorts after Fall '21 with descriptive data
+- Whitney to perform a logistics regression and Bill to perform a decision tree
+- Meet in two weeks
+
+SUMMARY:
+- Academic leadership would like to promote taking math classes in the first year based on national studies.
+- Two primary objectives:
+	(a)  Do we have enough data to predict math performance?  Do we have good predictors?
+	(b)  Can we prescribe/recommend a math course?
+- Organizational pain points include a perception that students are struggling in math and limited math capacity for 1000 level courses.  
+- Saving costs by reducing students taking math placement tests is not a pain point.
+- Data sources include OBIA tables. It doesn't include math placement test scores (ALEKS), high school transcripts, or concurrent enrollment in the freshman year at other institutions (such as students who take math at SLCC because the U is out of capacity.)
+- Data can include first year credit load, but looking at "poison pairs" (or combinations of demanding classes with a high DFWI risk) is beyond the scope.
+- This will be the first of many student success requests.  Luis encourages us to meet without him and wants develop a good cadence and form well as a team
+
+
+NOTES:
+Luis:  Financials is the tip of the iceberg. Probably only assign us to work with "STUDENT_TERM_B."
+
+Those learning hours on finance are optional.
+
+There is talk on FAFSA data with limited access for us.  Before we look at it, we'd need to look at the MOU from the financial aid office before we started working on it.
+
+As leadership we are discussing-- schemas are available to look at, but should we have access?  Should we look at it?  Need to know how sensitive it is!
+
+MATH PLACEMENT PROJECT DISCUSSION:
+
+Asks us to look at Jason's analysis as a starting point.
+
+First thing I want to mention is --
+
+Math Placement.  And give us the lay of the land on the motivations and objectives.
+
+First, we have a "student success" issue and we want students to succeed in math in their first year. Initiative to get students into math and writing in their first year and all their Gen Ed.s
+
+But baby steps -- starting with math.  Getting them into MATH and also ensure they are succeeding.
+
+Course capacity issue -- student A goes into the right math class!  Want them to succeed without re-taking it (and taking a seat from the next cohort.)  All of that is tied to it.
+
+How well can we predict performance in math courses so we can make recommendations on where we should place incoming freshman?  We are excluding transfers.	
+
+How well can we predict performance with data that we have on students before they even do a semester or a class or a credit at the U?
+
+Academic preparedness in high school.  
+
+People will always want to know high school GPA and standardized test scores.  The usual stake holder understands both of those.	
+
+There's other data sources and variables, that we can find and utilize, but these two are front-of-mind because they are probably good predictors and also a lot of leadership citing national studies that look to these as predictor levels.	
+
+
+(a)  Do we have enough data to predict math performance?  Do we have good predictors?
+(b)  Can we prescribe/recommend a math course?
+
+These are the two high-level objectives.	
+
+Now we can get into questions and brain-storming on include/exclude.	
+
+
+Luis: We do have to work with timelines and timeframes on our stakeholders.  If we have a prescription of who into what class, our timeline is the next fall semester.  August of 2026.  This fall and a little bit of next spring semester.  Maybe as early as Feb of 2026.  I don't think it's too ambitious.
+
+There's other folks in the office also working on (a) how many students in these math/writing classes? 
+
+Believe it or not, right now a good chunk of our students aren't even in math classes in their first year.  Some of that is related to not enough capacity.  Some students aren't confident enough.  Some majors in some colleges will put off their math classes until Jr or Sr year.
+
+
+FIRST MATH CLASS ever ?  Or just First Time Freshman classes in their first year? 	
+
+We want to know how well they'll do in their first year as a prescription!
+
+Whitney:  Do they do better in math later? --> Not as a U study, but national studies.  Some times leadership says we're a snowflake.	
+
+Whitney:  Pre-cursor study to evaluate that? --> Yes.  We want to analyze or predictive variables.  But anything that is descriptive about what is going on in math performance wouldn't hurt.  Lots of dashboards showing DFWI rates are falling in 1000-level courses.  Most students won't take another again.	
+
+We have descriptives on first-time and transfers and everyone else.	We have percentages on others and all that stuff.  It's on the menu.  We're trying to tell a story here, first and foremost, on what's going on.  
+
+Bill: Anything on telling the story of math is time well spent.  --> Within the scope of math placement.  Can't go too deep into any particular aspect.	
+
+Luis: Like faculty that affect math, but we have a short window to give something that the lay person can act on.	
+Luis: Other people on campus simultaneously working on TA's and course performance.  That analysis is happening.  What do we do when we go to the math dep't and tell them to get rid of graduate assistants!  They won't do it.  And we can tell them we can control for all of that stuff.	 Given the short time window -- we might only provide half of the picture.  We're going to not-blindly but intentionally not looking into all things.	
+
+Bill:  What's wrong with the status quo?  Who's in pain that we're trying to fix? --> Struggling in math (anecdotally, perception-wise.)   
+
+Bill: What of the math dep'ts pre-requisites? --> Leadership is challenging that.  We want students to take math in the first year.  On the table as something that's being discussed.  But they are locked into putting students into math in year 1.
+
+Luis:  Use post-covid data.  We want the math department's perspective on placing students because historically it's been all over the place.  They (Math) might not have much of a choice if it's coming down from leadership.	
+
+Bill:  Leadership wants to know how well we can do in a new program of putting students in math in year one.
+
+Luis:  Math placement is optional by the math department.  We're discussing another pain point, not from math, but from advisors that if students are going to take the math placement test and we're not going to get them into another class and leave another open seat for the lower math class, then we have to ask them
+
+PAIN POINT IS CAPACITY -- want to optimally distribute students in math classes.  --> YES.
+
+Bill: Put them in the easiest class possible!  Get a high grade and graduate!  
+
+We have to optimize -- we have (say) 1,000 seats for Math 1050 and we have to get the best people in there!
+
+CAPACITY is the biggest motivator (with the cover of student success.)  We want math early on.
+
+CAPACITY and not push back on Year One math agenda, but asking what's the best we can do with Year One math ?
+
+We're at 90% capacity for intro writing!  But you can test out of it.
+
+More background:
+
+  We had the accu-placer for years.  Students had to take it to test out.  Doing the same thing, with the ALEKS implemented this year. Math dep't might have some after the fall semester.   Said the ACT/GPA as good as the Accu-placer, so students self-placed themselves into Math.  The Math dep't allowed it with some oversight.  However advisors would  not like that as they were putting themselves into wrong math class.  I don't know the motivation for ALEKS.  The DWF was magnified, as although going down it's still not an "acceptable" rate.  Lots of attention on it.  
+
+We've gone back and forth on the accu-placer.  Putting a magnififying glass on math performance.  COURSE CAPACITY and STUDENT SUCCESS.  We just need to know -- do we have good predictors?
+
+Bill: Do we love ALEKS?  Or save on the cost of it? --> TBD.  Math Dep't invested in it.  Students aren't taking it anyway. We need another mechanism to make sure they are in the right math class.  
+
+This is the practice round for writing placement.  They also refuse to take the writing placement, and it's super-filled.  We can't make students take a placement test.	
+
+Bill: Students aren't challenging themselves but taken the easiest class they can get into? --> Some students are.  Some students who aren't sure of themselves are taking classes too easy.	
+
+Luis: I don't know how strong the prescription will be.  The bottom line is we want to give advisors the tool to say, "You'll be o.k.", AND ...there's capacity!	
+
+DATA:  
+Start with FALL 2021 co-hort.  Let's start with that co-hort and keep going up, unless anyone wants to go to prior cohorts of data.  
+
+Bill: Would love to see prior, to bolster the case --> Sure, prioritize Fall 2021 afterwards.	
+
+Luis:  First year math classes?  Or first math classes? --> Whitney: Depends on the program.  As a control?
+
+Luis:  We kind of know, if you look at incoming freshmen metrics, at least with standardized, see a big difference in math and majors.  Other part is -- Fall 2021 co-horts, going to be plenty of students who have not attempted math yet.  I don't know how much we'll exclude.  Fall 2021 haven't taken their required math yet!  And still students!  I don't know how big of a group that is.  They'll get thrown out of the analysis.  
+
+STEM takes math right away; everyone else is a mixed bag.  Some colleges put math off until their senior year.	Others, whenever.  
+
+Luis:  Maybe we do a little bit of exploration on the data as far as counts of students on who is taking what, before we control for major, we do a little exploration.  
+
+I'm not telling you to use the dashboards, but it's some background knowledge.  
+
+Concurrent enrollment -- could skip math but students don't.
+
+Plenty of students do math req'ts at SLCC as they can't get a seat here.  Then re-take it here!
+
+Too much time to find them.  Data's not there.	
+
+Are we tying to bigger student success metrics? Or just probability of grades in math classes?	
+
+NO high school transcripts	
+
+Bill:  Maybe Fine Arts folks won't retain if we force math too early? --> Unintended consequences of what happens -- Phase 2.x of this project. Maybe we can show it. 
+
+
+It might not hurt to break this down by major to run models by college.  See results by major college might be good, too.  
+
+Bill: Poison pairs?  Credit loads? --> Poison pairs is tough; can do credit loads.
+
+Luis:  Pie in the sky from leadership is "math and writing all in the same term."   This is in development for Fall '25 folks.  Freshman not enrolled -- 60%.  And enrolled in both is relatively rare.	
+
+Next Steps:  Let's look at cohorts after Fall '21 how many took math in Year One (Fall/Spring) I guess we could include summer as a lagging term.  First Fall or First Spring and see how many students we have.
+
+From Cohorts  from Fall '21 to Fall '24 how many have even taken math to see our data population.	
+
+Luis:  Edit business framing; he's "Dr."  Call Liz as "Liz."  Then send out to Whitney/Sarah.  
+
+Share the business framing and get input.  Then add Dr. Paul Cohn as a stakeholder, want to talk to math dep't folks to get what they are thinking.   Probably most interested stake-holder.  Sr Vice Provost for Student Success.	
+Sarah: Student success? --> High school GPA as predictive for 'x' is a hard call on how we define success.  We need to say, "If we have high school GPA, we can get to --here---" and force someone else to define success.  
+
+Bill:  Maybe it's 70% shot at getting an 'A'.  
+
+Sarah:  About CAPACITY, are we going to include a second choice recommendation?  --> Good to explore that.	
+
+Bill:  Whitney does a logistic regrsession, Bill does a decision tree, and meet in a week? --> Luis:  Meet in two weeks.
+
+Feel free to meet without me.	
+
+This is a good first student success predictive analysis that will be one of many.  Let's make sure we get a good cadence on this with good reps on this.  Gelling really well on this.	
+
+Touch base as a group in a couple of weeks.  In-between, ping as needed and work with each other.	
+
+
+We have a new Exec Ass't, Christina, might be handling his calendar.  
+
+If you have anything you want to pursue, go for it -- but don't lose sight of the objectives!  Once we present they'll ask all the questions.  As soon as they open the door, they'll ask a lot of things.	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+

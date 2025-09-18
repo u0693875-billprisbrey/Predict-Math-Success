@@ -1,0 +1,67 @@
+Analytical framing notes
+9.17.2025
+Factors that influence math grade
+
+
+Instructor lenience/strictness
+Time since last math class
+Class timing (early Monday morning?  Late Friday afternoon?)
+Course load
+Other demanding courses / poison combinations
+Class size / individ attention
+
+
+Math ability: 
+  Test scores
+  Number of AP credits and GPA
+  (What if they are just good at math and are lazy?)
+  Major declaration
+
+Study ability:
+  High school GPA
+  Number of AP credits and GPA
+  High school (college high school / private high school)
+  Commute time/Distance from campus/living on campus
+
+
+Student success metrics:
+  Subsequent course GPA	
+  Switching majors	
+  Years to graduate	
+  DFWI credits	
+  Retention / drop out	
+  Persistence / transfer (?  Do we have transfer information?)
+  Educational ROI -- grad school placement and first year earnings (what a myopic metric)
+
+
+How much does Year 1 math performance predict Year 4 outcomes?  (Major/GPA/course credits)
+
+Diff't cut-offs for diff't majors?  STEM vs non-STEM
+What majors require what math?  At what cut-offs?	
+
+
+Assumption with the levels of passing math classes.
+What are the DWI rates for math vs non-math in first year?  Is it Math that's fouling them up, or is it something else?
+
+Add that's the baseline -- you won't get below that.  
+
+What other classes are they flunking?  Where else is a DWI? Why would they ride out math if failing elsewhere?	
+
+Mode -- 
+
+Read in High School Transcipts from USHE, but IT shut it down because we had to pass identifying information to it.
+USHE is insistent that name and birthdate aren't identifying (??!)  Been dead in the water but the convo is still taking place in the background.
+
+No math mentions in application letters, not explicitly.  References to robotics and engineering teams, though.
+
+There is a data source, though -- this has their senior year courses.   A couple of years of it.
+
+Could send me the math courses -- sent.
+
+BIPR.slate
+
+
+
+
+
+

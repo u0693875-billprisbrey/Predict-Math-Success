@@ -25,6 +25,9 @@ oldPar <- par(cex.main = 3,
 
 library(here)
 library(skimr)
+library(pheatmap)
+library(grid)
+
 
 ```
 
@@ -511,7 +514,7 @@ legend("topleft", x)
   })
 )
 
-mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "GPA Confidence interval per instructor")
+mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor mean GPAs with 95% confidence intervals")
 mtext(outer = TRUE, side = 1, line = 0.5, text = "Instructor sorted by z-score")
 mtext(outer = TRUE, side = 2, line = 0.5, text = "Mean instructor GPA")
 
@@ -601,13 +604,15 @@ lapply(mostPopCourses, function(x){
      # main = paste(x, "\ninstructor strictness by z-score")
      )
 
+  abline(v = unique(courseInst$GPA.course[plotFilter]), col = "lightgreen", lwd = 2)
+  
   legend("topright", x)
   
 })
 
 )
 
-mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor variability in student grades")
+mtext(outer = TRUE, side = 3, line = 0.5, font = 2, text = "Instructor Mean GPA by Number of Students (Log Scale)")
 mtext(outer = TRUE, side = 1, line = 0.5, text = "Mean instructor GPA")
 mtext(outer = TRUE, side = 2, line = 0.5, text = "Student count (log)")
 
@@ -615,6 +620,8 @@ mtext(outer = TRUE, side = 2, line = 0.5, text = "Student count (log)")
 
 
 ```{r}
+
+# Calculate flags for significance and size of the difference
 
 # I want a table that is % of instructors and students below 1.96, in the middle, and greater than 1.96.  
 
@@ -625,6 +632,43 @@ courseInst$mean.diff <- courseInst$GPA.mean - courseInst$GPA.course
 courseInst$diff.flag <- cut(courseInst$mean.diff, c(min(courseInst$mean.diff, na.rm = TRUE), -0.6,-0.3,0,0.3,0.6,max(courseInst$mean.diff, na.rm = TRUE)))
 
 courseInst$zflag <- cut(courseInst$zscore, c(min(courseInst$zscore, na.rm=TRUE), -1.96, -1, 0, 1, 1.96, max(courseInst$zscore, na.rm=TRUE)))
+
+
+```
+
+
+
+
+```{r}
+
+
+teachersBySig <- xtabs(~ zflag + diff.flag, data = courseInst)
+
+teachersBySig |>
+  #proportions() |>
+  #(\(x){x*100})() |>
+  as.matrix() |>
+    pheatmap(
+      main = "Count of instructors by mean GPA shift and z-score",
+  cluster_rows = FALSE,   # turn off row dendrogram
+  cluster_cols = FALSE,   # turn off column dendrogram
+  display_numbers = TRUE, # show values
+  number_format = "%.0f", # integer formatting (no decimals)
+  fontsize_number = 10,   # size of numbers
+  color = colorRampPalette(c("white", "lightblue", "blue"))(50)
+)
+
+grid.text("Mean GPA shift", y = unit(0.03, "npc"))
+grid.text("Z-score",  x = unit(0.95, "npc"), rot = 270)
+
+
+```
+
+
+
+
+```{r}
+
 
 diffBySig <- xtabs(student_count ~ zflag + diff.flag, data = courseInst)
 
@@ -637,7 +681,7 @@ diffBySig |>
   (\(x){x*100})() |>
   as.matrix() |>
     pheatmap(
-      main = "Percentage of Students by Mean GPA Shift and Z-Score",
+      main = "Percentage of students by mean GPA shift and z-score",
   cluster_rows = FALSE,   # turn off row dendrogram
   cluster_cols = FALSE,   # turn off column dendrogram
   display_numbers = TRUE, # show values
@@ -649,26 +693,30 @@ diffBySig |>
 grid.text("Mean GPA shift", y = unit(0.03, "npc"))
 # grid.text("Along the left",   x = unit(0.02, "npc"), rot = 90)
 # grid.text("Along the top",    y = unit(0.98, "npc"))
-grid.text("Z score",  x = unit(0.905, "npc"), rot = 270)
+grid.text("Z score",  x = unit(0.95, "npc"), rot = 270)
 
 # this makes it look like a third are pushed too high or too low
 
 # I'd like to draw a red rectangle around them,
 # but it's getting kinda hard
 
-grid.rect(
-  x = 0.5,          # horizontal position (0 = left, 1 = right)
-  y = 0.5,          # vertical position (0 = bottom, 1 = top)
-  width = 0.3,      # width of the rectangle
-  height = 0.2,     # height of the rectangle
-  gp = gpar(
-    col = "red",    # border color
-    fill = NA,      # transparent inside
-    lwd = 4         # border thickness
-  )
-)
+# I could revive this, but it's difficult to place manually and probably won't translate to different mediums
+
+# grid.rect(
+#  x = 0.15,          # horizontal position (0 = left, 1 = right)
+#  y = 0.9,          # vertical position (0 = bottom, 1 = top)
+#  width = 0.2,      # width of the rectangle
+#  height = 0.15,     # height of the rectangle
+#  gp = gpar(
+#    col = "red",    # border color
+#    fill = NA,      # transparent inside
+#    lwd = 4         # border thickness
+#  )
+#)
 
 ```
+
+
 
 ```{r eval=FALSE}
 
@@ -691,7 +739,7 @@ Conclusion:
   
   (2) That student abilities are not randomly distributed and there is some kind of sorting going on    
   
-  (3) That [x]percentage of students are shifted by at least 0.3 GPA at a 95% significance level
+  (3) That  percentage of students are shifted by at least 0.3 GPA at a 95% significance level
 
 
 Possible next steps:    
@@ -720,7 +768,7 @@ table(popCourses$EMPLID) |> (\(x){x[order(x, decreasing = TRUE)]})() |> head()
 
 ```
 
-Probably worth investigating further.   
+Count of repeat students per course and the number of DFWI students per course may be good inidicators of poor math placement.    
 
 
 ```{r eval=FALSE}

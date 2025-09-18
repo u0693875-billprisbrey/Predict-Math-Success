@@ -149,12 +149,31 @@ TBD
 
 ![](Math-Courses-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
+
+
+
+
+
+
+![](Math-Courses-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+
+
+
+![](Math-Courses-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+
+
+
+
 Conclusion:  
 
   (1) That there is large variation in grading between instructors    
   
   (2) That student abilities are not randomly distributed and there is some kind of sorting going on    
   
+  (3) That  percentage of students are shifted by at least 0.3 GPA at a 95% significance level
+
 
 Possible next steps:    
 
@@ -167,7 +186,7 @@ Predict instructor z-score using:
 
 ## Frequent Fliers
 
-![](Math-Courses-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](Math-Courses-Exploratory-Data-Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```
 ## 
@@ -175,7 +194,7 @@ Predict instructor z-score using:
 ##       20       17       16       16       16       15
 ```
 
-Probably worth investigating further.   
+Count of repeat students per course and the number of DFWI students per course may be good inidicators of poor math placement.    
 
 
 

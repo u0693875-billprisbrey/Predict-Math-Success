@@ -7,9 +7,7 @@ output:
     keep_md: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 **PURPOSE:**  This document creates the initial business framing for investigating math success; its relation to student success metrics as prioritized by academic leadership; and recommending math course placement for incoming first time freshman. This is a living document and may be continuously updated with feedback and new information. 
 
