@@ -1,0 +1,152 @@
+Meeting Notes, Raw Data Review
+9.19.2025
+
+
+Ultimate goal is -- place students into classes.  
+
+We can't suggest solutions
+
+Only information -- is about three factors.	
+
+
+Handing off --all-- dashboards to her and Sarah
+
+All student success and transformative leaders (4 -6 leaders with various projects)
+  They all report to Dr. Brandon Johnson
+
+
+Regular day-to-day adhoc stuff.
+
+
+Luis says:  I just want high school stuff-- that's all I'm doing.
+
+Luis is in rooms where we'll never set foot
+
+
+FACTORS THAT AFFECT GRADE:  
+
+Academic Preparedness (if you took AP Calc in high school, only pass AP tests by skin of teeth, diff't level of preparedness, a 3 instead of a 5.  Math 1050 in HS and you did great then probably ready for the next course with a C- you probably aren't ready.)
+
+
+Math ability (good at math or not)	
+Study ability (studious/disciplined)
+Tutoring	
+Available time for studying (whether they have a part time job / full time job)
+How many other credits they are taking	
+Course combinations / other demanding courses	
+
+Time of day for the class (early AM or late evening)
+Class size / class capacity (how stressed out teachers are)	
+
+Class modality	
+
+Do they have a T.A. 
+Grading responsiveness / fast grading and feedback	
+
+Tutoring
+
+MOTIVATION -- does major have anything to do with math, or is it just a GenEd req't ?
+
+
+
+Time since last math class / math freshness 	
+
+Instructor leniency	
+
+
+
+WORK REPOSITORY? 
+  Create a "predict math success" U-box folder and a "recommend math course" U-box folder	
+
+Do I have access to "Box" on my folder.  When I log in onto the web,  I can manage permissions there.  Had him do a UGS,  and an "Analytics Reporting" folder	
+
+
+MOTIVATION x ABILITY = PERFORMANCE 
+
+Classes in which I know the other students / study groups / friends.  A BIG factor in whether I had a community around me or not.	
+
+
+DISTANCE TO CAMPUS (subset of study time / long commute?  And community)
+
+
+Looking at the data:
+
+Do we have a field that says what they are when 
+
+
+FTF Freshman, and just by cohort.  Pulled the minimum term for each student in which they took a math course.  And then subtract the first time they took math from the co-hort term and first math
+
+Fresh/Soph is credit-based and not time-based.	
+
+Credit breaks to determine level.   Can also look at the utility tables (but she doesn't use it very often.)	
+
+SUBTRACT THE COHORT TERM and that's the year to the math course.	
+
+Took the first time they took a math class and compared to the co-hort term and that's the first year.
+
+Spoiler:  80% of FTF take math class in their first year.  
+
+
+
+Just a check-in -- at the end of next week.  --> Sure.
+
+
+Whitney to send -- years until the first class
+
+All of it in SQL Developer.	
+How long until the first math class?
+
+
+I can open what she has in notepad as text.  She'll send me a web-link.	
+
+
+Her own folder called "Math Placement" -- when click on file name, and it opens into Web site.	
+
+This file will change as it's web-based.  
+
+ttps://uofu.box.com/s/oxf9yvui69by7d6a5o738odmryncwc0l
+
+6 seconds to query 23,000 lines. 
+
+Sometimes the VPN can throw off query time.	
+
+SQL Developer is optimized to only return first 50 rows.	
+
+
+Next will put together data set for the logistic regression.  
+
+Then some initial log regressions.	
+
+If I have Q's about the file, feel free to ask and talk about it.
+
+End of next week -- 
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

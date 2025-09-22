@@ -44,6 +44,12 @@ WHERE (
 queryEnd <- Sys.time()
 DBI::dbDisconnect(con.ds)
 
+
+print("Query time:")
+print(queryEnd - queryStart)
+print("\nData dimension")
+print(dim(mathData))
+
 ##########
 ## SAVE ##
 ##########
