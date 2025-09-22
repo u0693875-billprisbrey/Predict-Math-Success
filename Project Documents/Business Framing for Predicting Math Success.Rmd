@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
   * *Can the University of Utah improve various student success metrics with improved math class placement for first time freshman?*    
   * *Can the University of Utah maintain student success metrics with math class placement recommendations in lieu of math placement tests?*    
   * *Can the University of Utah reduce the number of students required to take a math placement test with high confidence placement recommendations?*   
-  * *Can the University of Utah improve on the existing [placement and prerequsites guidelines](https://catalog.utah.edu/departments/MATH/overview)?*   
+  * *Can the University of Utah improve on the existing [placement and prerequisites guidelines](https://catalog.utah.edu/departments/MATH/overview)?*   
 
 **BACKGROUND:**
 
