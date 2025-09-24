@@ -147,23 +147,30 @@ pCourses <- merge(popCourses, ftfData[, c("EMPLID","COHORT_DT")], by = "EMPLID",
 
 # I've gone up from 199533 rows in mathCourses to 199661 rows in mData
 
-pCourses$yr_diff <-time_length(interval(pCourses$COHORT_DT, pCourses$EOTDATE), "years") %/% 1
+pCourses$yr_diff <- time_length(interval(pCourses$COHORT_DT, pCourses$EOTDATE), "years")
 
 hist(pCourses$yr_diff)
 
 # let's break that out by course
+
+# range(pCourses$yr_diff) # I should really turn this into the breaks programmatically
+
+library(viridis)
 
 par(mfrow = c(5,2), mar = c(4,2,0,0), oma = c(2,0,3,0))
 
 invisible(
 lapply(mostPopCourses, function(x) {
   
-  hist(pCourses$yr_diff[pCourses$course ==x], breaks = -8:18,
+  hist(pCourses$yr_diff[pCourses$course ==x], 
+       #breaks = -8:19,
        main = "", 
        #xaxt = "n",
-       xlab = "",
-       col = c(viridis::viridis(8, option = "inferno"), viridis::viridis(18, option = "viridis")))
-  legend("topleft",x)
+       xlab = ""#,
+       #col = c(viridis::viridis(8, option = "inferno"), viridis::viridis(18, option = "viridis"))
+       
+       )
+  legend("topright",x)
   
 })
 )
@@ -175,4 +182,139 @@ View(pCourses[pCourses$course == "MATH_2250",
 #  I think I want fractions of a year, maybe to two decimals,
 # not the whole year.
 
+# And that pretty much eliminates the weird <0 values.
 
+# I wonder if I want a density plot, each line a course?
+# I wonder if I want a barplot per course, each segment the percentage
+# of students per year?
+
+# Instead of raw years counting up from 0,
+# I wonder if I want to scale it between 0 and graduation date?
+
+# Am I studying the wrong courses?  Do I want GenEd courses only?
+# Are Math 2210 & 2250 under investigation?  They have a lot of Year 1 takers
+
+# Density per course
+
+par(mar = c(2,2,2,1))
+
+# Make an empty plot first
+plot(NULL, 
+     xlim = c(-2,5),
+    # xlim = range(pCourses$yr_diff, na.rm = TRUE),
+     ylim = c(0, 2.25), # adjust depending on your data
+     xlab = "Years", ylab = "Density",
+     main = "Density by Course")
+
+# Assign colors
+cols <- viridis::viridis(length(mostPopCourses), option = "D")
+
+# Loop through courses and add density lines
+for (i in seq_along(mostPopCourses)) {
+  x <- mostPopCourses[i]
+  vals <- pCourses$yr_diff[pCourses$course == x]
+  lines(density(vals, na.rm = TRUE), col = cols[i], lwd = 2)
+}
+
+legend("topright", legend = mostPopCourses, col = cols, lwd = 4, cex = 0.4)
+
+
+# people have pretty much taken these courses within the first 2 years
+# I wonder if I want to create a "term" ability, counting 3 per year, rather
+# rather than years?
+
+# There's an interesting transition from the majority in Semester 1,
+# to the majority in Semester 2, to Year 2
+
+# looks like an opportunity for clustering
+
+robber <- lapply(mostPopCourses, function(x) {
+  
+  density(pCourses$yr_diff[pCourses$course == x])
+  
+}
+)
+
+xogger <- do.call(cbind, lapply(robber, function(x){x[["x"]]} ) )
+yogger <- do.call(cbind, lapply(robber, function(x){x[["y"]]} ) )
+
+# sheesh chatGPT makes this insanely easy
+# I had never heard of the function "approx"
+
+# 1. Choose a common grid across all data
+x_grid <- seq(min(pCourses$yr_diff, na.rm = TRUE),
+              max(pCourses$yr_diff, na.rm = TRUE),
+              length.out = 512)
+
+# 2. Function to compute density on the common grid
+get_density_on_grid <- function(vals, grid) {
+  d <- density(vals, na.rm = TRUE)
+  approx(d$x, d$y, xout = grid, rule = 2)$y
+}
+
+# 3. Build a matrix of densities (rows = courses, cols = grid points)
+dens_matrix <- sapply(mostPopCourses, function(course) {
+  vals <- pCourses$yr_diff[pCourses$course == course]
+  get_density_on_grid(vals, x_grid)
+})
+
+dens_matrix_scaled <- scale(dens_matrix)
+
+# transpose for clustering
+
+dens_matrix <- t(dens_matrix)  # rows = courses, columns = grid points
+rownames(dens_matrix) <- mostPopCourses
+
+dens_matrix_scaled <- t(dens_matrix_scaled)
+rownames(dens_matrix_scaled) <- mostPopCourses
+
+# cluster
+
+dens_matrix |>
+  dist() |>
+  hclust() |>
+  plot()
+
+
+dens_matrix_scaled |>
+  dist() |>
+  hclust() |>
+  plot()
+
+# same groupings of 3 for either one
+
+timingCluster <- dens_matrix_scaled |>
+  dist() |>
+  hclust() |>
+  cutree(k=3)
+
+# now let's plot that on three graphs
+
+
+# Density per course
+
+par(mfrow = c(3,1), mar = c(2,2,2,1))
+
+for(cluster in unique(timingCluster)){
+
+# Make an empty plot first
+plot(NULL, 
+     xlim = c(-2,5),
+     # xlim = range(pCourses$yr_diff, na.rm = TRUE),
+     ylim = c(0, 2.25), # adjust depending on your data
+     xlab = "Years", ylab = "Density",
+     main = "Density by Course")
+
+# Assign colors
+cols <- viridis::viridis(length(mostPopCourses), option = "D")
+
+# Loop through courses and add density lines
+for (i in seq_along(names(timingCluster[timingCluster == cluster]) ) ){
+  x <- mostPopCourses[i]
+  vals <- pCourses$yr_diff[pCourses$course == x]
+  lines(density(vals, na.rm = TRUE), col = cols[i], lwd = 2)
+}
+
+legend("topright", legend = names(timingCluster[timingCluster == cluster]) , col = cols, lwd = 4, cex = 0.8)
+
+}
