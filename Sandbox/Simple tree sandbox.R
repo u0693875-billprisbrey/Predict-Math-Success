@@ -484,7 +484,8 @@ ggplot(grade_perf, aes(x = Grade, y = Accuracy)) +
 # create a new script and run that in the background
 
 
-saveRDS("fit", here::here("Models", "Simple tree sandbox model.R"))
+saveRDS("fit", here::here("Models", "Simple tree sandbox model.R")) # oops, I saved the string "fit" not the object fit
+
 
 
 # I need to predict WHICH COURSE (!duh!)

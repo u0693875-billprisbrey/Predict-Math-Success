@@ -289,7 +289,7 @@ endTime <- Sys.time()
 
 print(endTime-startTime)
 
-saveRDS("fit", here::here("Models", "Decision Tree Course yA0 model.R"))
+saveRDS(fit, here::here("Models", "Decision Tree Course yA0 model.R"))
 
 library(beepr)
 beep(0); Sys.sleep(3); beep(0); Sys.sleep(3); beep(0)

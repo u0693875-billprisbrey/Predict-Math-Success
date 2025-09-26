@@ -1,6 +1,7 @@
-# Decision Tree xA0
+# Decision Tree Course yA0 Evaluated
 
-# PURPOSE:  Run xgboost on 30% of the data; combine grades and filter out others
+# PURPOSE:  Predict COURSE instead of GRADE. 
+#           Run xgboost on 30% of the data; combine grades and filter out others
 
 library(caret)
 library(xgboost)
@@ -243,50 +244,79 @@ cleanData <- popCourses[cleanFilters,]
 
 cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
+# remove cleanGrade
+# cleanData <- cleanData[,-which(colnames(cleanData) %in% "cleanGrade")]
+
+keepColumns <- keepColumns[-which(keepColumns  %in% "cleanGrade")]
+
 ###########
 ## SPLIT ##
 ###########
 
 # Initially take a subset
 set.seed(123)
-subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.35, list = FALSE)
+subIndex <- createDataPartition(cleanData$course, p = 0.35, list = FALSE)
 popSample <- cleanData[subIndex, keepColumns]
 
 # No missing values
 popSample <- popSample[complete.cases(popSample),]
 
 set.seed(123)
-trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
+trainIndex <- createDataPartition(popSample$course, p = 0.8, list = FALSE)
 
 trainData <- popSample[trainIndex, keepColumns ]
 testData  <- popSample[-trainIndex, keepColumns ]
 
-###########
-## TRAIN ##
-###########
+courseFit <- readRDS(here::here("Models", "Decision Tree Course yA0 model.R"))
 
-startTime <- Sys.time()
-fit <- train(
-  cleanGrade ~ ., 
-  data = trainData,
-  method = "xgbTree",
-  trControl = trainControl(
-    method = "cv",          # cross-validation
-    number = 5,             # 5-fold CV
-    classProbs = TRUE,      # needed for probabilities
-    summaryFunction = multiClassSummary
-  ),
-  preProcess = c("zv", "nzv", "center", "scale", "knnImpute"), 
-  tuneLength = 5            # let caret tune hyperparameters
+course_pred <- predict(courseFit, newdata = testData)
+
+course_cm <- confusionMatrix(data = course_pred, reference = testData[,"course"])
+
+# Actual vs predicted counts
+actual_counts <- rowSums(course_cm$table)
+correct_counts <- diag(course_cm$table)
+
+# Proportion of each grade in test set
+prop_actual <- prop.table(table(testData$course))
+
+# Per-grade accuracy
+accuracy_per_course <- correct_counts / actual_counts
+
+# Expected accuracy by chance (proportion of that grade)
+baseline_per_course <- prop_actual[names(accuracy_per_course)]
+
+# Combine into a table
+course_perf <- data.frame(
+  Grade = names(accuracy_per_course),
+  Accuracy = as.numeric(accuracy_per_course),
+  Baseline = as.numeric(baseline_per_course)
 )
-endTime <- Sys.time()
 
-print(endTime-startTime)
+# Compute improvement over chance
+course_perf <- course_perf %>%
+  mutate(Over_Chance = Accuracy - Baseline) %>%
+  arrange(desc(Over_Chance))
 
-saveRDS(fit, here::here("Models", "Decision Tree xA0 model.R"))
+# Display
+print(course_perf)
 
-library(beepr)
-beep(0); Sys.sleep(3); beep(0); Sys.sleep(3); beep(0)
+
+library(ggplot2)
+
+# Replace NaN with 0 for accuracy
+course_perf$Accuracy[is.na(course_perf$Accuracy)] <- 0
+course_perf$Over_Chance[is.na(course_perf$Over_Chance)] <- -grade_perf$Baseline[is.na(grade_perf$Over_Chance)]
+
+# Plot
+ggplot(course_perf, aes(x = Course, y = Accuracy)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_point(aes(y = Baseline), color = "red", size = 2) +
+  geom_text(aes(y = Accuracy + 0.02, label = round(Accuracy, 2)), size = 3) +
+  labs(title = "Model Accuracy per Grade vs Baseline Proportion",
+       y = "Accuracy", x = "Grade") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 
