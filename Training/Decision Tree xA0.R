@@ -1,6 +1,6 @@
 # Decision Tree xA0
 
-# PURPOSE:  Run xgboost on 30% of the data; combine grades and filter out others
+# PURPOSE:  Run xgboost on 5% of the data; combine grades and filter out others
 
 library(caret)
 library(xgboost)
@@ -249,7 +249,7 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
 # Initially take a subset
 set.seed(123)
-subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.35, list = FALSE)
+subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.05, list = FALSE)
 popSample <- cleanData[subIndex, keepColumns]
 
 # No missing values

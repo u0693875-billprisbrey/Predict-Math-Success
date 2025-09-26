@@ -1,6 +1,6 @@
 # Decision Tree xA0 Evaluated
 
-# PURPOSE:  Run xgboost on 30% of the data; combine grades and filter out others
+# PURPOSE:  Run xgboost on 5% of the data; combine grades and filter out others
 
 library(caret)
 library(xgboost)
@@ -249,7 +249,7 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
 # Initially take a subset
 set.seed(123)
-subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.35, list = FALSE)
+subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.05, list = FALSE)
 popSample <- cleanData[subIndex, keepColumns]
 
 # No missing values
@@ -261,18 +261,30 @@ trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
 trainData <- popSample[trainIndex, keepColumns ]
 testData  <- popSample[-trainIndex, keepColumns ]
 
+################
+## LOAD MODEL ##
+################
+
 gradeFit <- readRDS(here::here("Models", "Decision Tree xA0 model.R"))
+
+##############
+## EVALUATE ##
+##############
+
+plot(varImp(gradeFit), main = "XGBoost on 5% data extract")
 
 grade_pred <- predict(gradeFit, newdata = testData)
 
 grade_cm <- confusionMatrix(data = grade_pred, reference = testData[,"cleanGrade"])
+
+# Wow... on 5% of the data I have GARBAGE.  Kappa of 0.1 and P-Val > .05 !
 
 # Actual vs predicted counts
 actual_counts <- rowSums(grade_cm$table)
 correct_counts <- diag(grade_cm$table)
 
 # Proportion of each grade in test set
-prop_actual <- prop.table(table(testData$cleanGRADE))
+prop_actual <- prop.table(table(testData$cleanGrade))
 
 # Per-grade accuracy
 accuracy_per_grade <- correct_counts / actual_counts
@@ -311,5 +323,21 @@ ggplot(grade_perf, aes(x = Grade, y = Accuracy)) +
        y = "Accuracy", x = "Grade") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# This plot needs a legend
+# And I find it kind of backwards, maybe?  Check out the gov't report 
+
+# Maybe this is too granular -- lump A's & B's, C's, D's, and then E/W/I ..?
+# Or make the grades ordinal? "E" is an "F" --> yes
+
+# next version will have
+# -- include S
+# -- Extract I/W (predict for just these)
+# -- Turn grades into ordinals
+# -- Or, lump the grades into A/B, C, D/E
+
+
+
+
 
 

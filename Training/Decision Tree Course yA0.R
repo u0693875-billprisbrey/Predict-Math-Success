@@ -1,7 +1,7 @@
 # Decision Tree Course yA0
 
 # PURPOSE:  Predict COURSE instead of GRADE. 
-#           Run xgboost on 30% of the data; combine grades and filter out others
+#           Run xgboost on 5% of the data; combine grades and filter out others
 
 library(caret)
 library(xgboost)
@@ -255,7 +255,7 @@ keepColumns <- keepColumns[-which(keepColumns  %in% "cleanGrade")]
 
 # Initially take a subset
 set.seed(123)
-subIndex <- createDataPartition(cleanData$course, p = 0.35, list = FALSE)
+subIndex <- createDataPartition(cleanData$course, p = 0.05, list = FALSE)
 popSample <- cleanData[subIndex, keepColumns]
 
 # No missing values

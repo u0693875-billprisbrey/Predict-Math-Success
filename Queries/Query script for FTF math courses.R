@@ -3,8 +3,8 @@
 
 # PURPOSE:  Experiment with queries for various goals--
 #  Only math courses taken by first time freshmen (ACCOMPLISHED HERE)
-#  Top math classes taken by first time freshman (do this in R)
-#  Combined demographics and courses (somehow) (TBD)
+#  Top math classes taken by first time freshman (DONE elsewhere)
+#  Combined demographics and courses (CURRENTLY merging in R elsewhere)
 
 library(here)
 
@@ -34,7 +34,7 @@ WHERE (
      OR UPPER(SUBJECT_LONG) LIKE '%MATH%'
      OR UPPER(SUBJECT)      LIKE '%MATH%'
       )
-  AND TERMEXTRACT = 'E'
+  AND TERMEXTRACT IN ('E','S')
   AND EMPLID IN (
         SELECT EMPLID
         FROM OBIA.FTF_DEMO_V
