@@ -1,0 +1,26 @@
+Musing on the first two models
+9.25.2025
+
+Historically, math placement has used high school transcripts and math placement tests.  I don't have access to either of those.
+
+What I can do is --- 
+  First, predict course placement.
+  Second, use that course placement and predict "W/I" or "Grade" category.
+  Filter out all predicted "W/I" values and run a second model
+  Third, convert grades to ordinal values and predict grades
+  Fourth, combine predictions ("W/I" and grade ordinal) for the final grade
+
+I should include the year as a prediction category.	
+
+If I am doing just grades, then I should consider re-balancing (probably "up sample")
+
+Are these math courses "ordinal" -- does one build on the previous one?  Or do they cover different skill sets?
+
+I'd like to do the "variable placement" and the SHAP values.
+
+...but I'm feeling a bit weaker about the whole enterprise, honestly.
+
+In the system I'm using to predict, there's a hidden intelligent decider that is trying to counter-act the various forces.	
+
+
+
