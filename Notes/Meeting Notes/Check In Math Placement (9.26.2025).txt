@@ -1,0 +1,25 @@
+Check In: Math Placement
+9.26.2025
+
+ACTION ITEMS:  
+ - Team to keep work folders private and share ready-to-share documents into the U drop box folder "Math Placement"
+ - Whitney to share her queries with Bill next week for his comparison
+ - Meet Next Friday for the next follow-up
+
+SUMMARY:
+  - Whitney walks through her queries, showing that most freshman take the math classes in their first year and that we are missing either ACT or high school GPA for a lot of students.	
+  - Bill asks questions about data:
+	* Needs to include "S" in his extract filter
+ 	* Filtering for math labs looks correct
+	* Grade "E" stands for "F"ailure
+	* Whitney shares link to the catalog: https://catalog.utah.edu/
+  - Bill shares his results:  poor prediction on a very small sample; density plots showing majority of classes taken in the first year; hierarchical clustering that identified the ten high volume classes
+
+  - Team discusses:  
+	- Split the grades into binary prediction class at C-minus or greater and at D-plus or lesser.
+	- Leadership wants to be led step-by-step and problems may not be worth a deeper dive until we are asked follow-up questions.
+	- Causal inference may be appropriate if people believe that poor math performance is causitive and not just predictive of student success; however this question can be kicked down the road if leadership interest persists.
+
+ 
+
+

@@ -22,5 +22,16 @@ I'd like to do the "variable placement" and the SHAP values.
 
 In the system I'm using to predict, there's a hidden intelligent decider that is trying to counter-act the various forces.	
 
+TO DO:
+- Add "S" to extract filter
+- Figure out CATNBR
+- Are math courses ORDINAL?
+- Convert grades into category (I/W vs ordinal), predict on IW, then predict on ordinal grades
+- Add year
+- Add pre/during/post COVID marker (?)  Has grading really changed before-and-after?	
+
+
+
+
 
 
