@@ -1,0 +1,1170 @@
+---
+title: "Evaluate Grade Decision Trees using vD0 models"
+output: html_document
+date: "2025-09-10"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+
+source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+target_classes <- c("GRADEGPA", "wdraw_binary", "grade_binary", "grade_trinary", "grade_quad")
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree vD0 ", target_classes, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  target_classes
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree vD0 ", target_classes, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  target_classes
+)
+
+
+```
+
+
+# CONCLUSION: 
+The prediction is really weak.  I don't think I could use these for ANYTHING.  Something else is causing the performance.  
+
+```{r}
+
+# predict(model_list[[1]], newdata = data_list[[1]][["testing"]][,"wdraw_binary"]) 
+
+# predict(model_list[[ target_classes[[3]] ]], 
+#         newdata =  data_list[[  target_classes[[3]]   ]][["testing"]]       
+#          ) |> table()
+
+
+thePredictions <- lapply(target_classes, function(x) {
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]])
+  
+} )
+names(thePredictions) <- target_classes
+
+# check
+# lapply(thePredictions[-1], table)
+# hist(thePredictions[[1]]) # went a little high I guess
+
+
+```
+
+
+```{r}
+
+theCMs <- lapply(target_classes[-1], function(x) {
+  
+  confusionMatrix(data = thePredictions[[x]],
+                  reference = factor(data_list[[x]][["testing"]][,x]) ,
+                  mode = "everything")
+  
+  
+})
+names(theCMs) <- target_classes[-1]
+
+sapply(theCMs, function(x){ 
+  
+  x[["overall"]]["Kappa"]
+  
+  }) |> plot()
+
+invisible(lapply(theCMs, drawCM))
+# Need to modify the title displayed
+
+
+```
+
+
+
+```{r}
+
+#########################
+## VARIABLE IMPORTANCE ##
+#########################
+
+par(mar = c(0,3,5,0))
+lapply(names(model_list), function(x){plot(varImp(model_list[[x]]), main = x)})
+
+# I need to figure out how to terrace these
+# Probably from plotting the underlying data
+
+varImp(model_list[[1]]) |> (\(x){(x$importance)})() |> as.matrix() |> rev() |> barplot(horiz = TRUE, beside = TRUE)
+
+# Getting there
+
+
+```
+
+
+
+```{r}
+
+# Now for the regression
+
+regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs Actual") {
+  if (length(pred) != length(reference)) {
+    stop("`pred` and `reference` must be the same length.")
+  }
+  
+  # Compute metrics
+  rmse <- sqrt(mean((pred - reference)^2))
+  mae  <- mean(abs(pred - reference))
+  r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2)
+  
+  # Print metrics
+  cat("Regression diagnostics:\n")
+  cat(sprintf("RMSE: %.4f\n", rmse))
+  cat(sprintf("MAE:  %.4f\n", mae))
+  cat(sprintf("R-squared: %.4f\n", r2))
+  
+  # Scatter plot
+  plot(reference, pred,
+       xlab = "Actual",
+       ylab = "Predicted",
+       main = plot_title,
+       pch = 19, col = "steelblue")
+  abline(a = 0, b = 1, col = "red", lwd = 2)  # 45-degree reference line
+  grid()
+  
+  # Return metrics invisibly as a list
+  invisible(list(RMSE = rmse, MAE = mae, R2 = r2))
+}
+
+pred <- thePredictions[["GRADEGPA"]]
+reference <- data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"]
+# pred = your predicted values
+# reference = your true grades
+
+regression_diagnostics(pred = pred,
+                       reference = reference)
+
+
+
+errors <- pred - reference
+
+# Scatter plot of errors by true grade
+plot(reference, errors,
+     xlab = "True Grade",
+     ylab = "Prediction Error (Predicted - True)",
+     main = "Prediction Errors by True Grade",
+     pch = 19, col = "steelblue")
+abline(h = 0, col = "red", lwd = 2)  # reference line: perfect prediction
+grid()
+
+# Optional: add a boxplot per true grade for clarity
+boxplot(errors ~ reference,
+        xlab = "True Grade",
+        ylab = "Prediction Error",
+        main = "Error Distribution by True Grade",
+        col = "lightblue")
+abline(h = 0, col = "red", lwd = 2)
+
+
+```
+
+
+```{r}
+
+# data frame per course
+
+results <- data.frame(
+  actual = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
+  predicted = thePredictions[["GRADEGPA"]],
+  course=data_list[["GRADEGPA"]][["testing"]][,"course"]
+)
+
+library(dplyr)
+course_metrics <- results %>%
+  group_by(course) %>%
+  summarise(
+    n=n(),
+    rmse = sqrt(mean((actual-predicted)^2)),
+    mae=mean(abs(actual-predicted)),
+    r_squared = cor(actual, predicted)^2
+  ) %>%
+  arrange(desc(r_squared))
+
+
+# > course_metrics
+# A tibble: 10 × 5
+#   course        n  rmse   mae r_squared
+#   <chr>     <int> <dbl> <dbl>     <dbl>
+# 1 MATH_1070   879 0.971 0.709     0.299
+# 2 MATH_1210  1848 1.02  0.777     0.271
+# 3 MATH_2250   972 0.996 0.740     0.253
+# 4 MATH_1090   735 1.10  0.845     0.239
+# 5 MATH_1010  2015 1.14  0.900     0.236
+# 6 MATH_1050  2100 1.17  0.929     0.233
+# 7 MATH_2210  1174 0.928 0.659     0.228
+# 8 MATH_1220  1603 1.02  0.763     0.223
+# 9 MATH_1060  1052 1.16  0.916     0.201
+# 10 MATH_1030   914 1.03  0.784     0.198
+
+```
+
+```{r}
+
+regression_diagnostics <- function(data, pred_col, ref_col, group_col = NULL) {
+  # data: data frame
+  # pred_col, ref_col: column names (strings)
+  # group_col: optional column name (string)
+  
+  if (!all(c(pred_col, ref_col) %in% names(data))) {
+    stop("Data must contain columns for prediction and reference.")
+  }
+  
+  if (!is.null(group_col) && !group_col %in% names(data)) {
+    stop("Grouping column not found in data.")
+  }
+  
+  # --------------------
+  # Grouped mode
+  # --------------------
+  if (!is.null(group_col)) {
+    groups <- unique(data[[group_col]])
+    n <- length(groups)
+    
+    # Set up plotting grid (square-ish layout)
+    nrow <- ceiling(sqrt(n))
+    ncol <- ceiling(n / nrow)
+    oldpar <- par(mfrow = c(nrow, ncol))
+    on.exit(par(oldpar))  # restore layout
+    
+    results <- lapply(groups, function(g) {
+      subset <- data[data[[group_col]] == g, ]
+      pred <- subset[[pred_col]]
+      reference <- subset[[ref_col]]
+      
+      # Metrics
+      rmse <- sqrt(mean((pred - reference)^2))
+      mae  <- mean(abs(pred - reference))
+      r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2)
+      
+      if (length(unique(reference)) < 20) {
+        # Boxplot for discrete actuals
+        bp <- boxplot(subset[[pred_col]] ~ factor(subset[[ref_col]]),
+                      xlab = "Actual",
+                      ylab = "Predicted",
+                      main = paste("Predicted vs Actual -", g),
+                      col = "lightblue")
+        
+        # Add a red reference line for each box
+        for (i in seq_along(bp$names)) {
+          actual_val <- as.numeric(bp$names[i])
+          segments(x0 = i - 0.4, y0 = actual_val,
+                   x1 = i + 0.4, y1 = actual_val,
+                   col = "red", lwd = 2)
+        }
+        
+      } else {
+        # Scatterplot for continuous actuals
+        plot(reference, pred,
+             xlab = "Actual",
+             ylab = "Predicted",
+             main = paste("Predicted vs Actual -", g),
+             pch = 19, col = "steelblue")
+        abline(a = 0, b = 1, col = "red", lwd = 2)
+        grid()
+      }
+      
+      # Return metrics
+      data.frame(Group = g, RMSE = rmse, MAE = mae, R2 = r2)
+    })
+    
+    return(do.call(rbind, results))
+    
+  } else {
+    # --------------------
+    # Ungrouped mode
+    # --------------------
+    pred <- data[[pred_col]]
+    reference <- data[[ref_col]]
+    
+    # Metrics
+    rmse <- sqrt(mean((pred - reference)^2))
+    mae  <- mean(abs(pred - reference))
+    r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2)
+    
+    if (length(unique(reference)) < 20) {
+      # Boxplot for discrete actuals
+      bp <- boxplot(data[[pred_col]] ~ factor(data[[ref_col]]),
+                    xlab = "Actual",
+                    ylab = "Predicted",
+                    main = "Predicted vs Actual (boxplot)",
+                    col = "lightblue")
+      
+      # Add a red reference line for each box
+      for (i in seq_along(bp$names)) {
+        actual_val <- as.numeric(bp$names[i])
+        segments(x0 = i - 0.4, y0 = actual_val,
+                 x1 = i + 0.4, y1 = actual_val,
+                 col = "red", lwd = 2)
+      }
+      
+    } else {
+      # Scatterplot for continuous actuals
+      plot(reference, pred,
+           xlab = "Actual",
+           ylab = "Predicted",
+           main = "Predicted vs Actual",
+           pch = 19, col = "steelblue")
+      abline(a = 0, b = 1, col = "red", lwd = 2)
+      grid()
+    }
+    
+    return(data.frame(RMSE = rmse, MAE = mae, R2 = r2))
+  }
+}
+
+
+
+```
+
+
+```{r}
+# let's see how that column works out
+
+regression_diagnostics(data = results,
+                       pred_col = "predicted",
+                       ref_col = "actual")
+# matches earlier version
+
+regression_diagnostics(data = results,
+                       pred_col = "predicted",
+                       ref_col = "actual",
+                       group_col = "course")
+
+# course filter
+
+resultsFilter <-results$course %in% c("MATH_1070", "MATH_1210", "MATH_2250")
+
+regression_diagnostics(data = results[resultsFilter,],
+                       pred_col = "predicted",
+                       ref_col = "actual",
+                       group_col = "course")
+
+
+results <- data.frame(
+  actual = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
+  predicted = thePredictions[["GRADEGPA"]],
+  year=data_list[["GRADEGPA"]][["testing"]][,"year"]
+)
+
+
+resultsFilter <-results$year %in% 2020:2023
+
+regression_diagnostics(data = results[resultsFilter,],
+                       pred_col = "predicted",
+                       ref_col = "actual",
+                       group_col = "year")
+
+
+
+
+```
+
+
+Is there a pocket of high accuracy?
+
+I think I should make sure all-l of these visualizations work,
+including a few more ---
+
+partial dependence plot
+
+hs.gpa vs act scores as axis, actual - predicted grade (connected by a line on a countour plot?)
+
+should I do a variable importance plot, where I shuffle a variable?
+
+correlate ?
+
+```{r}
+
+data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"]
+
+plot(x = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
+      y = data_list[["GRADEGPA"]][["testing"]][,"HSGPA"]
+      )
+
+boxplot(x = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
+      y = data_list[["GRADEGPA"]][["testing"]][,"HSGPA"]
+      )
+
+boxplot(HSGPA ~ GRADEGPA,
+              data = data_list[["GRADEGPA"]][["testing"]],
+              xlab = "Math Grade",
+              ylab = "High School GPA",
+              main = "HS GPA vs Math GPA (boxplot)",
+              col = "lightblue")
+
+boxplot(GRADEGPA ~ year,
+              data = data_list[["GRADEGPA"]][["testing"]],
+              xlab = "year",
+              ylab = "Math grade",
+              main = "HS GPA vs Math GPA (boxplot)",
+              col = "lightblue")
+
+# That's some impressive grade inflation  
+
+aggregate(GRADEGPA ~ year, data = data_list[["GRADEGPA"]][["training"]], function(x) 
+  {c(median(x), length(x))})
+
+# why is "year" in whole numbers,
+# and why is 'n' going down so much?
+
+boxplot(yr_diff ~ GRADEGPA,
+              data = data_list[["GRADEGPA"]][["testing"]],
+              xlab = "math grade",
+              ylab = "Year difference",
+              main = "Years at college vs Math GPA (boxplot)",
+              col = "lightblue",
+        outline = FALSE)
+
+# that's not a bad graphic
+# needs some causal inference, though, to pull conclusions from it.
+
+# ok, let's trouble-shoot my graphics, add some...
+# and wrap up today.
+
+
+```
+
+
+So I am looking at two things here:
+- Writing up this report
+- Comparing the data set
+
+If the data set compares, then I need to move to the next iteration of training (esp only using the first math class and possibly adding the number of credits in the first semester)  (I think there's something to also looking at the GPA for all of the other classes that semester.  I wonder if causal inference allows that kind of thing?)
+
+If the data set does NOT compare, then this becomes less interesting and I should re-run the training on this data set.
+
+I'm thinking I should also run the binary as a regression model to take advantage of the ordinal nature of the data.
+
+I'd also really like to know what the range of grades are for a prediction of, say, 2.7 or 3.0.  I guess that's my RMSE or MAE.  It's also rotating my boxplots on the side, or one box plot per prediction.
+
+Then there's reviewing my Claude convo and adding those conversations.
+
+And there's a couple of my other sandbox -- selecting classes via hierarchical clustering and the year_diff density plots (years to class)
+
+
+
+I need to see how the prediction/actual changes as one predictor changes
+
+
+
+I'd like to see something like an individual guidance chart, one per student, that gives the probabilities (contours?) of grades per course.
+
+So it has all the information we have about a student, and somehow tells them what their likelihood is.  
+
+In my mind (and I know this won't work) I am imagining ACT Math along one edge, and HS GPA along the other, and each cell is a color with the probability of getting greater than "X" score.  One graphic per course.
+
+It would make a cool widget in Shiny, that's for sure, where the student moves their widget up or down to determine their own cut-off dates.  
+
+The student could then add information to the widget, and get a personalized prediction.  They could add as much information as they'd like and with-hold others.  
+It would display something like an "expected grade" with error bars.
+
+I am imaginining ... I'm not sure what I'm imaginging.
+
+Something like each square represents a grade and a probability?  At the upper right corner is the highest probability, and the grade that appears in that corner changes based on the personal prediction. 
+
+Anyway, def leading towards "probabilistic guidance." 
+
+And I might as well try a per-course model.
+
+And (of course) restrict it to the first math class taken by the first-time-freshman
+
+
+I gotta show what I've got, though -- I need some show'n'tell.
+
+```{r}
+
+#############
+## CONTOUR ##
+#############
+
+testData <- data_list[["GRADEGPA"]][["testing"]]
+
+
+# Turn this into a function where you can specify values
+
+#for(course_name in unique(testData$course)) {
+#  course_data <- testData[testData$course == course_name, ]
+
+predictionContour <- function(data, 
+                              course_name = "MATH_1010",
+                              show_actual = FALSE,
+  SEX = "M",
+  FIRST_GEN_STATUS_CD = "N",
+  ETHNICITY = "C",
+  RESSTAT = "R",
+  FA_PELL = 0,
+  AGE = 18,
+  APCREDIT = 0,
+  HSPRIVATE = "N",
+  HONORS = 0,
+  ACTCOMP = 24,
+  ACTENGL = 24,
+  ACTSCI = 24,
+  year = 2019,
+  yr_diff = 0.75
+  ) {
+  
+  # subset the data
+  course_data <- testData[testData$course == course_name, ]
+  
+  # Create prediction grid
+  grid <- expand.grid(
+    HSGPA = seq(min(course_data$HSGPA), max(course_data$HSGPA), length.out = 50),
+    ACTMATH = seq(min(course_data$ACTMATH), max(course_data$ACTMATH), length.out = 50)
+  )
+  
+  # Add other predictors (replicate across rows)
+  grid$SEX                 <- SEX
+  grid$FIRST_GEN_STATUS_CD <- FIRST_GEN_STATUS_CD
+  grid$ETHNICITY           <- ETHNICITY
+  grid$RESSTAT             <- RESSTAT
+  grid$FA_PELL             <- FA_PELL
+  grid$AGE                 <- AGE
+  grid$APCREDIT            <- APCREDIT
+  grid$HSPRIVATE           <- HSPRIVATE
+  grid$HONORS              <- HONORS
+  grid$ACTCOMP             <- ACTCOMP
+  grid$ACTENGL             <- ACTENGL
+  grid$ACTSCI              <- ACTSCI
+  grid$year                <- year
+  grid$yr_diff             <- yr_diff
+  grid$course              <- course_name  
+  
+#   grid$course <- course_name
+    
+  grid$predicted_grade <- predict(model_list[["GRADEGPA"]], newdata = grid)
+  
+  # plot
+thePlot <- ggplot() +
+    # Heatmap of predictions
+    geom_tile(data = grid, aes(x=HSGPA, y=ACTMATH, fill = predicted_grade)) +
+
+    scale_fill_gradient2(low = "purple4", mid = "gray90", high = "darkcyan",  midpoint = 2.5, name = "Predicted\nGrade") +
+
+    labs(title = paste("Grade Predictions:", course_name), 
+         x="High School GPA", y = "ACT Math Score") +
+    theme_minimal()
+
+  if(show_actual){
+    thePlot <- thePlot +
+          # Actual student outcomes as points
+    geom_point(data = course_data, aes(x=HSGPA, y = ACTMATH, color = GRADEGPA), alpha = 0.6, size = 2) +
+          scale_color_gradient2(low = "darkorange2", mid = "yellowgreen", high = "darkgreen", midpoint = 2.5, name = "Actual\nGrade")
+    
+  }
+ 
+thePlot 
+  
+ }
+
+predictionContour(data = testData, course_name  = "MATH_1010")
+
+# anyway... I like it
+
+# except for the colors.
+
+```
+
+```{r eval = FALSE}
+
+# stuff used in building of contour map function
+
+ # Complete other variables
+  grid$SEX <- SEX
+  grid$FIRST_GEN_STATUS_CD <- FIRST_GEN_STATUS_CD
+  grid$ETHNICITY <- "C"
+  grid$RESSTAT <- "R"
+  grid$FA_PELL <- 0
+  grid$AGE <- 18
+  grid$APCREDIT <- 0
+  grid$HSPRIVATE <- "N"
+  grid$HONORS <- 0
+  grid$ACTCOMP <- 24
+  grid$ACTENGL <- 24
+  grid$ACTSCI <- 24
+  grid$year <- 2019
+  grid$yr_diff <- 0.75 # could use per-course values
+
+  
+  # plot
+  ggplot() +
+    # Heatmap of predictions
+    geom_tile(data = grid, aes(x=HSGPA, y=ACTMATH, fill = predicted_grade)) +
+    # Actual student outcomes as points
+    geom_point(data = course_data, aes(x=HSGPA, y = ACTMATH, color = GRADEGPA), alpha = 0.6, size = 2) +
+    scale_fill_gradient2(low = "purple4", mid = "gray90", high = "darkcyan",  midpoint = 2.5, name = "Predicted\nGrade") +
+    scale_color_gradient2(low = "darkorange3", mid = "gray90", high = "royalblue4", midpoint = 2.5, name = "Actual\nGrade") + 
+    labs(title = paste("Grade Predictions:", course_name), 
+         x="High School GPA", y = "ACT Math Score") +
+    theme_minimal()
+  
+
+```
+
+
+Why can't I simply subtract one from the prediction?  Won't that make it more accurate?
+
+
+I like that contour map.  Looking pretty good.
+...and it also shows how AWFUL it is!
+
+I still haven't answered if I have pockets of high accuracy. 
+
+
+```{r} 
+
+#################################
+## BINNED ACTUAL VS PREDICTIVE ##
+##            MEAN             ##
+#################################
+
+# This looks really good, actually, because the "mean" smooths out the actual spread
+
+# don't forget to add the prediction to the test data
+
+predictionBin <- function(data,
+                          course_name
+) {
+  
+  if(!"predicted" %in% colnames(data)) {
+  stop("Add column named 'predicted' with grade predictions.")
+  }
+    
+# Calculate bins
+  
+  course_data  <- data[testData$course == course_name, ] %>%
+  mutate(
+    gpa_bin = cut(HSGPA, breaks = quantile(HSGPA, probs=seq(0,1,0.25)),
+                  include.lowest = TRUE),
+    act_bin = cut(ACTMATH, breaks = quantile(ACTMATH, probs= seq(0,1,0.25)),
+                  include.lowest = TRUE)
+  )
+  
+# Calculate mean actual and prediction by bin
+
+summary_data <- course_data %>%
+  group_by(gpa_bin, act_bin) %>%
+  summarise(
+    mean_actual = mean(GRADEGPA),
+    mean_predicted = mean(predicted),
+    n=n(),
+    .groups = 'drop'
+  )  
+  
+# Plot
+
+ggplot(summary_data, aes(x=gpa_bin, y=act_bin)) +
+  geom_tile(aes(fill = mean_predicted), color="white") +
+  geom_text(aes(label=sprintf("Pred: %.2f\nActual: %.2f\n(n=%d",
+                              mean_predicted, mean_actual, n)),
+            size=3) +
+            
+scale_fill_gradient2(low = "red", mid = "yellow", high = "green", midpoint=2.5) +
+  labs(title=paste("Grade Predictions by Student Profile:", course_name)) +
+  theme_minimal()  
+
+}
+
+
+
+
+
+testData$predicted <- thePredictions[["GRADEGPA"]]
+
+course_data  <- testData[testData$course == "MATH_1010", ] %>%
+  mutate(
+    gpa_bin = cut(HSGPA, breaks = quantile(HSGPA, probs=seq(0,1,0.25)),
+                  include.lowest = TRUE),
+    act_bin = cut(ACTMATH, breaks = quantile(ACTMATH, probs= seq(0,1,0.25)),
+                  include.lowest = TRUE)
+  )
+
+# Calculate mean actual and prediction by bin
+
+summary_data <- course_data %>%
+  group_by(gpa_bin, act_bin) %>%
+  summarise(
+    mean_actual = mean(GRADEGPA),
+    mean_predicted = mean(predicted),
+    n=n(),
+    .groups = 'drop'
+  )
+
+# Plot
+
+ggplot(summary_data, aes(x=gpa_bin, y=act_bin)) +
+  geom_tile(aes(fill = mean_predicted), color="white") +
+  geom_text(aes(label=sprintf("Pred: %.2f\nActual: %.2f\n(n=%d",
+                              mean_predicted, mean_actual, n)),
+            size=3) +
+            
+scale_fill_gradient2(low = "red", mid = "yellow", high = "green", midpoint=2.5) +
+  labs(title=paste("Grade Predictions by Student Profile:", course_name)) +
+  theme_minimal()
+
+
+
+
+```  
+
+
+```{r}
+
+predictionBin2 <- function(data, course_name) {
+  
+  if(!"predicted" %in% colnames(data)) {
+    stop("Add column named 'predicted' with grade predictions.")
+  }
+  
+  # Subset for course
+  course_data <- data[data$course == course_name, ] %>%
+    filter(!is.na(HSGPA), !is.na(ACTMATH), !is.na(GRADEGPA), !is.na(predicted))
+  
+  # Create bins
+  course_data <- course_data %>%
+    mutate(
+      gpa_bin = cut(HSGPA, breaks = quantile(HSGPA, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                    include.lowest = TRUE),
+      act_bin = cut(ACTMATH, breaks = quantile(ACTMATH, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                    include.lowest = TRUE)
+    )
+  
+  # Summarise per bin
+  summary_data <- course_data %>%
+    group_by(gpa_bin, act_bin) %>%
+    summarise(
+      mean_actual    = mean(GRADEGPA),
+      mean_predicted = mean(predicted),
+      sd_predicted   = sd(predicted),
+      n              = n(),
+      .groups = 'drop'
+    )
+  
+  # Heatmap with spread overlay
+  ggplot(summary_data, aes(x = gpa_bin, y = act_bin)) +
+    geom_tile(aes(fill = mean_predicted), color = "white") +
+    geom_text(aes(label = sprintf("Pred: %.2f\nActual: %.2f\n(n=%d)", 
+                                  mean_predicted, mean_actual, n)),
+              size = 3) +
+    geom_point(data = course_data,
+               aes(x = gpa_bin, y = act_bin, color = predicted),
+               position = position_jitter(width = 0.2, height = 0.2),
+               alpha = 0.5, size = 1.5) +
+    scale_fill_gradient2(low = "red", mid = "yellow", high = "green", midpoint = 2.5,
+                         name = "Mean Predicted") +
+    scale_color_gradient2(low = "darkgreen", mid = "yellowgreen", high = "darkorange",
+                          midpoint = 2.5, name = "Predicted") +
+    labs(title = paste("Grade Predictions by Student Profile:", course_name),
+         x = "HSGPA Bin", y = "ACT Math Bin") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+
+
+```
+
+```{r}
+
+library(tidyr)
+predictionBin3 <- function(data, course_name) {
+  
+  if(!"predicted" %in% colnames(data)) {
+    stop("Add column named 'predicted' with grade predictions.")
+  }
+  
+  # Subset for course
+  course_data <- data[data$course == course_name, ] %>%
+    filter(!is.na(HSGPA), !is.na(ACTMATH), !is.na(GRADEGPA), !is.na(predicted))
+  
+  # Create bins
+  course_data <- course_data %>%
+    mutate(
+      gpa_bin = cut(HSGPA, breaks = quantile(HSGPA, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                    include.lowest = TRUE),
+      act_bin = cut(ACTMATH, breaks = quantile(ACTMATH, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                    include.lowest = TRUE)
+    )
+  
+  # Reshape to long format for boxplots
+  long_data <- course_data %>%
+    select(gpa_bin, act_bin, predicted, GRADEGPA) %>%
+    pivot_longer(cols = c(predicted, GRADEGPA),
+                 names_to = "type",
+                 values_to = "value")
+  
+  # Heatmap of bin counts (optional)
+  bin_counts <- course_data %>%
+    group_by(gpa_bin, act_bin) %>%
+    summarise(n = n(), .groups = 'drop')
+  
+  ggplot() +
+    geom_tile(data = bin_counts, aes(x = gpa_bin, y = act_bin, fill = n), color = "white") +
+    geom_boxplot(
+      data = long_data,
+      aes(x = gpa_bin, y = value, fill = type),
+      position = position_dodge(width = 0.8),
+      width = 0.35,
+      outlier.size = 0.5
+    ) +
+    scale_fill_manual(values = c(predicted = "lightblue", GRADEGPA = "orange"),
+                      name = "Type",
+                      labels = c("Predicted", "Actual")) +
+    labs(title = paste("Predicted vs Actual by Student Profile:", course_name),
+         x = "HSGPA Bin",
+         y = "Grade") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+
+```
+
+```{r}
+
+predictionBin4 <- function(data, course_name) {
+  library(dplyr)
+  library(ggplot2)
+  
+  if(!"predicted" %in% colnames(data)) {
+    stop("Add column named 'predicted' with grade predictions.")
+  }
+  
+  # Subset for course
+  course_data <- data %>%
+    filter(course == course_name,
+           !is.na(HSGPA), !is.na(ACTMATH), 
+           !is.na(GRADEGPA), !is.na(predicted))
+  
+  # Create bins
+  course_data <- course_data %>%
+    mutate(
+      gpa_bin = cut(HSGPA, 
+                    breaks = quantile(HSGPA, probs = seq(0,1,0.25), na.rm = TRUE), 
+                    include.lowest = TRUE),
+      act_bin = cut(ACTMATH, 
+                    breaks = quantile(ACTMATH, probs = seq(0,1,0.25), na.rm = TRUE),
+                    include.lowest = TRUE)
+    )
+  
+  # Prepare long-format data for boxplots (predicted vs actual)
+  long_data <- course_data %>%
+    select(gpa_bin, predicted, GRADEGPA) %>%
+    tidyr::pivot_longer(cols = c(predicted, GRADEGPA),
+                        names_to = "type",
+                        values_to = "value")
+  
+  # Plot: two boxplots per GPA bin
+  ggplot(long_data, aes(x = gpa_bin, y = value, fill = type)) +
+    geom_boxplot(position = position_dodge(width = 0.8), width = 0.35, outlier.size = 0.5) +
+    scale_fill_manual(values = c(predicted = "lightblue", GRADEGPA = "orange"),
+                      name = "Type",
+                      labels = c("Predicted", "Actual")) +
+    labs(title = paste("Predicted vs Actual by Student Profile:", course_name),
+         x = "HSGPA Bin",
+         y = "Grade") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+predictionBin4(data = testData,
+               course_name = "MATH_1050"
+               )
+
+```
+
+This bin4 looks terrible.  I don't quite believe it.
+
+Instead of four pairs, I wonder if I can have the four y-bins as well (sub-bins for the grade).
+
+Next, I need to do a pdp plot.
+
+And Claude has provided some code to find a leaf with high accuracy.  I'm surprised that this kind of use of decision trees isn't more common. 
+
+```{r}
+
+library(pdp)
+
+importance <- varImp(model_list[["GRADEGPA"]])
+top_vars <- rownames(importance$importance)[order(importance$importance$Overall, decreasing = TRUE)[1:3]]
+top_vars
+
+# For a single variable
+pdp_obj <- partial(object = model_list[["GRADEGPA"]], 
+                   pred.var = "HSGPA",
+                   train = model_list[["GRADEGPA"]]$trainingData,
+                   type = "regression")
+
+# Plot
+plot(pdp_obj, main = "Partial Dependence of HSGPA on Predicted Grade")
+
+
+```
+
+```{r}
+
+## PARTIAL DEPENDENCE PER COURSE ##
+
+library(pdp)
+library(ggplot2)
+
+# Courses to loop over
+courses <- unique(model_list[["GRADEGPA"]]$trainingData$course)
+
+# Function to make PDP for one course
+get_pdp_course <- function(course_name, pred_var = "HSGPA") {
+  model <- model_list[["GRADEGPA"]]
+  train_df <- model$trainingData[model$trainingData$course == course_name, ]
+  
+  # remove .outcome column
+#  train_df <- train_df[, setdiff(names(train_df), ".outcome"), drop = FALSE]
+  
+  # Create a "fixed" grid with all other predictors at their median / most common value
+fixed_vals <- train_df[1, ]  # take first row as default
+
+# Override course to the one you want
+fixed_vals$course <- course_name
+
+# Drop HSGPA because we want it to vary
+fixed_vals$HSGPA <- NULL
+  
+  # Partial dependence for HSGPA, fixing course
+  pdp_obj <- partial(
+    object = model,
+    pred.var = pred_var,
+    train = train_df,
+    type = "regression"
+  )
+  
+  pdp_obj$course <- course_name
+  pdp_obj
+  
+}
+
+# Loop through courses
+all_pdp <- lapply(courses, get_pdp_course, pred_var = "HSGPA")
+all_pdp_df <- do.call(rbind, all_pdp)
+
+# Plot faceted by course
+ggplot(all_pdp_df, aes(x = HSGPA, y = yhat)) +
+  geom_line(color = "steelblue") +
+  facet_wrap(~course) +
+  labs(title = "PDP of HSGPA by Course",
+       x = "High School GPA", y = "Predicted Grade GPA") +
+  theme_minimal()
+
+# I'd rather see one line per course
+
+ggplot(all_pdp_df, aes(x = HSGPA, y = yhat, color = course)) +
+  geom_line(size = 1) +
+  labs(title = "PDP of HSGPA by Course",
+       x = "High School GPA", y = "Predicted Grade GPA",
+       color = "Course") +
+  theme_minimal()
+
+```
+
+```{r}
+
+## PARTIAL DEPENDENCE PER COURSE AND ACTMATH ##
+
+# Loop through courses
+pdp_ACTMATH <- lapply(courses, get_pdp_course, pred_var = "ACTMATH")
+pdp_ACTMATH_df <- do.call(rbind, pdp_ACTMATH)
+
+
+ggplot(pdp_ACTMATH_df, aes(x = ACTMATH, y = yhat, color = course)) +
+  geom_line(size = 1) +
+  labs(title = "PDP of ACTMATH by Course",
+       x = "ACT Math Score", y = "Predicted Grade GPA",
+       color = "Course") +
+  theme_minimal()
+
+```
+
+
+```{r}
+
+# two variables
+
+pdp_obj <- partial(model, pred.var = c("HSGPA", "ACTMATH"),
+                   train = train_df, type = "regression")
+
+ggplot(pdp_obj, aes(x = HSGPA, y = ACTMATH, fill = yhat)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  labs(title = "Partial Dependence on HSGPA and ACT Math",
+       x = "HSGPA", y = "ACT Math") +
+  theme_minimal()
+
+# This is cool.
+# I kinda already did it with an over-lay of actual plots, though
+
+``` 
+
+
+
+```{r}
+
+## ACCURATE LEAVES ## 
+
+# Strategy 1:  Mine the XGBoost trees directly
+
+model_dump <- xgb.model.dt.tree(model = model_list[["GRADEGPA"]]$finalModel)
+
+leaves <- model_dump[Feature ==  "Leaf"]
+
+# Get leaf assignments
+
+leaf_ids <- predict(model_list[["GRADEGPA"]]$finalModel, newdata =  data_list[["GRADEGPA"]][["training"]][,-1] , predleaf = TRUE )
+
+leaf_ids <- predict(model_list[["GRADEGPA"]]$finalModel, newdata =  model_list[["GRADEGPA"]]$trainingData , predleaf = TRUE )
+
+
+leaf_analysis <- data.frame(
+  leaf_id = leaf_ids[,1], #use first tree for simplicity or iterate through all
+  actual_grade = 
+  
+)
+
+# hitting some walls with this one.
+# I'll look at it in the morning
+
+
+```
+
+
+```{r}
+
+# STRATEGY 3: RECURSIVE PARTITIONING TO FIND POCKETS  
+
+library(rpart)
+
+trainData <- data_list[["GRADEGPA"]][["training"]]
+
+trainData$pred <-  predict(model_list[["GRADEGPA"]], newdata =  trainData)  
+
+trainData$absolute_error <- abs(trainData$GRADEGPA-trainData$pred)
+
+startTime <- Sys.time()
+accuracy_tree <- rpart(
+  absolute_error ~ .,
+  data = trainData[,colnames(trainData[setdiff(colnames(trainData), c("GRADEGPA", "pred"))])],
+  control = rpart.control(
+   minsplit = 100,
+   maxdepth = 4,
+   cp = 0.01
+  )
+)
+  
+endTime <- Sys.time() # 0.75 sec # Wow, fast!
+
+plot(accuracy_tree) 
+text(accuracy_tree, cex = 0.8)
+
+# I can almost see it
+
+trainData$accuracy_leaf <- predict(accuracy_tree, newdata = trainData)
+
+leaf_summary <- trainData %>%
+  mutate(leaf_id = as.character(accuracy_leaf)) %>%
+  group_by(leaf_id) %>%
+  summarise(
+    n=n(),
+    mean_error = mean(absolute_error),
+    median_error = median(absolute_error),
+    pct_within_half_grade = mean(absolute_error<0.5)*100,
+    mean_hs_gpa = mean(HSGPA),
+    mean_act = mean(ACTMATH)
+  ) %>%
+  arrange(mean_error)
+
+print(leaf_summary)
+
+# I am struggling to interpret this.
+
+# here's more from Chat
+
+library(rpart.plot)
+
+# Aggregate mean error per leaf (for coloring)
+leaf_errors <- trainData %>%
+  group_by(accuracy_leaf) %>%
+  summarise(mean_error = mean(absolute_error), .groups = "drop")
+
+# Map leaf predictions to colors
+error_palette <- colorRampPalette(c("darkgreen", "yellow", "red"))  # low error = green, high = red
+n_leaves <- nrow(leaf_errors)
+leaf_colors <- setNames(error_palette(n_leaves), leaf_errors$accuracy_leaf)
+
+# Plot tree with rpart.plot
+rpart.plot(
+  accuracy_tree,
+  type = 3,               # type 3: label all nodes
+  extra = 101,            # display mean response and n in each node
+  box.palette = leaf_colors, # color nodes by mean error
+  shadow.col = "gray", 
+  fallen.leaves = TRUE,
+  tweak = 1.2
+)
+
+# well isnt that interesting.
+# pretty incredible, all told
+
+# I guess the hyper-achievers are pretty careful?
+# But it doesn't tell us which course to put them into
+
+
+# I will look at this in the morning, I guess
+
+  
+```
+
+
+
+
+
