@@ -1,0 +1,114 @@
+
+
+```{r include=FALSE}
+
+### Displaying confusion matrices and variable importance from Decision Tree Grades vD0 models
+
+```
+
+```{r include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE)
+
+library(caret)
+
+source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+target_classes <- c("GRADEGPA", "wdraw_binary", "grade_binary", "grade_trinary", "grade_quad")
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree vD0 ", target_classes, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  target_classes
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree vD0 ", target_classes, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  target_classes
+)
+
+
+```
+
+
+
+
+```{r}
+
+# predict(model_list[[1]], newdata = data_list[[1]][["testing"]][,"wdraw_binary"]) 
+
+# predict(model_list[[ target_classes[[3]] ]], 
+#         newdata =  data_list[[  target_classes[[3]]   ]][["testing"]]       
+#          ) |> table()
+
+
+thePredictions <- lapply(target_classes, function(x) {
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]])
+  
+} )
+names(thePredictions) <- target_classes
+
+# check
+# lapply(thePredictions[-1], table)
+# hist(thePredictions[[1]]) # went a little high I guess
+
+
+```
+
+
+
+
+```{r}
+
+theCMs <- lapply(target_classes[-1], function(x) {
+  
+  confusionMatrix(data = thePredictions[[x]],
+                  reference = factor(data_list[[x]][["testing"]][,x]) ,
+                  mode = "everything")
+  
+  
+})
+names(theCMs) <- target_classes[-1]
+
+kappaValues <- sapply(theCMs, function(x){ 
+  
+  x[["overall"]]["Kappa"]
+  
+  })
+
+# invisible(lapply(theCMs, drawCM))
+# Need to modify the title displayed
+
+```      
+
+
+```{r fig.height=7, fig.width=9}
+
+invisible(
+  lapply(names(theCMs), function(mat) {
+         
+         drawCM(theCMs[[mat]], title = mat)
+    
+         })
+  
+)
+
+```

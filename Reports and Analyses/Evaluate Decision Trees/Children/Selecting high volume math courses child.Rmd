@@ -1,0 +1,239 @@
+
+```{r include=FALSE}
+
+### Selecting high volume math courses taken by first-time freshmen
+
+```
+
+Ten math courses are identified as high volume courses using hierarchical clustering.  
+
+First, all math courses taken by first time freshmen since the beginning of the database in 2005 are queried.  Then, the number of students and instructors per course are tallied.  The number of students are scaled, clustered using default distance and clustering methods, and then separated into three clusters.  
+
+The results are displayed graphically and the ten largest courses are displayed by table.  
+
+The natural break in the scatterplot suggest that these ten courses are uniquely distinct candidates for further analysis.
+
+Enrollment over time is also shown.  Many courses have had steadily increasing enrollment, while others (Math 1010) have dropped off.  Math 1090 has increased dramatically in the last few years.  A reduction in enrollment during the COVID years (2020-2021, 2021-2022) is noticeable.
+
+
+```{r include=FALSE}
+
+# This child identifies high volume math courses through hierarchical clustering.
+
+# It displays the results through a scatter plot and a table.
+
+# Although the scatterplot displays a count of instructors and students, the hierarchical clustering is only done on students
+
+```
+
+
+```{r include=FALSE, eval=TRUE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+# identify popular, high volume courses
+mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+
+```
+
+```{r}
+
+################
+## CLUSTERING ##
+################
+
+students_per_course <- aggregate(cbind(EMPLID, INSTEMPLID) ~ course , data = mathCourses[!mathLabFilter,], function(x) {length(unique(x))} )
+
+rownames(students_per_course) <- students_per_course[,1]
+students_per_course <- students_per_course[,-1]
+
+set.seed(43)
+students_per_course_cluster <- students_per_course[,-2] |>
+#  log1p() |> 
+  scale() |>
+  dist(method = "euclidean") |> # binary dist with single method is very strange
+  hclust(method = "complete") # liking average, complete
+
+students_per_course$clust <- cutree(students_per_course_cluster, k = 3)
+
+```
+
+```{r fig.height=5, fig.width=7}
+
+#############
+## DISPLAY ##
+#############
+
+# Scatterplot
+
+plot(x = log(students_per_course[,"EMPLID"]),
+     y = log(students_per_course[,"INSTEMPLID"]),
+     pch = c(rep(1,1), rep(19,10))[students_per_course[,"clust"]],
+     col = c("darkgoldenrod1","purple", "dodgerblue", "aquamarine3", "chocolate" , "forestgreen", "blue")[students_per_course[,3]],
+     xlab = "Count of students (log)",
+     ylab = "Count of instructors (log)",
+     main = "Course enrollment\nbroken into three clusters"
+     )
+
+# Table
+
+library(kableExtra)
+
+students_per_course |>
+  (\(x){merge(x, unique(mathCourses[,c("course","TITLE")]), by.x = "row.names", by.y = "course" )})() |> # add the title
+  (\(x){x[x$clust %in% 2:3,]} )() |> # filter to my small clusters
+  (\(x){x[order(x$EMPLID, decreasing = TRUE),] })() |> # descending order of students
+  (\(x){x$col <- cell_spec(
+    x$clust,
+    "html",
+    color = "white",
+    background = c("white","purple", "dodgerblue")[x$clust]
+    ); 
+  return(x)})() |> # add a column with the desired colors
+  (\(x){x[,-which(colnames(x) %in% c("clust"))]})() |> # remove cluster column
+kbl(caption = "Count of students and instructors per course",
+    col.names = c("Course", "Students", "Instructors", "Title", "Cluster"),
+  row.names = FALSE,
+  escape = FALSE
+    ) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    font_size = 13
+  )
+
+
+```
+
+```{r fig.height=5, fig.width=8}
+
+##########################
+## ENROLLMENT OVER TIME ##
+##########################
+
+byYear <- aggregate(EMPLID ~ ACADYR + course, mathCourses[!mathLabFilter & mostPopFilter,], function(x) {length(unique(x))} )
+
+# Or do I want a list instead?
+
+acadyrs <- unique(byYear$ACADYR)
+acadyrs <- acadyrs[-which(acadyrs %in% "2025-2026")]
+
+par(mar = c(5, 2, 4, 8))
+
+plot(x = seq_along(acadyrs),
+     y = rep(-10, length(acadyrs))  ,
+     type = "n",
+     ylim = range(byYear$EMPLID),
+     xaxt = "n",
+    # yaxt = "n",
+     xlab = "",
+     ylab = ""
+     )
+
+library(viridis)
+
+invisible(
+lapply(mostPopCourses, function(course){
+  
+  filter <- byYear$course == course &
+            byYear$ACADYR != "2025-2026"
+  lines(x = match(byYear$ACADYR[filter], acadyrs),
+        y = byYear$EMPLID[filter],
+        type = "l",
+        col = viridis::viridis(length(mostPopCourses))[which(mostPopCourses %in% course)]
+        )
+  
+})
+
+)
+
+axis(1, at = seq_along(acadyrs), labels = acadyrs, las = 2)
+
+mtext(side = 3, text = "Course enrollment trends", font = 2, cex = 1.5, line = 1)
+
+# I want the legend OUTSIDE the plot!
+
+legend("topright",
+       inset = c(-0.25, 0),    # negative x inset pushes it outside
+       legend = mostPopCourses,
+       col =  viridis::viridis(length(mostPopCourses)),
+       lty = 1,
+       lwd = 3,
+       cex = 0.8,
+       xpd = TRUE)
+
+```
+
+
+Math courses taken by first time freshmen were queried as follows:  
+
+```sql
+
+  SELECT *
+  FROM OBIA.COMBINED_COURSE_V
+  WHERE (
+        UPPER(DEPARTMENT)   LIKE '%MATH%'
+     OR UPPER(TITLE)        LIKE '%MATH%'
+     OR UPPER(SUBJECT_LONG) LIKE '%MATH%'
+     OR UPPER(SUBJECT)      LIKE '%MATH%'
+      )
+  AND TERMEXTRACT IN ('E','S')
+  AND EMPLID IN (
+        SELECT EMPLID
+        FROM OBIA.FTF_DEMO_V
+      );
+
+
+```

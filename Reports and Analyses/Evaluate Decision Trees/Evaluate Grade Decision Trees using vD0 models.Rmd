@@ -1,6 +1,5 @@
 ---
 title: "Evaluate Grade Decision Trees using vD0 models"
-output: html_document
 date: "2025-09-10"
 output:
   html_document:
@@ -62,8 +61,67 @@ data_list <- setNames(
 ```
 
 
-# CONCLUSION: 
-The prediction is really weak.  I don't think I could use these for ANYTHING.  Something else is causing the performance.  
+# SUMMARY
+
+Five models were trained using extreme gradient boosting.  Each model predicted a course grade for one of ten math courses at the University of Utah.  Each model used complete cases of a small number of predictors, such as high school GPA and ACT test scores.
+
+The data included all years from 2005 to 2025.  
+
+Four models bucketed grades into groups of increasing granularity and used classification.  One model trained on numeric GPA values and used regression.  
+
+All models had low accuracy. The highest classification model had a Kappa value of 0.207, and the regression model had an r-squared value of 0.27.
+
+Due to low accuracy, it is not recommended that these few predictors can be used to generate strong recommendations or firm cut-offs or thresholds for the various courses.  Rather, it could be used to develop probabilistic guidance that a student or advisor could access.  
+
+Some key findings include:  
+
+
+  - The high school GPA was the most predictive variable for the regression model. 
+  - Math 1050 [?] had the highest accuracy (R^2 value of 0.29) while Math xxxx had the lowest accuracy.
+  - An inspection of accuracy found that predictions were the most accurate for students with a high school GPA greater than [[3.8]]. 
+  - Math grades increased with high school GPA and ACT math test scores.  
+  - Other important variables.  
+  - Math grades have increased during the time period investigated. 
+  - A guidance plot shows a heatmap of predicted grades varied across two leading indicators and adjustable to the remaining variables.  
+
+
+
+
+# MODEL SUMMARY
+
+**MODEL 1:** ***Withdraw binary***
+  - 
+
+**MODEL 2:** ***Grade binary***
+  - 
+
+**MODEL 3:** ***Trinary***
+  -
+  
+**MODEL 4:** ***Quad***
+  -   
+  
+**MODEL 5:** ***GPA***
+  -
+
+
+NEXT STEPS: 
+
+  - Filter the data to first term math courses only:  all the math courses taken in the first term a student takes a math course and re-train the models.  
+  - Include the concurrent semester credit load.    
+    - Possibly broken out by college or topic.  
+  - Convert everything to regression models.   
+  - Attempt different methods to predict withdrawals (grades of "W").  
+  - Develop counter-factual tables of predicted grades in alternative courses in order to identify optimum course selections based on the limited data.  
+  - Develop guidance plots that show the optimum course selection per individual with respect to grade. 
+  - Develop a plot that shows the expected grade and range per course per individual.  
+  
+  
+  
+  
+  
+  
+  
 
 ```{r}
 
@@ -102,21 +160,66 @@ theCMs <- lapply(target_classes[-1], function(x) {
 })
 names(theCMs) <- target_classes[-1]
 
-sapply(theCMs, function(x){ 
+kappaValues <- sapply(theCMs, function(x){ 
   
   x[["overall"]]["Kappa"]
   
-  }) |> plot()
+  })
 
-invisible(lapply(theCMs, drawCM))
+# invisible(lapply(theCMs, drawCM))
 # Need to modify the title displayed
 
 
 ```
 
+# Classification model accuracy
 
+Because no classification model produced a Kappa value greater than 0.21 (indicating performance too close to random), no classification model will be interpreted or evaluated further.  
+
+Confusion matrices for each model are available in the appendix. 
 
 ```{r}
+
+## PLOT KAPPA ##
+
+par(mar = c(2,4,4,1), bg = "lightsteelblue1" )
+
+plot(kappaValues, 
+     type = "n",
+     xaxt = "n",
+     xlab = "",
+     ylab = "Kappa",
+     las = 2)
+usr <- par("usr")
+
+rect(xleft = usr[1], ybottom = usr[3],
+     xright = usr[2], ytop = 0.1, col = "red", border = NA)
+
+rect(xleft = usr[1], ybottom = 0.1,
+     xright = usr[2], ytop = usr[4], col = "pink", border = NA)
+
+points(kappaValues, pch = 19, col = "gray10")
+
+text(x = 1:4,
+     y = kappaValues,
+     labels = gsub(".Kappa","", names(kappaValues)),
+     col = c("lightyellow","lightyellow","khaki1", "khaki1"),
+     pos = c(4,4,4,2),
+     xpd = TRUE,
+     font = 2
+     )
+
+mtext(side = 3,
+      text = "Accuracy of classification models",
+      font = 2,
+      cex = 1.5,
+      line = 1.5)
+
+
+```
+
+
+```{r eval=FALSE}
 
 #########################
 ## VARIABLE IMPORTANCE ##
@@ -135,7 +238,7 @@ varImp(model_list[[1]]) |> (\(x){(x$importance)})() |> as.matrix() |> rev() |> b
 
 ```
 
-
+# Regression model accuracy
 
 ```{r}
 
@@ -145,6 +248,10 @@ regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs A
   if (length(pred) != length(reference)) {
     stop("`pred` and `reference` must be the same length.")
   }
+  
+  incoming.par <- par(mfrow= c(2,1), mar = c(3,2.5,0,1), oma = c(1.5,1.5,2.25,0))
+  
+  on.exit(par(incoming.par))
   
   # Compute metrics
   rmse <- sqrt(mean((pred - reference)^2))
@@ -156,16 +263,41 @@ regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs A
   cat(sprintf("RMSE: %.4f\n", rmse))
   cat(sprintf("MAE:  %.4f\n", mae))
   cat(sprintf("R-squared: %.4f\n", r2))
+
   
   # Scatter plot
   plot(reference, pred,
-       xlab = "Actual",
-       ylab = "Predicted",
-       main = plot_title,
-       pch = 19, col = "steelblue")
+      # xlab = "Actual",
+      # ylab = "Predicted",
+       # main = plot_title,
+       pch = 19, col = "steelblue",
+       las = 1)
   abline(a = 0, b = 1, col = "red", lwd = 2)  # 45-degree reference line
   grid()
   
+  # boxplot
+  bp <- boxplot(pred ~ reference,
+        # xlab = "Actual",
+        # ylab = "Predicted",
+         # main = plot_title,
+         col = "lightblue",
+         border = "steelblue",
+         las=1)
+  
+    # Add a red reference line for each box
+        for (i in seq_along(bp$names)) {
+          actual_val <- as.numeric(bp$names[i])
+          segments(x0 = i - 0.4, y0 = actual_val,
+                   x1 = i + 0.4, y1 = actual_val,
+                   col = "red", lwd = 2)
+        }
+  
+mtext(side = 3, line =0.75, text = plot_title, cex = 1.5, font = 2, outer = TRUE)  
+  
+mtext(side = 2, line =0.25, text = "Predicted", cex = 1.25, font = 1, outer = TRUE)  
+
+mtext(side = 1, line =0.25, text = "Actual", cex = 1.25, font = 1, outer = TRUE)  
+
   # Return metrics invisibly as a list
   invisible(list(RMSE = rmse, MAE = mae, R2 = r2))
 }
@@ -178,7 +310,18 @@ reference <- data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"]
 regression_diagnostics(pred = pred,
                        reference = reference)
 
+```
 
+
+```{r fig.height=7}
+
+plot(varImp(model_list[["GRADEGPA"]]),
+     main = "Important variables for \n 'grade GPA' regression")
+
+```
+
+
+```{r}
 
 errors <- pred - reference
 
@@ -203,7 +346,7 @@ abline(h = 0, col = "red", lwd = 2)
 ```
 
 
-```{r}
+```{r eval=TRUE}
 
 # data frame per course
 
@@ -224,6 +367,16 @@ course_metrics <- results %>%
   ) %>%
   arrange(desc(r_squared))
 
+library(kableExtra)
+
+course_metrics |>
+  kbl(caption = "Course Metrics Summary",
+      digits = 2,          # round numeric columns
+      align = "c") |>      # center columns
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "center",
+                font_size = 14) 
 
 # > course_metrics
 # A tibble: 10 × 5
@@ -364,15 +517,15 @@ regression_diagnostics <- function(data, pred_col, ref_col, group_col = NULL) {
 ```{r}
 # let's see how that column works out
 
-regression_diagnostics(data = results,
-                       pred_col = "predicted",
-                       ref_col = "actual")
+# regression_diagnostics(data = results,
+#                       pred_col = "predicted",
+#                       ref_col = "actual")
 # matches earlier version
 
-regression_diagnostics(data = results,
-                       pred_col = "predicted",
-                       ref_col = "actual",
-                       group_col = "course")
+# regression_diagnostics(data = results,
+#                       pred_col = "predicted",
+#                       ref_col = "actual",
+#                       group_col = "course")
 
 # course filter
 
@@ -417,7 +570,7 @@ should I do a variable importance plot, where I shuffle a variable?
 
 correlate ?
 
-```{r}
+```{r eval=FALSE}
 
 data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"]
 
@@ -428,6 +581,12 @@ plot(x = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
 boxplot(x = data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"],
       y = data_list[["GRADEGPA"]][["testing"]][,"HSGPA"]
       )
+
+```
+
+
+
+```{r}
 
 boxplot(HSGPA ~ GRADEGPA,
               data = data_list[["GRADEGPA"]][["testing"]],
@@ -440,13 +599,13 @@ boxplot(GRADEGPA ~ year,
               data = data_list[["GRADEGPA"]][["testing"]],
               xlab = "year",
               ylab = "Math grade",
-              main = "HS GPA vs Math GPA (boxplot)",
+              main = "Math GPA vs year (boxplot)",
               col = "lightblue")
 
 # That's some impressive grade inflation  
 
-aggregate(GRADEGPA ~ year, data = data_list[["GRADEGPA"]][["training"]], function(x) 
-  {c(median(x), length(x))})
+# aggregate(GRADEGPA ~ year, data = data_list[["GRADEGPA"]][["training"]], function(x) 
+#   {c(median(x), length(x))})
 
 # why is "year" in whole numbers,
 # and why is 'n' going down so much?
@@ -601,7 +760,13 @@ thePlot
   
  }
 
-predictionContour(data = testData, course_name  = "MATH_1010")
+predictionContour(data = testData, course_name  = 
+                  "MATH_1010")
+
+
+predictionContour(data = testData, 
+                  course_name  = "MATH_1010",
+                  show_actual = TRUE)
 
 # anyway... I like it
 
@@ -655,7 +820,7 @@ I like that contour map.  Looking pretty good.
 I still haven't answered if I have pockets of high accuracy. 
 
 
-```{r} 
+```{r eval=FALSE} 
 
 #################################
 ## BINNED ACTUAL VS PREDICTIVE ##
@@ -752,7 +917,7 @@ scale_fill_gradient2(low = "red", mid = "yellow", high = "green", midpoint=2.5) 
 ```  
 
 
-```{r}
+```{r eval=FALSE}
 
 predictionBin2 <- function(data, course_name) {
   
@@ -808,7 +973,7 @@ predictionBin2 <- function(data, course_name) {
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 library(tidyr)
 predictionBin3 <- function(data, course_name) {
@@ -861,10 +1026,11 @@ predictionBin3 <- function(data, course_name) {
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
+predictionBin3(data = testData, course_name = "MATH_1050")
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 predictionBin4 <- function(data, course_name) {
   library(dplyr)
@@ -914,6 +1080,7 @@ predictionBin4 <- function(data, course_name) {
 predictionBin4(data = testData,
                course_name = "MATH_1050"
                )
+# I want to verify this.  I'm not so sure
 
 ```
 
@@ -923,7 +1090,6 @@ Instead of four pairs, I wonder if I can have the four y-bins as well (sub-bins 
 
 Next, I need to do a pdp plot.
 
-And Claude has provided some code to find a leaf with high accuracy.  I'm surprised that this kind of use of decision trees isn't more common. 
 
 ```{r}
 
@@ -1027,7 +1193,7 @@ ggplot(pdp_ACTMATH_df, aes(x = ACTMATH, y = yhat, color = course)) +
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
 # two variables
 
@@ -1048,7 +1214,7 @@ ggplot(pdp_obj, aes(x = HSGPA, y = ACTMATH, fill = yhat)) +
 
 
 
-```{r}
+```{r eval=FALSE}
 
 ## ACCURATE LEAVES ## 
 
@@ -1103,8 +1269,8 @@ accuracy_tree <- rpart(
   
 endTime <- Sys.time() # 0.75 sec # Wow, fast!
 
-plot(accuracy_tree) 
-text(accuracy_tree, cex = 0.8)
+# plot(accuracy_tree) 
+# text(accuracy_tree, cex = 0.8)
 
 # I can almost see it
 
@@ -1123,7 +1289,7 @@ leaf_summary <- trainData %>%
   ) %>%
   arrange(mean_error)
 
-print(leaf_summary)
+# print(leaf_summary)
 
 # I am struggling to interpret this.
 
@@ -1162,6 +1328,34 @@ rpart.plot(
 # I will look at this in the morning, I guess
 
   
+```
+
+A plot I want to see is ---
+It's individual for a single person
+x-axis has all of the courses
+y-axis has the predicted grade, and the estimated spread of GPA.
+It would be nice if I could show the spread of actual GPA for the people with that estimate
+
+
+# APPENDIX
+
+### Selecting high volume courses using hierarchical clustering
+
+```{r eval = FALSE}
+
+child_path <- here::here("Reports and Analysis", 
+                         "Evaluate Decision Trees", 
+                         "Children", 
+                         "Selecting high volume math courses child.Rmd")
+
+knitr::knit_child(child_path)
+
+
+```
+
+### Classification model results  
+
+```{r child = here::here("Reports and Analysis", "Evaluate Decision Trees", "Children", "Confusion matrices for decision tree grades vD0 models child"), eval = FALSE}
 ```
 
 
