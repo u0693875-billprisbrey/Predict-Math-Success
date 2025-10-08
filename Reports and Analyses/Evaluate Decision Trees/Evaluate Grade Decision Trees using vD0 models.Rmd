@@ -25,6 +25,7 @@ library(here)
 library(skimr)
 library(caret)
 library(xgboost)
+library(lubridate)
 
 source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
 
@@ -36,6 +37,8 @@ source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
 ##########
 ## LOAD ##
 ##########
+
+## MODELING RELATED ##
 
 target_classes <- c("GRADEGPA", "wdraw_binary", "grade_binary", "grade_trinary", "grade_quad")
 
@@ -57,71 +60,155 @@ data_list <- setNames(
   target_classes
 )
 
+## RAW DATA ##
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+# identify popular, high volume courses
+mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+                          )
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+#  SATMATH, # leaving out SAT because it's a smaller proportion
+#  SATVERBAL,
+#  SATWRTG        
+)
+
+popCourses <- merge(popCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Freshman year
+popCourses$year <- year(popCourses$COHORT_DT)
+
+# Year to class
+popCourses$yr_diff <- time_length(interval(popCourses$COHORT_DT, popCourses$EOTDATE), "years")
+
+# print("Prep complete")
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+popCourses$cleanGrade <- clean_grade(popCourses$GRADE) 
+
+popCourses$cleanGrade <- factor(popCourses$cleanGrade,
+                                levels = c(
+                                  "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                  "C", "C_minus", "D",   
+                                  "E", "W", "I", "CR", "EU", "NC", "V", 
+                                  "missing", NA
+                                )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR", "EU") 
+
+# WITHDRAW
+popCourses$wdraw_binary <- NA
+popCourses$wdraw_binary <- ifelse(popCourses$GRADE == "W","withdraw","not_withdraw")
+
+
+# Combine grades
+# BINARY
+popCourses$grade_binary <- NA
+hiFilter <- popCourses$GRADE %in% c("A", "A-", "B+", "B", "B-", "C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E" ) 
+popCourses$grade_binary[hiFilter] <- "hi_grade"
+popCourses$grade_binary[loFilter] <- "low_grade"
+
+popCourses$grade_binary <- factor(popCourses$grade_binary,
+                                  levels = c("hi_grade", "low_grade"))
+
+
+# TRINARY
+popCourses$grade_trinary <- NA
+hiFilter <- popCourses$GRADE %in% c("A", "A-", "B+", "B", "B-")
+medFilter <- popCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E" ) 
+popCourses$grade_trinary[hiFilter] <- "hi_grade"
+popCourses$grade_trinary[medFilter] <- "med_grade"
+popCourses$grade_trinary[loFilter] <- "low_grade"
+
+
+popCourses$grade_trinary <- factor(popCourses$grade_trinary,
+                                  levels = c("hi_grade", "med_grade", "low_grade"))
+
+# QUAD (EXPANDED FAILURE)
+popCourses$grade_quad <- NA
+hiFilter <- popCourses$GRADE %in% c("A")
+medPlusFilter <- popCourses$GRADE %in% c("A-", "B+", "B", "B-")
+medMinusFilter <- popCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E", "W" ) 
+popCourses$grade_quad[hiFilter] <- "hi_grade"
+popCourses$grade_quad[medPlusFilter] <- "medPlus_grade"
+popCourses$grade_quad[medMinusFilter] <- "medMinus_grade"
+popCourses$grade_quad[loFilter] <- "low_grade"
+
+popCourses$grade_quad <- factor(popCourses$grade_quad,
+                                  levels = c("hi_grade", 
+                                             "medPlus_grade",
+                                             "medMinus_grade",
+                                             "low_grade"))
+
+# popCourses$cleanGrade[popCourses$cleanGrade %in% c("D_plus", "D", "D_minus") ] <- "D"
+
+# print("Transformations complete")
+
+
 
 ```
 
 
-# SUMMARY
-
-Five models were trained using extreme gradient boosting.  Each model predicted a course grade for one of ten math courses at the University of Utah.  Each model used complete cases of a small number of predictors, such as high school GPA and ACT test scores.
-
-The data included all years from 2005 to 2025.  
-
-Four models bucketed grades into groups of increasing granularity and used classification.  One model trained on numeric GPA values and used regression.  
-
-All models had low accuracy. The highest classification model had a Kappa value of 0.207, and the regression model had an r-squared value of 0.27.
-
-Due to low accuracy, it is not recommended that these few predictors can be used to generate strong recommendations or firm cut-offs or thresholds for the various courses.  Rather, it could be used to develop probabilistic guidance that a student or advisor could access.  
-
-Some key findings include:  
-
-
-  - The high school GPA was the most predictive variable for the regression model. 
-  - Math 1050 [?] had the highest accuracy (R^2 value of 0.29) while Math xxxx had the lowest accuracy.
-  - An inspection of accuracy found that predictions were the most accurate for students with a high school GPA greater than [[3.8]]. 
-  - Math grades increased with high school GPA and ACT math test scores.  
-  - Other important variables.  
-  - Math grades have increased during the time period investigated. 
-  - A guidance plot shows a heatmap of predicted grades varied across two leading indicators and adjustable to the remaining variables.  
-
-
-
-
-# MODEL SUMMARY
-
-**MODEL 1:** ***Withdraw binary***
-  - 
-
-**MODEL 2:** ***Grade binary***
-  - 
-
-**MODEL 3:** ***Trinary***
-  -
-  
-**MODEL 4:** ***Quad***
-  -   
-  
-**MODEL 5:** ***GPA***
-  -
-
-
-NEXT STEPS: 
-
-  - Filter the data to first term math courses only:  all the math courses taken in the first term a student takes a math course and re-train the models.  
-  - Include the concurrent semester credit load.    
-    - Possibly broken out by college or topic.  
-  - Convert everything to regression models.   
-  - Attempt different methods to predict withdrawals (grades of "W").  
-  - Develop counter-factual tables of predicted grades in alternative courses in order to identify optimum course selections based on the limited data.  
-  - Develop guidance plots that show the optimum course selection per individual with respect to grade. 
-  - Develop a plot that shows the expected grade and range per course per individual.  
-  
-  
-  
-  
-  
-  
-  
 
 ```{r}
 
@@ -171,6 +258,78 @@ kappaValues <- sapply(theCMs, function(x){
 
 
 ```
+
+
+
+# Summary
+
+Five models were trained using extreme gradient boosting.  Each model predicted a course grade (or bucket of course grades) for one of ten math courses at the University of Utah.  Each model used complete cases of a small number of predictors, such as high school GPA and ACT test scores.
+
+The data included all years from 2005 to 2025.  
+
+The math courses were chosen as the ten highest enrollment math courses at the U during that period. 
+
+Four models bucketed grades into groups of increasing granularity and used classification.  One model trained on numeric GPA values and used regression.  
+
+All models had low accuracy. The highest classification model had a Kappa value of 0.207, and the regression model had an r-squared value of 0.27.
+
+Due to low accuracy, it is not recommended that these models can be used to generate strong recommendations or firm cut-offs or thresholds for the various courses.  Rather, it could be used to develop probabilistic guidance that a student or advisor could access.  
+
+# Key findings  
+
+  - The high school GPA was the most predictive variable for the regression model. 
+  - Math 1070 had the highest accuracy ($R^2$ value of 0.30) while Math 1030 had the lowest accuracy ($R^2$ value of 0.20).
+  - An inspection of accuracy found that predictions were the most accurate for students with a high school GPA greater than 4.0. 
+  - Math grades increased with high school GPA and ACT math test scores.  
+  - Other important variables include AP credit and the number of years between initial enrollment and the math class.  
+  - Math grades have increased on average during the time period investigated.  
+  - A guidance plot shows a heatmap of predicted grades varied across two leading indicators and adjustable to the remaining variables.  
+
+# Next steps  
+
+  - Filter the data to first term math courses only:  all the math courses taken in the first term a student takes a math course and re-train the models.  
+  - Include the concurrent semester credit load.    
+    - Possibly broken out by college or topic.  
+  - Convert everything to regression models.   
+  - Attempt different methods to predict withdrawals (grades of "W").  
+  - Develop counter-factual tables of predicted grades in alternative courses in order to identify optimum course selections based on the limited predictors.   
+  - Develop guidance plots that show the optimum course selection per individual with respect to grade.  
+  - Develop a plot that shows the expected grade and range per course per individual.  
+
+
+# Model summaries 
+
+All models use complete cases of the predictors `r data_list[["wdraw_binary"]][["training"]][-1] |> colnames() |> paste(collapse=", ")` with an 80/20 training/testing split using stratified sampling of the grades.  
+
+Missing, 'rare' or unusual grades of "V", "I", "NC", "CR", and "EU" were excluded.  
+
+**MODEL 1:** ***Withdraw binary***  
+
+  - Target classes:  "withdraw" (`r table(popCourses$wdraw_binary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[2]})()`%) or "not_withdraw" (`r table(popCourses$wdraw_binary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[1]})()`%) from the grade "W".   
+  - Model: Five-fold cross validation with synthetic minority oversampling (SMOTE). 
+  - Accuracy: Kappa of `r round(kappaValues["wdraw_binary.Kappa"],3)`   
+
+**MODEL 2:** ***Binary***  
+
+  - Target classes: "hi_grade" (`r table(popCourses$grade_binary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[1]})()`%) from grades "A", "A-", "B+", "B", "B-", "C+", "C", "C-", and "low_grade" (`r table(popCourses$grade_binary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[2]})()`%) from grades "D+", "D", "D-", and "E".   
+  - Model:  Five-fold cross validation with synthetic minority oversampling (SMOTE).  
+  - Accuracy: Kappa of `r round(kappaValues["grade_binary.Kappa"],3)`
+  
+**MODEL 3:** ***Trinary***  
+
+  - Target classes: "hi_grade" (`r table(popCourses$grade_trinary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[1]})()`%) from grades "A", "A-", "B+", "B", "B-", "med_grade" (`r table(popCourses$grade_trinary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[2]})()` %) from grades "C+", "C", "C-", and "low_grade" (`r table(popCourses$grade_trinary) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[3]})()`%) from grades "D+", "D", "D-", and "E".   
+  - Accuracy: Kappa of `r round(kappaValues["grade_trinary.Kappa"],3)`  
+
+**MODEL 4:** ***Quad*** 
+
+  - Target classes: "hi_grade" (`r table(popCourses$grade_quad) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[1]})()`%) from grades "A", "medPlus_grade" (`r table(popCourses$grade_quad) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[2]})()` %) from grades "A-", "B+", "B", "B-", "medMinus_grade" (`r table(popCourses$grade_quad) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[3]})()` %) from grades "C+", "C", "C-", and "low_grade" (`r table(popCourses$grade_quad) |> proportions() |> (\(x){round(100*x,1) })() |> (\(x){x[4]})()`%) from grades "D+", "D", "D-", "E" and "W". 
+  - Model:  Five-fold cross validation  
+  - Accuracy: Kappa of `r round(kappaValues["grade_quad.Kappa"],3)`  
+  
+**MODEL 5:** ***GPA***  
+
+  - Five-fold cross validation regression model was performed against the numeric values of GRADEGPA (0, 1, 1.7, 2, 2.3, 2.7, 3, 3.3, 3.7, 4) and assessed with default regression metrics (RMSE, R², and MAE.)  
+  - Accuracy: RMSE: 1.067, MAE: 0.816, $R^2$: 0.265
 
 # Classification model accuracy
 
@@ -557,19 +716,6 @@ regression_diagnostics(data = results[resultsFilter,],
 ```
 
 
-Is there a pocket of high accuracy?
-
-I think I should make sure all-l of these visualizations work,
-including a few more ---
-
-partial dependence plot
-
-hs.gpa vs act scores as axis, actual - predicted grade (connected by a line on a countour plot?)
-
-should I do a variable importance plot, where I shuffle a variable?
-
-correlate ?
-
 ```{r eval=FALSE}
 
 data_list[["GRADEGPA"]][["testing"]][,"GRADEGPA"]
@@ -627,52 +773,6 @@ boxplot(yr_diff ~ GRADEGPA,
 
 ```
 
-
-So I am looking at two things here:
-- Writing up this report
-- Comparing the data set
-
-If the data set compares, then I need to move to the next iteration of training (esp only using the first math class and possibly adding the number of credits in the first semester)  (I think there's something to also looking at the GPA for all of the other classes that semester.  I wonder if causal inference allows that kind of thing?)
-
-If the data set does NOT compare, then this becomes less interesting and I should re-run the training on this data set.
-
-I'm thinking I should also run the binary as a regression model to take advantage of the ordinal nature of the data.
-
-I'd also really like to know what the range of grades are for a prediction of, say, 2.7 or 3.0.  I guess that's my RMSE or MAE.  It's also rotating my boxplots on the side, or one box plot per prediction.
-
-Then there's reviewing my Claude convo and adding those conversations.
-
-And there's a couple of my other sandbox -- selecting classes via hierarchical clustering and the year_diff density plots (years to class)
-
-
-
-I need to see how the prediction/actual changes as one predictor changes
-
-
-
-I'd like to see something like an individual guidance chart, one per student, that gives the probabilities (contours?) of grades per course.
-
-So it has all the information we have about a student, and somehow tells them what their likelihood is.  
-
-In my mind (and I know this won't work) I am imagining ACT Math along one edge, and HS GPA along the other, and each cell is a color with the probability of getting greater than "X" score.  One graphic per course.
-
-It would make a cool widget in Shiny, that's for sure, where the student moves their widget up or down to determine their own cut-off dates.  
-
-The student could then add information to the widget, and get a personalized prediction.  They could add as much information as they'd like and with-hold others.  
-It would display something like an "expected grade" with error bars.
-
-I am imaginining ... I'm not sure what I'm imaginging.
-
-Something like each square represents a grade and a probability?  At the upper right corner is the highest probability, and the grade that appears in that corner changes based on the personal prediction. 
-
-Anyway, def leading towards "probabilistic guidance." 
-
-And I might as well try a per-course model.
-
-And (of course) restrict it to the first math class taken by the first-time-freshman
-
-
-I gotta show what I've got, though -- I need some show'n'tell.
 
 ```{r}
 
@@ -809,15 +909,6 @@ predictionContour(data = testData,
   
 
 ```
-
-
-Why can't I simply subtract one from the prediction?  Won't that make it more accurate?
-
-
-I like that contour map.  Looking pretty good.
-...and it also shows how AWFUL it is!
-
-I still haven't answered if I have pockets of high accuracy. 
 
 
 ```{r eval=FALSE} 
@@ -1084,12 +1175,6 @@ predictionBin4(data = testData,
 
 ```
 
-This bin4 looks terrible.  I don't quite believe it.
-
-Instead of four pairs, I wonder if I can have the four y-bins as well (sub-bins for the grade).
-
-Next, I need to do a pdp plot.
-
 
 ```{r}
 
@@ -1330,12 +1415,7 @@ rpart.plot(
   
 ```
 
-A plot I want to see is ---
-It's individual for a single person
-x-axis has all of the courses
-y-axis has the predicted grade, and the estimated spread of GPA.
-It would be nice if I could show the spread of actual GPA for the people with that estimate
-
+This plot shows that students with a high school GPA greater than 4.0 have high accuracy in math course grade prediction.  
 
 # APPENDIX
 
@@ -1357,6 +1437,7 @@ knitr::knit_child(child_path)
 
 ```{r child = here::here("Reports and Analysis", "Evaluate Decision Trees", "Children", "Confusion matrices for decision tree grades vD0 models child"), eval = FALSE}
 ```
+
 
 
 

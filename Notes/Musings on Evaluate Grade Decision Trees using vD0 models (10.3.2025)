@@ -1,0 +1,105 @@
+Evaluate Grade Decision Trees using vD0 models
+Musings
+10.3.2025
+
+
+These are the various musings taken from my drafts of  "Evaluate Grade Decision Trees using vD0 models"
+before I shared it. 
+
+Since I have copied and pasted them here, I can delete them from my report. 
+
+It is pasted in reverse order, as I prize my last thoughts the most.  
+
+==
+A plot I want to see is ---
+It's individual for a single person
+x-axis has all of the courses
+y-axis has the predicted grade, and the estimated spread of GPA.
+It would be nice if I could show the spread of actual GPA for the people with that estimate
+
+==
+
+This bin4 looks terrible.  I don't quite believe it.
+
+Instead of four pairs, I wonder if I can have the four y-bins as well (sub-bins for the grade).
+
+Next, I need to do a pdp plot.
+
+==
+
+Why can't I simply subtract one from the prediction?  Won't that make it more accurate?
+
+
+I like that contour map.  Looking pretty good.
+...and it also shows how AWFUL it is!
+
+I still haven't answered if I have pockets of high accuracy. (DONE)
+
+==  
+
+So I am looking at two things here:
+- Writing up this report
+- Comparing the data set
+
+If the data set compares, then I need to move to the next iteration of training (esp only using the first math class and possibly adding the number of credits in the first semester)  (I think there's something to also looking at the GPA for all of the other classes that semester.  I wonder if causal inference allows that kind of thing?)
+
+If the data set does NOT compare, then this becomes less interesting and I should re-run the training on this data set.
+
+I'm thinking I should also run the binary as a regression model to take advantage of the ordinal nature of the data.
+
+I'd also really like to know what the range of grades are for a prediction of, say, 2.7 or 3.0.  I guess that's my RMSE or MAE.  It's also rotating my boxplots on the side, or one box plot per prediction.
+
+Then there's reviewing my Claude convo and adding those conversations.
+
+And there's a couple of my other sandbox -- selecting classes via hierarchical clustering and the year_diff density plots (years to class)
+
+
+
+I need to see how the prediction/actual changes as one predictor changes
+
+
+
+I'd like to see something like an individual guidance chart, one per student, that gives the probabilities (contours?) of grades per course.
+
+So it has all the information we have about a student, and somehow tells them what their likelihood is.  
+
+In my mind (and I know this won't work) I am imagining ACT Math along one edge, and HS GPA along the other, and each cell is a color with the probability of getting greater than "X" score.  One graphic per course.
+
+It would make a cool widget in Shiny, that's for sure, where the student moves their widget up or down to determine their own cut-off dates.  
+
+The student could then add information to the widget, and get a personalized prediction.  They could add as much information as they'd like and with-hold others.  
+It would display something like an "expected grade" with error bars.
+
+I am imaginining ... I'm not sure what I'm imaginging.
+
+Something like each square represents a grade and a probability?  At the upper right corner is the highest probability, and the grade that appears in that corner changes based on the personal prediction. 
+
+Anyway, def leading towards "probabilistic guidance." 
+
+And I might as well try a per-course model.
+
+And (of course) restrict it to the first math class taken by the first-time-freshman
+
+
+I gotta show what I've got, though -- I need some show'n'tell.  
+
+==
+
+Is there a pocket of high accuracy?
+
+I think I should make sure all-l of these visualizations work,
+including a few more ---
+
+partial dependence plot
+
+hs.gpa vs act scores as axis, actual - predicted grade (connected by a line on a countour plot?)
+
+should I do a variable importance plot, where I shuffle a variable?
+
+correlate ?  
+
+== 
+
+
+
+

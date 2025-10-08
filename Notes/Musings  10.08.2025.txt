@@ -1,0 +1,14 @@
+Musings 
+Model E0
+10.07.2025
+
+AP Credits of 0 vs NA -- what's the difference?  Can I convert NA to 0? Why aren't they already 0? Whitney says she "assumes" -- so I want to check
+
+yr_diff -- are they taking this the summer before? Am I excluding that?  --> so I decided to filter below -0.5 yrs, to include the summer before.
+
+> aggregate(GRADEGPA ~ GRADE, data = cleanData, length) |> (\(x){proportions(x[,2])})() |> plot()
+> aggregate(GRADEGPA ~ GRADE, data = popCourses, length) |> (\(x){proportions(x[,2])})() |> points(col = "red")
+
+proportion of "E" is much lower for the clean data.
+
+

@@ -1,0 +1,117 @@
+Notes, Check in
+10.3.2025
+
+Whitney shares a dashboard on
+first math course taken by first time students 
+
+Shows a table of grades 
+(first math class taken at the U)
+
+W? --> Not a pass or a fail, as if they never took the course.
+
+Put 'em back in, including NC and C.
+Put W back in,
+
+WIE's that's part of it (?)
+Put in I,
+leave out P/F and "Audit" grades (V',s and P's leave out) (T's ?)
+
+W's are a big deal.	
+
+Make a bucket for HSGPA.  Percentiles?  I think it could be usable.  Similar to 	
+
+Luis:
+Getting ahead of ourselves, but... admissions pipeline data design.  Getting new data compared to AP scores and can open that black box.  I don't have a timeline for that. It's possible we might see that in the spring
+
+Two types of models and three different groups.
+
+Target variable was pass/fail.  
+
+How to treate the "rare" grades? --> leave them as NULL here.	
+
+For modeling, only considering actual grade (highlighted, Only E thru A, not I or W)
+
+Broke out 3 diff't students for modeling-- not mutually exclusive
+All students with HSGPA
+HSGPA + ACT
+HSGPA + SAT (dropping "writing")
+
+modeled most common math courses individually	
+
+Scrolls through --- it's HSGPA and HSCREDIT
+
+Luis:  Model 1, should be EVERYONE at the U as they have a HSGPA
+
+Plan to do "odds-ratios" and "marginal effects".  
+
+How many observations for SAT? --> 2,000 students.
+
+Politics:  During Covid, made standardized test scoring optional.  Ended getting 50% of students submitting.  At war over including or not.  Everyone knows HSGPA, but it comes out as significant when you put it in.  "Optional" won. 
+
+Three models, whether they have it or not.
+
+All students have to have a HS GPA, and leadership has to decide if they have an ACT score as well, how to incorporte into math placement.
+
+Engr says it's a closed major and must have  standardized test scores.  
+
+Whitney:  Correlation between 'not' submitting and what it means.  Include whether it was admitted or not?	
+
+Luis:  I've run it for retention.   Says you can have a "dummy variable" for submitted or not.  Guarantee--pretty sure!--it will come up as significant.	
+
+Reckoning on standardized scoring and lower was clear, and statistically significant.  
+
+Accuracy, prediction, recall--
+
+INCREDIBLE!  WOW!  Do I believe it?
+
+Course specific models, over 500 students, as low as 42 students. 
+
+Says throw out Math 2210, but changes mind.
+
+Says throw out SAT model.	
+
+
+ADD "EU"to my fail grades as an "unofficial withdrawal."  Automatic failure if they don't take the final.	
+
+"EU" means would fail but they didn't do everything.
+
+"I" grade is a negotiation between faculty and the student.  Our data has "I" but will turn into an "E" or "EU"
+
+HSGPA of 0 is definitely an error.  Kick 'em out.
+
+Grade inflation due to CR/NC, not going into GPA but more students are choosing it.  That might explain the grade inflation.  
+
+Opting to take a CR/NC is probably not a high grade.  We've been lenient on that after 2020.   Not sure when we've stopped that policy.	
+
+Kick out negative folks in "yr_diff" graph.  Could be an error; possible as a concurrent enrollment.
+
+<0 yr_diff (remove)
+
+
+==
+
+Working on the same data.
+
+Kick out the wonky outliers (HSGPA == 0; over 4.0 GPA; no pre-COHORT classes; 
+
+Run next steps;
+Interested in "W" model (priority) 
+These are a big deal on campus.
+
+Run add'l models besides adding the dummy variable for standardized testing	
+
+Re-visit week of 13th and 17th. 
+
+That's when USHE lifts embargo and a lot of needs.  Can do the week of the 20th.	
+
+
+	
+
+
+
+
+
+
+
+
+
