@@ -1,0 +1,44 @@
+Comparing results
+
+Early conclusions:
+- WH data is giving excellent results; I should figure out what makes it different  
+- But it looks like I'm capping out with an R-sq of 0.25 to 0.3
+- I don't know why the "quad" bucketing has a higher R-sq value or how to interpret that  
+- It doesn't answer the "recommendation" question - I should predict on the course selection   
+- Should I try 'advanced' tuning on Whitney's data ?
+- Should I advance to probabilistic guidelines? 
+
+
+vG1:  
+ - Uses WH data  
+ - Converts APCREDIT values of NA converted to zero   
+ - Quad at R-sq of 0.3, GPA at R-sq of 0.25 
+ 
+ vG0: 
+  - Uses WH data  
+  - APCREDIT values of NA are excluded; small training sets 
+  - Quad at Rsq of 0.12, GPA at R-sq of 0.12
+
+vF3:
+  - Uses BP data
+  - APCREDIT values of NA converted to zero 
+  - Larger tuning parameters  
+  
+vF2:
+  - Uses BP data
+  - APCREDIT values of NA converted to zero 
+  - Brief tuning parameters
+  - Quad at R-sq of 0.28, GPA at R-sq of 0.24
+  
+vF1:
+  - Uses BP data
+  - APCREDIT values of NA are excluded
+  - Larger tuning parameters
+  - Quad incomplete; GPA at R-sq of 0.26 (all that extra training for that?)
+  
+vF0:
+  - Uses BP data
+  - APCREDIT values of NA are excluded
+  - Brief tuning parameters 
+  - Quad at R-sq of 0.28, GPA at R-sq of 0.27
+
