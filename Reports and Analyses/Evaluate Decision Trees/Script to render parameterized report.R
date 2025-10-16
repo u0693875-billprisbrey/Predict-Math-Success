@@ -24,4 +24,16 @@ rmarkdown::render(
 #  output_file = paste0("Evaluate_Grade_Decision_Trees_", "vF1", ".html")
 # )
   
-# }  
+# }
+
+reportVersion <- "vH0"
+target_classes <- c('GRADEGPA','grade_quad')
+
+rmarkdown::render(
+  here::here("Reports and Analyses", "Evaluate Decision Trees",   "Evaluate Grade Decision Trees Parameter Template.Rmd"),
+  params = list(version = reportVersion,
+                target_classes = target_classes),
+  output_file = here::here("Reports and Analyses", "Evaluate Decision Trees", paste0("Evaluate_Grade_Decision_Trees_", reportVersion, "_results.html")
+  )
+)
+

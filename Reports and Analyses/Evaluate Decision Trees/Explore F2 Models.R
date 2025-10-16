@@ -674,6 +674,13 @@ p1 + p2
 # ok, let's run some new models!
 # and I'll abandon binary and trinary
 
+# let's look at load
+
+boxplot(load ~ GRADEGPA, data = firstCourses, outline = FALSE)
+
+# looks like a consequence, not a cause, 
+# as people weak on their math or student skills take a smaller load  
+
 
 ############
 ## REVIEW ##

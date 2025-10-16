@@ -2,7 +2,10 @@
 title: "Evaluate Grade Decision Trees using `r params$version` models"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params: 
-  version: "vF2"
+  version: "vH0"
+  target_classes: 
+    - GRADEGPA
+    - grade_quad
 output:
   html_document:
     keep_md: true
@@ -43,25 +46,25 @@ source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
 
 ## MODELING RELATED ##
 
-target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
 
 
 # Build file paths
-model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", target_classes, " model.rds"))
+model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", params$target_classes, " model.rds"))
 
 # Read each model into a named list
 model_list <- setNames(
   lapply(model_files, readRDS),
-  target_classes
+  params$target_classes
 )
 
 # Build file paths
-data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", target_classes, " Data.rds"))
+data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", params$target_classes, " Data.rds"))
 
 # Read each model into a named list
 data_list <- setNames(
   lapply(data_files, readRDS),
-  target_classes
+  params$target_classes
 )
 
 ```
@@ -245,7 +248,7 @@ popCourses$grade_quad[loFilter] <-0 # "low_grade"
 
 ## PREDICTIONS ##
 
-thePredictions <- lapply(target_classes, function(x) {
+thePredictions <- lapply(params$target_classes, function(x) {
   
   # identify course values in testing that aren't in training
   
@@ -268,7 +271,7 @@ thePredictions <- lapply(target_classes, function(x) {
           newdata = data_list[[x]][["testing"]][missingFilter,])
   
 } )
-names(thePredictions) <- target_classes
+names(thePredictions) <- params$target_classes
 
 ```
 
@@ -314,8 +317,9 @@ The other variables are either self-explanatory or taken directly from OBIA tabl
 
 ```{r}
 
-theResults <- lapply(target_classes, function(x) {
+theResults <- lapply(params$target_classes, function(x) {
   
+  print(x)
   # identify course values in testing that aren't in training
   
     courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
@@ -338,7 +342,7 @@ theResults <- lapply(target_classes, function(x) {
   
                )
 })
-names(theResults) <- target_classes
+names(theResults) <- params$target_classes
 
 # I'd like to normalize the errors with the range and standard deviation
 
@@ -365,7 +369,7 @@ normalized_metrics <- function(pred, obs) {
   )
 }  
   
-normResults <- lapply(target_classes, function(x) {
+normResults <- lapply(params$target_classes, function(x) {
   
   # identify course values in testing that aren't in training
   
@@ -390,7 +394,7 @@ normResults <- lapply(target_classes, function(x) {
   )
   
 })  
-names(normResults) <- target_classes
+names(normResults) <- params$target_classes
 
 library(kableExtra)
 
@@ -401,14 +405,14 @@ normResults |>
     caption = "Normalized Regression Results Across Grading Buckets",
     align = "c",
     col.names = c("",
-      "RMSE", "MAE", "R²", 
+      "RMSE", "MAE", "R-sq", 
       "NRMSE (Range)", "NMAE (Range)", 
       "NRMSE (SD)", "NMAE (SD)"
     )
   ) |>
   kable_classic(full_width = FALSE, html_font = "Calibri") |>
   row_spec(0, bold = TRUE, background = "#f0f0f0") |>  # header
-  row_spec(1:4, background = c("#ffffff", "#f9f9f9")) |> # alternating rows
+  row_spec(1:length(params$target_classes), background = c("#ffffff", "#f9f9f9")) |> # alternating rows
   add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
 
 ```
@@ -475,7 +479,7 @@ mtext(side = 1, line =0.25, text = "Actual", cex = 1.25, font = 1, outer = TRUE)
 }
 
 
-invisible(lapply(target_classes, function(x){
+invisible(lapply(params$target_classes, function(x){
   
       # identify course values in testing that aren't in training
   
@@ -499,7 +503,7 @@ regression_diagnostics(pred = thePredictions[[x]],
 ```{r fig.height=5}
 
 invisible(
-  lapply(target_classes, function(x){
+  lapply(params$target_classes, function(x){
 
   print(plot(
     varImp(model_list[[x]]),
@@ -514,7 +518,7 @@ invisible(
 
 ```{r eval=FALSE}
 
-for(x in target_classes) {
+for(x in params$target_classes) {
   
     print(plot(
     varImp(model_list[[x]]),
@@ -535,7 +539,7 @@ Presentation order:
 
 
 
-lapply(target_classes, function(x) {
+lapply(params$target_classes, function(x) {
   
   print(x)
 
