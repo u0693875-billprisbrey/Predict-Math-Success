@@ -1,0 +1,42 @@
+Musings and To Do
+10/10/2025
+
+Attempt to predict COURSE.  I mean, that's the recommendation, right?
+
+Why is "course" disappearing as a predictor?
+
+Mine, with more years and more data, might have a lower R-sq than WH but it should generalize a lot better.  (And don't call the data sets "mine" and "hers" because it's too personal.  Find diff't names!)
+
+Hold out an entire semester, preferably last one, as the test set.	
+
+
+Do a model that is JUST HS GPA and test scores.  How close do I get with that?
+
+Make a descriptive plot for each predictor (esp grade inflation)
+
+Make a description report/plot/one-pager explaining why "accuracy" is the wrong metric for 
+unbalanced data sets
+
+Do some research -- any academic articles on this topic? 	
+
+
+*******************************************************************************************
+*** MUST DO ***
+
+Figure out the difference between mine and Whitney's data.  I should be able to get to her data with no discrepancies
+
+**********************************************************************************************
+
+
+Onto recommendation
+  In R, make the timeline graphic started in PPT that shows the hidden sorting/unknown intelligent activity.
+
+  Show the predicted grade, and grade spread or margin of error, per course per individual.  (Assuming they'd want the highest grade.)	
+
+  Counterfactual table:  Per individual, predict their grade in different courses.  Compare to their actual grade, and draw conclusions using the difference (???  I guess?) 
+
+
+
+
+
+  

@@ -1,5 +1,18 @@
 Comparing results
 
+About the data:
+Models F and G are predicting on math courses taken in the first
+term that a first time freshman takes any math course.  
+
+Next steps (10.16.2025):
+- Filter out >3000 level math courses
+- Filter out math courses that haven't been taken since 2020
+- Filter out math courses taken less than -0.5 (run by Luis)
+- Toggle with and without "load"
+- Light feature engineering (course level; age buckets)
+- Predict course assignment
+- Create a "descriptive" report that is the best of "Explore F2 Models.R"
+
 Early conclusions:
 - WH data is giving excellent results; I should figure out what makes it different  
 - But it looks like I'm capping out with an R-sq of 0.25 to 0.3
