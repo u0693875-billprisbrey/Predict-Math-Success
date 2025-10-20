@@ -16,8 +16,8 @@ Next steps (10.16.2025):
 Early conclusions:
 - WH data is giving excellent results; I should figure out what makes it different  
 - But it looks like I'm capping out with an R-sq of 0.25 to 0.3
-- I don't know why the "quad" bucketing has a higher R-sq value or how to interpret that  
-- It doesn't answer the "recommendation" question - I should predict on the course selection   
+- It doesn't answer the "recommendation" question 
+- I should predict on the course selection   
 - Should I try 'advanced' tuning on Whitney's data ?
 - Should I advance to probabilistic guidelines? 
 
@@ -36,6 +36,7 @@ vF3:
   - Uses BP data
   - APCREDIT values of NA converted to zero 
   - Larger tuning parameters  
+  - Interrupted; not completed 
   
 vF2:
   - Uses BP data

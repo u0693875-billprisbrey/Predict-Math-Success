@@ -4,7 +4,7 @@ output: html_document
 date: "2025-10-16"
 ---
 
-**PURPOSE:**  This contains some visualizations describing math courses by first time freshmen.  I may turn this into a "child" document.
+**PURPOSE:**  This report contains visualizations describing math performance for first time freshman in their first math courses.  It includes heat maps of enrollment and performance by ACT math test scores and high school GPA.  It does not contain the results of any predictive model.   
 
 
 ```{r include=FALSE}
@@ -295,16 +295,255 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
 cleanData$course <- factor(cleanData$course)
 
-clean_and_hi_filter
-clean_and_low_filter
+#clean_and_hi_filter
+#clean_and_low_filter
+
+# Before and after Fall 2021
+cleanData$covid <- ifelse(cleanData$cohort_year < 2021, "before", "after")
+cleanData$covid <- factor(cleanData$covid, levels = c("before", "after"))
 
 
 ```
 
 
-### Filters 
+### Data
 
-List the filters and describe them. 
+This displays all years of available data (Fall 2005 to Fall 2024.)
+
+The first term that a first time freshman took a math course was determined.  Then, all math courses in that term were extracted. 
+
+Next, the following filters are applied:  
+
+  - High school GPA values of zero are removed. 
+  - Rare, missing, and withdraw grades ("missing", "V", "I", "NC", "CR", "W", NA) are removed.  
+  - Students with more than the 99th percentile in course load (19 credits) are removed. 
+  - Math courses taken before half a year before the cohort date (yr_diff < -0.5) are removed.  This allows for taking math classes the summer before the fall cohort date.  
+  - Students aged less than 12 are removed.    
+  - All courses greater than 3000 are removed.  
+  - Classes that were not offered after 2021 are removed.  
+
+### Enrollment by course
+
+```{r}
+
+par(mar=c(6.1,4.1,3.1,2.1))
+
+table(cleanData$course) |>
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  (\(x){
+    barplot(x, 
+            main = "Count of students per course",
+          col = ifelse(names(x) %in% names(courseClusters)[courseClusters ==1], "aliceblue", "lemonchiffon" ),
+          las = 2,
+          ylab = "")})()
+
+legend("topright",
+       legend = c("High volume", "Low volume"),
+       pch = 15,
+       pt.cex=3,
+       col = c("aliceblue", "lemonchiffon"))
+
+```
+
+
+### ACT math scores appear to have guided course selection
+
+```{r}
+
+par(mar=c(6.1,4.1,3.1,2.1))
+
+# c(5.1,4.1,4.1,2.1) # default
+
+boxplot(ACTMATH ~ course, data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+        outline = FALSE,
+        col = "aliceblue",
+        las = 2,
+        xlab = "",
+        main = "High volume courses")
+
+boxplot(ACTMATH ~ course, data = cleanData[cleanData$vol_cluster == "low_vol",], outline = FALSE,
+      col = "lemonchiffon",
+      las = 2,
+      xlab = "",
+      main = "Low volume courses")
+
+```
+
+### ACT math scores per course over time
+
+```{r fig.height=7}
+
+# I need to do this covid boxplot per course
+
+boxplot(ACTMATH ~ covid,  data = cleanData[cleanData$vol_cluster == "hi_vol",],
+        col = "aliceblue",
+        main = "ACT math scores before and after Fall 2021",
+        xlab = "")
+mtext(text = "Fall 2021 is included in 'after'.", font=3, side = 1, line = 3)
+
+par(mfrow=c(5,1), mar = c(0,3,3,1), oma = c(4,2,0,0))
+
+for(crse in names(courseClusters[courseClusters == 1]) ){
+daBox <- boxplot(ACTMATH ~ course + cohort_year, data = droplevels(cleanData[cleanData$course == "MATH_1010",]), 
+         outline = FALSE,
+         col = "aliceblue",
+         las = 2,
+         xlab = "",
+         main = crse,
+        xaxt = "n")
+}
+
+axis(side = 1,
+     at = 1:length(2005:2024),
+     labels = 2005:2024,
+     outer = TRUE,
+     las = 2,
+     font = 2,
+     cex.axis = 1.2)
+
+mtext(text = "ACT math score", side = 2, line = 0.25, outer = TRUE)
+
+# let's see that as lines, one line per course
+
+median_ACT <- aggregate(ACTMATH ~ course + cohort_year, data = cleanData[cleanData$vol_cluster == "hi_vol",], median, na.rm = TRUE)
+
+plot(median(median_ACT$ACTMATH),
+     xlim = range(median_ACT$cohort_year),
+     ylim = range(median_ACT$ACTMATH), 
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+    # yaxt = "n",
+     type = "n",
+    las = 2,
+    main = "Median ACT math score per course over time"
+)
+
+colorMap <- c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown")
+names(colorMap) <- names(courseClusters[courseClusters == 1])
+
+lapply(names(courseClusters[courseClusters == 1]), function(crse){
+  
+  filter <- median_ACT$course == crse
+  
+  lines(y = median_ACT$ACTMATH[filter],
+        x = median_ACT$cohort_year[filter],
+        col = colorMap[crse],
+        lwd = 3
+        )
+  
+})
+
+
+axis(side = 1,
+     at = 2005:2024,
+     labels = 2005:2024,
+     las = 2,
+     font = 2,
+     cex.axis = 1.2
+     )
+
+legend("top",
+       legend = names(colorMap),
+       lty = 1,
+       lwd = 3,
+       col = colorMap)
+
+# I need to off-set the legend to the right
+
+``` 
+
+
+
+
+### Grade distribution per course
+
+```{r}
+
+par(mar=c(6.1,4.1,3.1,2.1))
+
+# c(5.1,4.1,4.1,2.1) # default
+
+boxplot(GRADEGPA ~ course, data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+        outline = FALSE,
+        col = "aliceblue",
+        las = 2,
+        xlab = "",
+        main = "High volume courses")
+
+boxplot(GRADEGPA ~ course, data = cleanData[cleanData$vol_cluster == "low_vol",], outline = FALSE,
+      col = "lemonchiffon",
+      las = 2,
+      xlab = "",
+      main = "Low volume courses")
+
+```
+
+### High school GPA and math grades
+
+```{r}
+
+par(mar=c(4.1,4.1,3.1,2.1))
+
+daBox <- boxplot(HSGPA ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+        outline = FALSE,
+        col = "aliceblue",
+        las = 2,
+        xlab = "Math grade",
+        main = "High volume courses")
+
+boxplot(HSGPA ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "low_vol",], outline = FALSE,
+      col = "lemonchiffon",
+      las = 2,
+      xlab = "Math grade",
+      main = "Low volume courses")
+
+```
+
+### Course load and math grades
+
+
+```{r}
+
+par(mar=c(4.1,4.1,3.1,2.1))
+
+boxplot(load ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+        outline = FALSE,
+        col = "aliceblue",
+        las = 2,
+        xlab = "Math grade",
+        main = "High volume courses")
+
+boxplot(load ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "low_vol",], outline = FALSE,
+      col = "lemonchiffon",
+      las = 2,
+      xlab = "Math grade",
+      main = "Low volume courses")
+
+
+```
+
+### Year to math (yr_diff) and math grades
+
+```{r}
+
+par(mar=c(4.1,4.1,3.1,2.1))
+
+boxplot(yr_diff ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+        outline = FALSE,
+        col = "aliceblue",
+        las = 2,
+        xlab = "Math grade",
+        main = "High volume courses")
+
+boxplot(yr_diff ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "low_vol",], outline = FALSE,
+      col = "lemonchiffon",
+      las = 2,
+      xlab = "Math grade",
+      main = "Low volume courses")
+
+
+```
 
 ### Heatmaps 
 
@@ -329,20 +568,27 @@ for(crse in names(courseClusters[courseClusters == 1])){
 
 ```
 
-### ACT Math scores guide course selection
-
 ```{r}
 
-boxplot(ACTMATH ~ course, data = cleanData[cleanData$cluster_vol == 1,], 
-        outline = FALSE,
-        col = "aliceblue")
+for(crse in names(courseClusters[courseClusters == 2])){
 
-boxplot(ACTMATH ~ course, data = cleanData[cleanData$cluster_vol == 2,], outline = FALSE,
-      col = "lemonchiffon")
+
+#lapply(courseClusters[courseClusters == 1], function(crse) {
+  
+  thePlot <- plotHex(data = cleanData[cleanData$course == crse,],
+          title = paste(crse, "\nafter all filters")
+  )
+  
+ print(thePlot)
+  
+#  })
+
+}
 
 ```
 
-```{r eval=FALSE}
+
+```{r eval=TRUE}
 
 skim(cleanData)
 

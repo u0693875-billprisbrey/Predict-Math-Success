@@ -1,0 +1,168 @@
+Math Placement Project Check-in
+10.17.2025
+Meeting notes
+
+
+
+
+Summary:
+
+Grade prediction in the first math courses (overwhelmingly in the first term) has an r-squared of ~0.25.
+
+About 75% of the math grade is explained by other things.  The high school grade and ACT math scores are weakly predictive / not strongly deterministic.		
+
+It has weak predictive ability (roughly plus or minus one grade) and is suitable for probabilistic guidelines as opposed to strong recommendations or firm cut-offs.		
+
+PERFORMANCE = MOTIVATION x ABILITY
+
+"Ability" can be conceptually broken further into 'study' ability and 'math' ability.
+"Math ability" appears to be somewhat controlled by course selection,
+leaving the primary determinant of grade as "study" ability.  This is represented here by the high school GPA.
+
+It's starting to look like a two-step process:
+  - Predict course	
+  - Predict grade in that course (plus or minus one grade)
+  - Optimize course selection per some metric (capacity?)
+
+
+Next Steps
+
+- Concordance with WH data set
+- Add more features in order to understand predictors		
+   - Class times		
+   - Class size	
+   - Class capacity 
+   - Instructor grading tendencies	
+- Advance to probabilistic guidelines
+   - Generate counter-factual tables	
+- Explore "W"
+
+
+NOTES:
+Attendance changes their terms every year without much consulting with other parties (AP credits changed from NA to 0.)
+
+Whitney:  Makes changes to dashboard.   Will keep it in development until the analysis is done.	
+
+Logistice regression:  Available in UBOX.  Long and hairy with a one-page summary.
+General models actually perfomed really well.  AUC of 0.8
+Un-balanced with lots of false positives and false negatives, overlypredicting pass instead of fail.
+
+Using SAT instead of ACT
+
+Impressive Precision (86%) and Recall (98%)   (What's the Kappa?)
+Kappa not calculated.  1 is pass; 0 is fail.	
+
+Did "Top 11" courses -- mixed in terms of model performance.
+Because using the first math class as a control, we could turn on the dummy variable for whichever class.  What implementation like this would look for.  
+
+Course-specific did not do as well as the general model with the course as a variable.	
+
+Shows the models that did less reliable.
+More: MATH 1050, MATH 1030, MATH 1090, MATH 1210
+Less: MATH 1080; MATH 1220; MATH 2210 
+
+Used SAT scores in some models.	
+
+SAT vs ACT is a geographical thing as well.	
+
+Sarah will have something to share at 2:00
+
+
+ACT influenced math course selection in the past 
+
+
+Overwhelmingly students are taking this in the first term. About 80%
+
+Luis:
+Some students DON'T take Math at the U.  They are taking it at SLCC.
+We find that only 50% of the students are taking math here at the first year.	Need to keep that in mind.  We live in a world where students take math at SLCC and then transfer it in.
+
+We don't see the black box of their transfer credits.  On top of this, they could be taking math at SLCC.  I don't know what percentage-- sometimes course capacity issues, or they prefer math at SLCC.  If I were student, I'd do math as it's easily transferable.	
+
+We're accepting an avg of 3.6 HSGPA.  We're admititng folks who are really good.
+
+Seems like the line is coinciding with avg HSGPA and 
+
+Prioritize predicting W grade.	
+
+Predicting course --
+
+If a two-step process, predicting course and then grade ---
+
+-- we want to use Fall '21 and up.  We want to use that data set for predicting COURSE because we can't control previous information.	
+
+Would be interestinhg if anything pops up for one course based  on another in these last <5 yrs	
+
+
+If make changes, implement them and then send it forward.
+
+How much time to do some of these things--- 
+
+A week.  We might hit a brick wall on the course prediction.  
+Do 45min on this next week -- not done but a "check-in."
+
+In the meantime, will review these materials.	
+
+SARA:
+CATBOOST:  Binary prediction. ALSO doesn't show us Kappa.	
+Predicted FALL based on prior training.
+Shows us SHAP values.	
+
+Week of 27th -- has more thoughts and needs to think about.	
+
+It's apparent from all three-- HSGPA, and standardized scoring a little bit...
+The only thing with HSGPA is how we create guidelines on it as our students are bunched up together.  But standardized testing is a wide range!  Splitting hairs for students on HSGPA.
+
+How can we split those hairs so we can tell a stakeholder, confidently-- a HSGPA that is "here" is our recommendation.  We're seeing the effect of all of this.  Potential for "prescription" here and we need to figure out how to show that.	I think right now I'm going to suggest that we keep leaning into the variables already done without pulling anything new.	
+
+Can we really predict based on HSGPA? -->
+I think they need an option.  I don't think they'll make a holistic decision.  I don't think they are trying to go into a "cheat code" (?) ....but they might see the R-sq of 0.25 and think that's the bee's knees.  0.25 is -not- terrible.   Everything we've found we'll take into consideration.
+
+We can go on a recommendation for the first year -- hopefully trigger decisions like "get more courses on the schedule."  
+
+Bill:  We need to show them 'how bad it is' if all we have is GPA.
+
+Luis:  Civitas used to have "milestone courses" and it's the math and writing due to class capacity issues.  People failed those at the high rates and so they are repeating it over and over.   Will they change curriculums here?  Like business course might trigger all of the regions for creations of new math classes.  This will probably have some un-intended consequences that we don't know.  We have a lot of stuff --- think about how we summarize all of it and put it into an executive translation.  Math department is going to have the biggest buy-in.  
+
+I'd hope this would trigger something for admissions.  If they aren't going to pass math, and it's so important, should we even let them in!   We need to be a careful I guess.	
+
+Bill:  We should definitely be able to predict a "danger zone" of high-risk people.
+
+Luis:  We could say it that way.  Without saying anything specific, this 'danger zone' criteria could trigger something.  
+
+We also have resources on campus like peer tutoring that would trigger all of this, and all of these unintended consequences.	
+
+Next meeting on the 27th.  Approach Luis with questions.	
+
+
+==
+Thoughts afterwards: 
+
+- The ACT x HS GPA map -- show one for last 5 yrs (starting Fall 2021)
+- If I look at these maps, then there is really high population density -- peaks -- at the right.
+  - Can I look into these peaks of population density, and look at the variation in grades there?
+- Look at predicting course, esp last 5 yrs
+- Can I get a "danger zone" prediction?
+  -  Invert values of 0 and 1 for binary predictions to invert metrics.  We aren't interested in precision and recall so much as we are interested in "negative pred precision" or whatever it's called -- how many of the predicted failures actually fail? It's like the inverse of recall
+- Like Sara, focus my prediction on Fall 2024 or 25 and see how well I do
+- How do I manage all of the "unknowns" -- let's try a "knn impute" and see how well it is.
+- Send out my reports
+   - Clarify that it is for the last 20 yrs, since 2005
+   - Clarify random test sample
+- Write up how we should be using "kappa" for an unbalanced data set --
+   - What "kappa" are they getting?
+   - Do I have Sara's report?
+- Put up everything on UBox
+
+
+
+
+
+
+
+
+
+
+	 
+
+

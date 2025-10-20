@@ -1,0 +1,15 @@
+To Do
+
+- Examine first math classes and delete a buncha high level ones, and then repeat the decision tree (both mine and Whitney's data)
+- Develop per-course prediction with performance spread
+- Interpret PDP plots / have fun and with my predicted vs actual performance
+- Turn these into Shiny apps
+- Predict course
+- Why does "course" disappear as a predictor?  Can we actually recommend course from this data set?  What's happening in the black box step?
+- Create the black box sorter diagram
+- Buy your causal inference book
+
+- Put the AP credit analysis + text of Luis' email into my Exploratory project (for my own reference.)
+
+- Compare mine and Whitney's data
+

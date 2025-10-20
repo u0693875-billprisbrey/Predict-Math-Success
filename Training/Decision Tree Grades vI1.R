@@ -1,16 +1,18 @@
-# Decision Tree Courses vB0
+# Decision Tree Grades vI1
 
 # PURPOSE:  
-# This runs one training model using classification and xgboost.
-# It trains on only the first math classes for first time freshman.
+# This runs two training models for ordinal classification with ranger (not ordinalForest) package.
+# It trains on only the first math class for first time freshman.
 # It uses data derived by Bill Prisbrey.
 # It follows vH1.
-# THe goal is to predict the first term math course instead of the grade. 
+
+# NOT.  RUNNING. YET.
+
 
 library(caret)
 library(xgboost)
 library(lubridate)
-library(MLmetrics)
+library(ordinalForest)
 
 ##########
 ## LOAD ##
@@ -151,14 +153,20 @@ clean_grade <- function(x) {
 
 firstCourses$cleanGrade <- clean_grade(firstCourses$GRADE) 
 
+
+
 firstCourses$cleanGrade <- factor(firstCourses$cleanGrade,
                                   levels = c(
                                     "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
                                     "C", "C_minus", "D_plus", "D", "D_minus",   
                                     "E", "EU", "W", "I", "CR",  "NC", "V", 
                                     "missing", NA
-                                  )
+                                  ),
+                                  ordered = TRUE
 )
+
+# Merge E and EU
+levels(firstCourses$cleanGrade)[levels(firstCourses$cleanGrade) == "EU"] <- "E"
 
 # RARE AND UNUSUAL VALUES
 
@@ -231,7 +239,7 @@ print("Transformations complete")
 keepColumns <- c(
   #   "EMPLID"                      ,
   #   "TERM"                        ,
-  # "course"                      ,
+  "course"                      ,
   #   "class"                       ,
   #   "CATNBR"                      ,
   #   "TITLE"                       ,
@@ -375,15 +383,15 @@ keepColumns <- c(
   "ACTENGL"                     ,
   "ACTMATH"                     ,
   "ACTSCI"                      ,
-  #  "load"                        ,
+#  "load"                        ,
   "cohort_year"                 ,
   "class_year"                  ,
   "yr_diff"                     ,
   "season"                      ,
   "course_level"                ,
-#   "vol_cluster"                 ,
-  "age_cut"                     
-  # "cleanGrade"                  
+  "vol_cluster"                 ,
+  "age_cut"                     ,
+  "cleanGrade"                  
   #   "wdraw_binary"                ,
   #   "grade_binary"                ,
   #   "grade_trinary"               ,
@@ -393,7 +401,6 @@ keepColumns <- c(
 # target_classes <- c("GRADEGPA",  "grade_binary", "grade_trinary", "grade_quad") # "wdraw_binary",
 target_classes <- c("GRADEGPA", "grade_quad")
 
-# stop("Work on keep columns")
 
 ###########
 ## CLEAN ##
@@ -419,193 +426,60 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
 cleanData$course <- factor(cleanData$course)
 
-# Combine math courses
-topCourses <- table(cleanData$course, useNA = "always") |> 
-  (\(x){x[order(x, decreasing = TRUE)]})() |> 
-  proportions() |> 
-  cumsum() |>
-  (\(x){x[x<0.85]})() |>
-  names()
-
-# I'm only adding three more to my volume clustering.
-# I guess I'll comment that column out as a ringer
-
-cleanData$course_target <- ifelse(cleanData$course %in% topCourses, as.character(cleanData$course), "other")
-cleanData$course_target <- factor(cleanData$course_target)
-
-# stop("Next step is the training")
+# stop("Next step is the training loop")
 
 ###########
 ## SPLIT ##
 ###########
 
-# Initially take a subset
+target <- "cleanGrade"
+
 set.seed(123)
-# subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.7, list = FALSE)
 
-# No subset
+# establish sample of complete cases
+popSample <- cleanData[  , keepColumns] |> # no sampling index 
+(\(x){x[complete.cases(x),]})()
 
-# popSample <- cleanData[subIndex, keepColumns]
+trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
+trainData <- popSample[trainIndex, keepColumns]
+testData  <- popSample[-trainIndex, keepColumns]
 
-# No missing values
-# popSample <- popSample[complete.cases(popSample),]
+theData <- list(training = trainData, testing = testData)
 
-# stop("Work on sampling")
+saveRDS(theData, here::here("Data", paste("Decision Tree vI0", target, "Data.rds")))
 
-# let's loop through this 
 
+###########         
+## TRAIN ##
+###########
+         
 xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
 
+startTime <- Sys.time()
+print(paste("STARTING", target, "AT", startTime,"\n"))
+print(paste("STARTING", target, "AT", startTime,"\n"))
+print(paste("STARTING", target, "AT", startTime,"\n"))
 
-target <- "course_target"
+# Train ordinal forest
+fit_ordinal <- ordfor(
+  depvar = "cleanGrade",
+  data = trainData,
+  nsets = 1000,  # Number of score sets (like ntrees)
+  ntreeperdiv = 100,  # Trees per score set
+  ntreefinal = 5000,  # Final forest size
+  perffunction = "equal"  # Equal misclassification costs
+)
 
-#lapply(target_classes,
-       
-       
-#       function(target){
-         
-         # establish sample of complete cases
-         popSample <- cleanData[  , c(target,keepColumns)] |> # no sampling index 
-           (\(x){x[complete.cases(x),]})()
-         
-         ## SPLIT ##  
-         
-         # Use cleanGrade to partition on, but drop it for the test and train data
-         # trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
-         # trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
-         # testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
-         
-         
-         trainIndex <- createDataPartition(popSample$course_target, p = 0.8, list = FALSE)
-         trainData <- popSample[trainIndex, c(target, keepColumns)]
-         testData  <- popSample[-trainIndex, c(target, keepColumns)]
-         
-         #       return(list(training = trainData, testing = testData))
-         
-         theData <- list(training = trainData, testing = testData)
-         
-         #     })
-         
-         saveRDS(theData, here::here("Data", paste("Decision Tree Courses vB0", target, "Data.rds")))
-         
-         
-         ## TRAIN ##  
-         
-         startTime <- Sys.time()
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         
-      #   # Establish weighting
-      #   
-      #   targetCol <- trainData[[target]]
-      #   
-      #   # Compute inverse-frequency weights automatically
-      #   weights_map <- 1 / prop.table(table(targetCol))
-      #   weights_map <- weights_map / mean(weights_map)  # normalize around 1
-      #   weights <- weights_map[as.character(targetCol)]
-      #   
-      #   # regression
-      #   ctrl <- trainControl(
-      #     method = "cv",
-      #     number = 5,
-      #     summaryFunction = defaultSummary
-      #   )
-         
-     #     xgb_grid <- expand.grid(
-     #       nrounds = 600,          # scale boosting rounds for dataset size
-     #      eta = c(0.05, 0.1),     # conservative learning rates
-     #       max_depth = c(4, 6),    # tree depth
-     #      gamma = 0,              # minimal regularization
-     #       colsample_bytree = 0.8, # prevent overfitting
-     #       min_child_weight = 1,
-     #       subsample = 0.8
-     #     )
-         
-         ctrl <- trainControl(
-           method = "cv",
-           number = 5,
-           classProbs = TRUE,
-           summaryFunction = multiClassSummary,
-           savePredictions = "final",  
-           verboseIter = FALSE  
-         )     
-         
-         # Define the tuning grid with multi-class objective
-         xgb_grid <- expand.grid(
-           nrounds = c(100, 200),
-           max_depth = c(3, 6),
-           eta = c(0.05, 0.2),
-           gamma = 0,
-           colsample_bytree = c(0.8),
-           min_child_weight = 1,
-           subsample = c(0.8)
-         )
-         
-         # Calculate class weights
-         class_weights <- 1 / table(trainData[[target]])
-         class_weights <- class_weights / sum(class_weights) * length(class_weights)
-         
-         # Then add to train():
-         weights = class_weights[trainData[[target]]]
-         
-         #   if (is.numeric(targetCol)) {
-         #     # regression
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       summaryFunction = defaultSummary
-         #     );
-         #   } else if (is.factor(targetCol) && nlevels(targetCol) == 2) {
-         #     # binary classification
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       classProbs = TRUE,
-         #       sampling = "smote",
-         #       summaryFunction = twoClassSummary
-         #     )
-         #   } else {
-         #     # multiclass classification
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       classProbs = TRUE,
-         #       summaryFunction = multiClassSummary
-         #     )
-         #   }
-         
-         
-         
-         fit <- 
-           suppressWarnings(
-             train(
-               reformulate(".", response = target), 
-               data = trainData,
-               method = "xgbTree",
-               trControl = ctrl,
-               preProcess = c("zv", "nzv"),
-               #preProcess = c("zv", "nzv", "center", "scale", "knnImpute"),
-               tuneGrid = xgb_grid,
-               objective = "multi:softprob",  
-               num_class = length(unique(trainData[[target]])), 
-               eval_metric = "mlogloss",
-               metric = "Accuracy"
-               
-             )
-           )
-         
-         endTime <- Sys.time()
-         
-         print(endTime-startTime)
-         print(endTime-startTime)
-         print(endTime-startTime)
-         
-         saveRDS(fit, here::here("Models", paste("Decision Tree Courses vB0", target, "model.rds")))
-         
-         library(beepr)
-         beep(8); Sys.sleep(6); #beep(0); Sys.sleep(3); beep(0)
-         
-#       })
-         
-         
+
+endTime <- Sys.time()
+
+print(endTime-startTime)
+print(endTime-startTime)
+print(endTime-startTime)
+
+saveRDS(fit, here::here("Models", paste("Decision Tree vI0", target, "model.rds")))
+
+library(beepr)
+beep(8); Sys.sleep(6) #beep(0); Sys.sleep(3); beep(0)
+
+
