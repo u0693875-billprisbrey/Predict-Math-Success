@@ -1,0 +1,43 @@
+---
+title: "Proposal for focusing on the minority class"
+author: "Bill Prisbrey"
+date: "2025-10-24"
+output:
+  html_document:
+    keep_md: true
+    toc: true
+---
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=10)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+
+source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+```
+
+
+
+
+

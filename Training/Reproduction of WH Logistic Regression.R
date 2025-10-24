@@ -4,8 +4,14 @@
 # in order to calculate Kappa and investigate the prediction results. 
 
 # It was copied from WH Historic Academic Performance in the First Math Course taken by First Time Students 2025.10.16
-# Then I have adjusted the function "evaluate_model" at around line 500 to include Kappa, and return the confusion matrix,
-# and switched the positive case to 0 instead of 1.
+
+# It has the following modifications: 
+#   - The function "evaluate_model" at around line 500 is adjusted to:
+#     - include Kappa
+#     - return the confusion matrix
+#     - switched the positive case to 0 instead of 1.
+
+#   - The model and reference data are saved. 
 
 # Setting work directory
 # setwd('C:/Users/u1057827/Box/UAIR - Undergraduate Studies/Analysis/Math Placement')
@@ -494,7 +500,7 @@ evaluate_model <- function(model, data, label) {
   preds <- ifelse(probs > 0.5, 1, 0)
   actual <- data$FIRST_MATH_COURSE_GRADE_PASS_FAIL
   
-  cm <- confusionMatrix(factor(preds), factor(actual), positive = "1", mode = "everything") # Change this to 0
+  cm <- confusionMatrix(factor(preds), factor(actual), positive = "0", mode = "everything") # Changed this to 0
   auc <- roc(actual, probs)$auc
   
   accTibble <- tibble(
@@ -523,3 +529,11 @@ bind_rows(eval_main_group1, eval_main_group2, eval_main_group3) %>%
     digits = 3
   ) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+##########
+## SAVE ##
+##########
+
+saveRDS(Model_Main_Group2, "C:/Users/u0693875/Documents/Projects/FIRST TIME FRESHMEN/Predict-Math-Success/Models/Model from Reproduction of WH Logistic Regression.rds" )
+saveRDS(Model_Group2, "C:/Users/u0693875/Documents/Projects/FIRST TIME FRESHMEN/Predict-Math-Success/Data/Reference data from Reproduction of WH Logistic Regression.rds") 
+
