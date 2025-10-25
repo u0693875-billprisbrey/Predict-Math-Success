@@ -31,13 +31,277 @@ library(xgboost)
 library(lubridate)
 library(ggplot2)
 library(patchwork)
+library(kableExtra)
+library("tidyverse")
+library("pROC")
 
 source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
 source(here::here("Functions", "Predict Math Success Functions.R"))
 
 ```
 
+```{r}
+
+##########
+## LOAD ##
+##########
+
+Model_Main_Group2 <- readRDS(here::here("Models", "Model from Reproduction of WH Logistic Regression.rds" )) 
+Model_Group2 <- readRDS(here::here("Data", "Reference data from Reproduction of WH Logistic Regression.rds"))
+
+vG1_binary_Data <- readRDS(here::here("Data", "Decision Tree vG1 grade_binary Data.rds"))
+vG1_binary_model <- readRDS(here::here("Models", "Decision Tree vG1 grade_binary model.rds"))  
 
 
+```
+
+### SUMMARY
+
+#### **SITUATION** 
+
+Math success is highly imbalanced, with roughly 80-85% pass and 15-20% fail. 
+
+
+#### **COMPLICATION** 
+
+Machine learning accuracy metrics for imbalanced data sets can be misleading.  A random prediction against an imbalanced data set will match the majority class.  Thus the accuracy will be as high as the majority class, even though the capability of the model is no better than random.  
+
+#### **PROPOSAL**    
+
+(1) That the population of interest are the students who fail.  
+(2) That we report precision and recall for the students who fail.  
+(3) That we report Kappa, F1, or Balanced Accuracy instead of (or in addition to) Accuracy and AUC as more representative of the model's ability.    
+(4) That we publish the full confusion matrix for clarity. 
+
+
+### DEMONSTRATIONS  
+
+#### The data set is imbalanced.  
+
+```{r}
+
+theData <- do.call(rbind, vG1_binary_Data)
+
+thePlot <- theData$grade_binary |>
+  table() |>
+  proportions() |>
+  barplot(las = 1,
+          main = "Success at first math classes",
+          col = c("rosybrown3",  "seagreen3")
+  )
+
+axis(side = 1,
+     at = thePlot[,1],
+     line = 1.2,
+     tick = FALSE,
+     labels = c("FAIL", "PASS"))
+
+
+successProportions <- theData$grade_binary |>
+  table() |>
+  proportions()
+
+text(x = thePlot[1,1],
+     y = successProportions[1]+0.05,
+     labels = paste(round(100*successProportions[1],0),"%", sep = ""),
+     font =2
+     )
+
+text(x = thePlot[2,1],
+     y = successProportions[2]-0.05,
+     labels = paste(round(100*successProportions[2],0),"%", sep = ""),
+     font =2
+     )
+
+
+```
+
+#### Accuracy metric for a random number generator can be misleadingly high.
+
+The prediction is randomly generated and metrics are shown specifying the positive class as "1" or "Pass".
+
+The metrics are very high, even though the prediction is random.  
+
+
+```{r include = TRUE}
+
+set.seed(99)
+randomPrediction <- sample(c(0,1), size = nrow(theData), replace = TRUE, prob = successProportions)
+
+cm1 <- confusionMatrix(data = factor(randomPrediction), reference = factor(theData$grade_binary), positive = "1")
+
+
+
+data.frame(
+  Metric = c("Accuracy", "Precision", "Recall"),
+  Value = c(
+    round(as.numeric(cm1$overall["Accuracy"]), 2),
+    round(as.numeric(cm1$byClass["Precision"]), 2),
+    round(as.numeric(cm1$byClass["Recall"]), 2)
+  )
+) |>
+  kbl(
+    caption = "Random Model Performance\n (for 1)",
+    align = c("l", "c"),
+    col.names = c("Metric", "Value"),
+    format = "html"
+  ) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) |>
+  column_spec(2, bold = TRUE, color = "black", background = "ivory")
+
+
+```
+
+
+#### Precision and recall for the minority class are low. 
+
+This emphasizes the minority class for the random generator.  It is a very different picture. 
+
+```{r include = TRUE}
+
+cm0 <- confusionMatrix(data = factor(randomPrediction), reference = factor(theData$grade_binary), positive = "0")
+
+data.frame(
+  Metric = c("Accuracy", "Precision", "Recall"),
+  Value = c(
+    round(as.numeric(cm0$overall["Accuracy"]), 2),
+    round(as.numeric(cm0$byClass["Precision"]), 2),
+    round(as.numeric(cm0$byClass["Recall"]), 2)
+  )
+) |>
+  kbl(
+    caption = "Random Model Performance\n (for 0)",
+    align = c("l", "c"),
+    col.names = c("Metric", "Value"),
+    format = "html"
+  ) |>
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) |>
+  column_spec(2, bold = TRUE, color = "black", background = "ivory")
+
+```    
+
+
+### PROPOSAL EXAMPLES  
+
+#### Report more accuracy metrics, use "Fail" as the positive class, and show the full confusion matrix 
+
+
+##### Random prediction
+
+The random prediction has a very low Kappa.  
+
+Using zero or "Fail" as the positive class clarifies the utility of this model in guiding any intervention targeting this population.  
+
+```{r}
+
+# These would look great side-by-side
+
+par(mfrow=c(2,1))
+drawCM(cm1, title = "Random prediction with '1' as positive class")
+
+drawCM(cm0, title = "Random prediction with '0' as positive class")
+
+```
+
+
+##### Logistic regression
+
+Logistic regression has a low Kappa.  
+
+Precision and recall for the minority class are low.  
+
+```{r}
+
+evaluate_model <- function(model, data, label) {
+  probs <- predict(model, type = "response")
+  preds <- ifelse(probs > 0.5, 1, 0)
+  actual <- data$FIRST_MATH_COURSE_GRADE_PASS_FAIL
+  
+  cm <- confusionMatrix(factor(preds), factor(actual), positive = "1", mode = "everything") # Changed this to 0
+  auc <- roc(actual, probs)$auc
+  
+  accTibble <- tibble(
+    Group = label,
+    Kappa = as.numeric(cm$overall["Kappa"]),
+    Accuracy = as.numeric(cm$overall["Accuracy"]),
+    Precision = as.numeric(cm$byClass["Precision"]),
+    Recall = as.numeric(cm$byClass["Recall"]),
+    AUC = as.numeric(auc)
+  )
+  
+  return(list(cm = cm, accuracy = accTibble))
+  
+}
+
+logReg1 <- evaluate_model(Model_Main_Group2, Model_Group2, "Group 2: HSGPA + ACT")
+
+evaluate_model <- function(model, data, label) {
+  probs <- predict(model, type = "response")
+  preds <- ifelse(probs > 0.5, 1, 0)
+  actual <- data$FIRST_MATH_COURSE_GRADE_PASS_FAIL
+  
+  cm <- confusionMatrix(factor(preds), factor(actual), positive = "0", mode = "everything") # Changed this to 0
+  auc <- roc(actual, probs)$auc
+  
+  accTibble <- tibble(
+    Group = label,
+    Kappa = as.numeric(cm$overall["Kappa"]),
+    Accuracy = as.numeric(cm$overall["Accuracy"]),
+    Precision = as.numeric(cm$byClass["Precision"]),
+    Recall = as.numeric(cm$byClass["Recall"]),
+    AUC = as.numeric(auc)
+  )
+  
+  return(list(cm = cm, accuracy = accTibble))
+  
+}
+
+logReg0 <- evaluate_model(Model_Main_Group2, Model_Group2, "Group 2: HSGPA + ACT")
+
+drawCM(logReg1[["cm"]], title = "Logistic regression with '1' as positive class")
+drawCM(logReg0[["cm"]], title = "Logistic regression with '0' as positive class")
+
+```
+
+
+##### Extreme gradient boosting
+
+Extreme gradient boosting slightly improves on logistic regression.   
+
+```{r}
+
+courseFilter <- vG1_binary_Data[["testing"]] |>
+  as.data.frame() |>
+  (\(x){ 
+    !x[,"FIRST_MATH_COURSE_CATNBR"] %in% c("2280", "3010")
+    })()
+
+vG1_test <- vG1_binary_Data[["testing"]] |>
+  as.data.frame() |>
+  (\(x){
+    x[courseFilter,]
+  })() |>
+  droplevels()
+
+
+vG1_pred_numeric <- predict(vG1_binary_model, vG1_test) 
+vG1_pred_class <- ifelse(vG1_pred_numeric > 0.5, 1, 0)
+
+vG1_cm1 <- confusionMatrix(factor(vG1_pred_class), factor(vG1_test$grade_binary), positive = "1", mode = "everything")
+
+vG1_cm0 <- confusionMatrix(factor(vG1_pred_class), factor(vG1_test$grade_binary), positive = "0", mode = "everything")
+
+drawCM(vG1_cm1, title = "Extreme gradient boosting with '1' as positive class")
+drawCM(vG1_cm0, title = "Extreme gradient boosting with '0' as positive class")
+
+```
 
 
