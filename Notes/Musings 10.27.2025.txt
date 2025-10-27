@@ -1,0 +1,16 @@
+Musings 10.27.2025
+
+
+- Build many models that start with 2005-2006 that predicts one year more, then increments one more year and tests on the most recent year.
+- Use this to build a nice graph of accuracy over time.
+- Definitely show the density plot of population taking this course in which yr_diff	
+- Experiment with different cut-offs (binary, etc) prioritizing recall	
+- Create precision/recall curve for different cut-offs	
+- Create heatmaps 
+- Show most important variables
+- Show heatmaps and most important variables changing over time	
+
+- Start building counter-factuals	
+- Create diagrams in ppt
+- Fix drawCM for the multiple classes	
+

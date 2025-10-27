@@ -1,0 +1,116 @@
+Notes, Math Placement Check-In
+10.27.2025
+
+
+Action Items:
+ - Each person to write one page summary of their model and highlight their key findings
+ - Each person to simultaneously proceed to developing course recommendations	
+ - Next check-in is in a couple of weeks	
+
+Summary:
+
+- Luis asks us to write a final report of our predictions that is completely accessible to someone with no knowledge of the math courses or of machine learning.  It is time to think of how to synthesize all of this information.		
+- Bill briefly walks over latest model incorporating time: testing against class year 2024 as the hold-out had an r-squared of 0.3 for four buckets of grade.	
+- Sara briefly walks over her latest CatBoost model that highlighted demographic sub-groups.	
+- Bill proposes:  We should focus on the minority class (failing population); report precision and recall for the minority class (failing population); report metrics like Kappa, F1, and balanced accuracy instead of (or in addition to) accuracy; and report the confusion matrix		
+- Luis clarifies:  Improving recall at the expense of precision is preferred.	
+- Luis asks us to proceed with developing course recommendations.  
+- End of January is the hard deadline; progress is looking good so far.	
+
+
+Notes:
+(1)  Think of a final report and go through the exercise of what y'all need to do to get that done.
+Some pointers: 
+(2)  Hearing from Whitney, Sara, Bill -- if anything new since we last met, changes
+(3)  Bill sent something via e-mail today on the proposal if we have time at the end to go over that.
+
+CatBoost:  Got e-mail today to take a look at it.  Haven't looked at it yet.
+
+Luis:  Gotta find a way to synthesize all of this information.	Some of us have written exec summaries, which are o.k.  Still a lot that Luis has in mind.  For everyone on here, if you could:  Think of ways to synthesize most important findings into a half-page.  
+
+Try to avoid jargon.	We need to make this accessible to any audience member.	
+
+Need to find a way to marry everyone's analysis.  Easy to do if we have, like, one report.	
+
+What we've done so far-- I see that as, not just copying-and-pasting what we've done.  We'll need edits  for stakeholders.  I will meet individually to suggest some edits and what he's  talking about here.  Can compose an e-mail with a little more instructions for a final report for stakeholders.  I'd encourage you to meet amongst each other, and if you haven't seen each other's work, please do that as you'll find things that you'll want to think about for edits.  Everyone knows shopkeeping/wordsmithing/edits.  Also thinking about if it's clear to the most novice people about math classes and doesn't know anything about M.L. because they'll still be making decisions.  It's a hard task but I want you to think about that now.	
+
+We'll need a one-page summary for everything done.
+
+Synthesize most important findings; exactly what you did; try to avoid jargon to make it accessible.  Conclusions will be first in the results and people can read on further.	
+
+[How do I relate Kappa to a coin flip?]
+
+Whitney:  Focused on student attributes can predict success, but long term we were trying to place students.  Will this stage -just- be on predict?  Or do we need to move into the space of recommendation?	
+
+Luis:  Analysis isn't done.  But think of the end game for when we do this.  We're not done with the analysis but we'll keep going.  Everyone has already done, some of y'all might think -- is this worthy to make the one-pager?  As far as talking about that in the one-pager?  
+
+For example, can we actually predict math success with these variables?  Think of what should make the cut.	
+
+So we don't get to the end and we have to do a bunch of work.  
+
+Sara:  Is there a timeline? --> Final report at the end of Jan we are delivering something, and this is balancing all the other requests that we're getting.  We should have something polished and that would be when this report is getting placed into stakeholder's hands so they can make decisions for the incoming Fall 2026 folks and this is affecting them.
+
+We have a lot to do, but I think we're on our way to a very comprehensive analyses here and I want to get to the point where folks aren't necessarily--- they don't have big questions and they don't see that we've missed big items.  100% guarantee that once we show it to other folks they'll ask, "What did you do . . .x,y,z?" And we are on our way to addressing these questions.  Maybe sooner.  End of Jan is the hard completion.	
+
+[IMPROVE RECALL OR PRECISION?]
+
+I think we need to give ourselves a month to really talk about this.  I don't see changes to the work, just heavy edits, and think about how to summarize that, and how to make recommendations for math placement (simultaneously.)  I think we're at a better rhythm now, and that part will go faster.	 Whitney, I'd say-- we have not worked on recommendations or how to recommend students be placed.  You can start working on that now.  But I think we have a lot of time for that and I think it will go faster.	
+
+Bill-- I don't know what you have in store but I'd like to look at at placement.
+
+Bill:  Should I throw in "course load" or leave it as a "by-the-way" in the appendix? --> Address it but in the appendix.  
+
+
+Bill reports:  I held out time -- and tested on 2024 as Sarah did. R^2 was nicely high. And I converted to a confusion matrix, and that needs some polishing.	
+
+Sarah reports:	
+
+Pas vs fail, and shows the imbalance.  Shows the variable importance -- consistent with what I've got.  
+HSGPA is the most important variable.  
+Shows how she optimized variables.	
+
+Sarah has some really nice "key insights" table.
+
+Nice break into "sub-groups" and demographics.  No key differences
+
+Luis: We will get asked about it.  It's pretty dang clear that we can use three variables and only three variables to guide folks.  And the next question that folks will ask us, "Did we look at all the other stuff?" and we can say 'yes' and it's not really impacting.	
+
+
+Bill: Proposes that we focus on the minority class.  Sarah agrees.
+
+Focus on "recall" -- more important than precision.  Want to capture the minority class
+
+Whitney:  I can change the cut-off to be more pro-cut-off.  And that should take care of it.
+
+Bill:  clarifies -- change the "positive" to 0 in the code.	
+
+Whitney pushes back: We won't share our confusion matrix in the final report.	
+
+Luis: I'll talk to Bill on this in a 1x1
+
+Luis: Each of you do a one-pager and summarize how you do your findings and questions that we are addressing.  Do all of the work that we've done after the one-pager (and put the support for the work.)  I want to make sure that everyone has looked at everyone else's work.  
+
+I have some suggestions on changes, probably not need to go back to RStudio / going back to the lab except for some of the changes that we've made.	
+
+Parallel to this work:  Start working on recommendations for placement.  We'll need to organize another check-in in two weeks.	 That will go down for our guidelines and replacing students for accuracy (or lack of accuracy.)  We have a pretty good idea for one-pagers for each of us, and look very polished for the work that we've done so far, and pick up the predicting and placement so far.  
+
+Any worries/comments?  I don't like this--- let Luis know right now or on one-on-one.	
+
+Whitney:  I'll be out of office from Dec 18 to Jan 6th.  As we plan different components for these 3-ish weeks.	
+
+
+We've done a lot of great work and I think we probably, as far as can we predict, students' math performance, I don't think we need to do too much more work on that.  Now we need to get to the fun part of the rubber meets the road and decide where we place these students.  
+
+An hour each and will get those scheduled this week and we can start maybe as early as this week (Thur/Fri) to get these one-on-ones.  There's a lot of suggestions.	
+
+We've alleviated a lot of future concerns for stakeholders.	
+
+
+
+
+
+
+
+
+
+	
