@@ -1,4 +1,10 @@
-# Draw Confusion Matrix vC5
+# Draw Confusion Matrix vC6
+
+# Improved on 10.27.2025:
+#  using "on.exit" to restore incoming parameters and layout
+#  added functions to manage special characters in class labels, triggered by class labels in intervals like "[0,0.5)"
+# I don't think basis = "precision" or "row" is coloring correctly, but percentages look right
+
 
 # Copied from "/home/Prisbrey/Projects/ST ANDRE/Course Feedback Jan 2023/Function scripts/Draw Confusion Matrix vC4.R"
 # 17 Sept 2024
@@ -144,7 +150,11 @@ drawCM <- function(cm,
   
   # Exclude read-only parameters
   incomingPar <- incomingPar[!names(incomingPar) %in% c("cin", "cra", "csi", "cxy", "din", "page")]
-  
+
+  on.exit({
+    par(incomingPar)
+    layout(1)
+  })
   
   
   if (is.na(metrics)) { metrics <- c("Precision", "Recall",
@@ -388,6 +398,23 @@ drawCM <- function(cm,
   # transfer metricsClass back into original names
   
   if (any(!is.na(nameMatrix))) {metricsClass <- nameMatrix[nameMatrix[,"display"] == metricsClass, "original"] }
+
+  
+  # browser() # figure out what's struggling # it was special characters in the row labels
+  
+  # Function to escape regex special chars
+  # In case of using an interval like "(0,0.5]" or similar
+  
+  escape_regex <- function(string) {
+    gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", string)
+  }
+  
+  if(grepl("[][{}()+*^$|\\\\?.]", metricsClass) ){
+    
+    metricsClass <- escape_regex(metricsClass)
+    
+  }
+
   
   # if it's a 2x2 and the metrics are a vector
   
@@ -426,7 +453,6 @@ drawCM <- function(cm,
     
   }
   
-  browser() # figure out what's struggling
   
   # if there are more than two classes
   
@@ -491,9 +517,6 @@ drawCM <- function(cm,
   # restore layout defaults
   # requires  .pardefault <- par() to be run at the start of the session 
   # par(.pardefault)
-  
-  # restore graphical parameters
-  par(incomingPar)
   
 }
 
