@@ -32,7 +32,8 @@ library(caret)
 library(xgboost)
 library(lubridate)
 
-source(here::here("Functions", "Draw Confusion Matrix vC5.R"))
+source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
+
 
 ```
 
@@ -542,6 +543,8 @@ GRADEGPA_thresholds <- GPA_grade_levels |>
   (\(x){x+intermediate_steps})()
 GRADEGPA_thresholds[GRADEGPA_thresholds == max(GRADEGPA_thresholds)] <- 10 # upper limit is high so any high predictions are leveled back as "A"
 
+GRADEGPA_thresholds <- c(-10, GRADEGPA_thresholds) # lower limit is low so any low prediction is leveled back to "F"
+
 quad_grade_levels <- unique(data_list[["grade_quad"]][["testing"]][["grade_quad"]]) |> 
   (\(x){ x[order(x)]})()
 intermediate_steps <- quad_grade_levels |> (\(x){ x[order(x)]})() |> diff() |> (\(x){x*0.5})()
@@ -550,8 +553,9 @@ grade_quad_thresholds <- quad_grade_levels |>
   (\(x){x+intermediate_steps})()
 grade_quad_thresholds[grade_quad_thresholds == max(grade_quad_thresholds)] <- 10 # upper limit is high so any high predictions are leveled back as "A"
 
+grade_quad_thresholds <- c(-10, grade_quad_thresholds)
 
-missingTraining <- function(target) {
+missingInTraining <- function(target) {
   
   # Removing courses that are in testing but not in training 
   
@@ -573,7 +577,7 @@ missingTraining <- function(target) {
 }
 
   
-createConfusionMatrix <- function(pred, reference, thresholds = NA, plot_title = "Predicted vs Actual"){
+createConfusionMatrix <- function(pred, reference, thresholds = NA, ...){
   
   # set thresholds if not provided
   if(any(is.na(thresholds))) {
@@ -585,32 +589,88 @@ createConfusionMatrix <- function(pred, reference, thresholds = NA, plot_title =
   }
   
   # convert to discrete values
-  discrete_predictions <- cut(pred, thresholds)
-  discrete_references <- cut(reference, thresholds)
+  discrete_predictions <- cut(pred, thresholds, include.lowest = TRUE, right = FALSE)
+  discrete_references <- cut(reference, thresholds, include.lowest=TRUE, right = FALSE)
   
+  # create uniform factor levels
+
+all_levels <- sort(unique(c(as.character(discrete_predictions), 
+                            as.character(discrete_references))))
+  
+discrete_predictions <- factor(discrete_predictions, levels = all_levels)
+discrete_references <- factor(discrete_references, levels = all_levels)
+
   # create confusion matrix
   
-  cm <- confusionMatrix(factor(discrete_predictions), factor(discrete_references), mode = "everything")
+  cm <- confusionMatrix(discrete_predictions, discrete_references, mode = "everything", ... )
   
   return(cm)
   
 }
 
-gradeMissing <- missingTraining("GRADEGPA")  
+gradeMissing <- missingInTraining("GRADEGPA")  
 GRADEGPA_cm <- createConfusionMatrix(pred = thePredictions[["GRADEGPA"]],
                                       reference = data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]][gradeMissing],
                                       thresholds = GRADEGPA_thresholds
                                       )
-print(GRADEGPA_cm)
-# drawCM(GRADEGPA_cm) # error, annoyingly
 
-quadMissing <- missingTraining("grade_quad")  
+drawCM(GRADEGPA_cm) # fixed!
+
+quadMissing <- missingInTraining("grade_quad")  
 quad_cm <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
                                       reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
                                       thresholds = grade_quad_thresholds
                                       )
-print(quad_cm)
-# drawCM(quad_cm)
+drawCM(quad_cm, nameMatrix = cbind(original = c("[-10,0.5]", "(0.5,1.5]", "(1.5,2.5]", "(2.5,10]"),
+                                display =  c("[-10,0.5]", "(0.5,1.5]", "(1.5,2.5]", "(2.5,10]"))
+)
+
+
+# let's turn that into a binary"
+# to make this work, you'll need to modify the "cut" to "right = TRUE"
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,2,10),
+                                     positive = "[-10,2]"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,2]", "(2,10]"),
+                                display =  c("[-10,2]", "(2,10]"))
+)
+
+# This one had an EXCELLENT kappa value-- like 0.6
+
+# starting to look a lot better
+# Maybe I use different thresholds for the prediction as the reference?
+# Why not?
+
+# and let's use better thresholds --- interested in flunking, here--
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,1,10),
+                                     positive = "[-10,1)"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,1)", "[1,10]"),
+                                display =  c("[-10,1)", "[1,10]"))
+)
+
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,2,10),
+                                     positive = "[-10,2)"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,2)", "[2,10]"),
+                                display =  c("[-10,2)", "[2,10)"))
+)
+
+# ...and I need to update drawCM again, from vC6 to include "grepl(any....)"
+
+
+# I should cough up my best one, but unfortunately it's not the most useful.
+
+
 
 ``` 
 

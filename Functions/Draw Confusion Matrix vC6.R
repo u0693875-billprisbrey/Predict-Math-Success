@@ -1,10 +1,17 @@
 # Draw Confusion Matrix vC6
 
+# Improved on 10.28.2025:
+#  The "Metrics" column title takes the "Positive" class from the cm object for binary classes (mirroring multiple classes)
+#  I decided I can live with the "precision" colors and won't touch it
+#  Toggled "if" statement for "metrics" to accept a user-provided list and the handling of metrics for multiple classes
+
+# This could handle user-specifying which metrics to put in the Accuracy box -- except cm doesn't provide much in "overall"
+
 # Improved on 10.27.2025:
 #  using "on.exit" to restore incoming parameters and layout
 #  added functions to manage special characters in class labels, triggered by class labels in intervals like "[0,0.5)"
 # I don't think basis = "precision" or "row" is coloring correctly, but percentages look right
-
+#   Or maybe it's o.k.
 
 # Copied from "/home/Prisbrey/Projects/ST ANDRE/Course Feedback Jan 2023/Function scripts/Draw Confusion Matrix vC4.R"
 # 17 Sept 2024
@@ -157,7 +164,7 @@ drawCM <- function(cm,
   })
   
   
-  if (is.na(metrics)) { metrics <- c("Precision", "Recall",
+  if (any(is.na(metrics))) { metrics <- c("Precision", "Recall",
                                      "Pos Pred Value", "Neg Pred Value",
                                      "Sensitivity", "Specificity",         
                                      "Prevalence", "Detection Prevalence")     
@@ -388,7 +395,7 @@ drawCM <- function(cm,
   
   if (is.na(metricsClass) & any(class(cm$byClass) == "matrix")) {metricsClass <- colnames(theTable)[1] }
   
-  if (any(class(cm$byClass) == "matrix")) {metricTitle <- paste("Metrics: ", metricsClass) } else { metricTitle <- "Metrics" }
+  if (any(class(cm$byClass) == "matrix")) {metricTitle <- paste("Metrics: ", metricsClass) } else { metricTitle <- paste("Metrics: ", cm$positive) }
   
   plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = metricTitle, xaxt='n', yaxt='n', col.main = fontColor)
   box(which = "plot", lty = "solid", col = fontColor)
@@ -409,7 +416,7 @@ drawCM <- function(cm,
     gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", string)
   }
   
-  if(grepl("[][{}()+*^$|\\\\?.]", metricsClass) ){
+  if(any(grepl("[][{}()+*^$|\\\\?.]", metricsClass))){
     
     metricsClass <- escape_regex(metricsClass)
     
@@ -458,27 +465,40 @@ drawCM <- function(cm,
   
   if (any(class(cm$byClass) == "matrix")) {
     
-    
+    if(!is.na(metrics[1])){
     text(65, 93, metrics[1], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 93, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[1] ], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[2])){
     text(65, 81, metrics[2], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 81, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[2] ], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[3])){
     text(65, 69, metrics[3], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 69, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[3]], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[4])){
     text(65, 57, metrics[4], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 57, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[4] ], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[5])){
     text(65, 45, metrics[5], cex=1.2, font=2, adj = c(1, 0.5), col = fontColor )
     text(85, 45, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[5] ], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[6])){
     text(65, 33, metrics[6], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 33, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[6]], 3), cex=1.2, col = fontColor)
+    }
     
+    if(!is.na(metrics[7])){
     text(65, 21, metrics[7], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 21, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[7]], 3), cex=1.2, col = fontColor)
+    }
     
     #text(65, 25, names(cm$byClass[8]), cex=1.2, font=2, adj = c(1,0.5) )  # Prevalence
     #text(85, 25, round(as.numeric(cm$byClass[8]), 3), cex=1.2)
@@ -487,8 +507,10 @@ drawCM <- function(cm,
     #text(85, 15, round(as.numeric(cm$byClass[9]), 3), cex=1.2)
     
     #text(65, 5, names(cm$byClass[11]), cex=1.2, font=2, adj = c(1,0.5) )
+    if(!is.na(metrics[8])){
     text(65, 9, metrics[8], cex=1.2, font=2, adj = c(1,0.5), col = fontColor )
     text(85, 9, round(cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""), row.names(cm$byClass)), metrics[8]], 3), cex=1.2, col = fontColor)
+    }
     
   }
   
