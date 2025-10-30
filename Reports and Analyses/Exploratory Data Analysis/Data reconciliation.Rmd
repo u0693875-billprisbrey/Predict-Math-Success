@@ -1,0 +1,375 @@
+---
+title: "Data reconciliation"
+author: "Bill Prisbrey"
+date: "2025-10-30"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(lubridate)
+library(tidyverse)
+library(readxl)
+library(skimr)
+
+```
+
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
+
+whData <- read_excel(here::here("Data", "WH Dataset - Math Placement Project - First Time Students from Fall 2021 - 2024 Cohorts and Their First Math Course 2025.09.30.xlsx"))
+
+
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+# add unique identifier key here 
+mathCourses$key <- paste(mathCourses$EMPLID, mathCourses$CATNBR, mathCourses$TERM, sep = "_")
+                   
+## IDENTIFY FIRST TERM OF MATH CLASSES ##
+
+# Identify minimum term per student
+minTerm <- aggregate(TERM ~ EMPLID, data = mathCourses, min, na.rm = TRUE)
+minTerm$reference <- paste(minTerm$EMPLID, minTerm$TERM, sep = "_") # combine for reference
+mathCourses$minTerm <- paste(mathCourses$EMPLID, mathCourses$TERM, sep = "_") %in% minTerm$reference # identify courses in minimum terms 
+
+firstTermFilter <- mathCourses$minTerm == TRUE
+
+## identify popular, high volume courses
+# mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+#                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+# mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+# popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+firstCourses <- mathCourses[firstTermFilter & !mathLabFilter,]
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+)
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+  #  SATMATH, # leaving out SAT because it's a smaller proportion
+  #  SATVERBAL,
+  #  SATWRTG        
+)
+
+firstCourses <- merge(firstCourses, ftfData[, c("EMPLID","COHORT_DT", "COHORTTERM", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+firstCourses <- merge(firstCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+# Freshman year
+firstCourses$cohort_year <- year(firstCourses$COHORT_DT)
+
+# Class year
+firstCourses$class_year <- year(firstCourses$EOTDATE)
+
+# Year to class
+firstCourses$yr_diff <- time_length(interval(firstCourses$COHORT_DT, firstCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+firstCourses$season <- season_map[substr(firstCourses$TERM, 4, 4)]
+
+# Course levels column
+firstCourses$course_level <- firstCourses$CATNBR %/% 1000
+
+# filter out courses at 3000+ level
+course_levelFilter <- firstCourses$course_level < 3
+
+# filter out courses that aren't recent
+course_by_year <- table(firstCourses[course_levelFilter, c("course","class_year")  ]) |> as.data.frame()
+recentCourses <- unique(course_by_year$course[course_by_year$class_year %in% c(2021:2025) & course_by_year$Freq > 0])
+recent_filter <- firstCourses$course %in% recentCourses
+
+# Course clusters by volume
+courseClusters <- table(firstCourses$course[recent_filter]) |>
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  dist() |>
+  hclust() |>
+  cutree(k=2)
+
+firstCourses$vol_cluster <- ifelse(firstCourses$course %in% names(courseClusters)[courseClusters == 1], "hi_vol","low_vol")
+
+# Course filter
+higherVolCourses <- table(firstCourses$course[recent_filter]) |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+  proportions() |> 
+  cumsum() |>
+  (\(x){names(x[x<0.9]) })()
+
+courseFilter <- firstCourses$course %in% higherVolCourses
+
+# > higherVolCourses
+# [1] "MATH_1010" "MATH_1050" "MATH_1210" "MATH_1030" "MATH_1090" "MATH_1060"
+# [7] "MATH_1070" "MATH_1220" "MATH_1080"
+
+# Age buckets
+firstCourses$age_cut <- cut(firstCourses$AGE, breaks = c(0,17,18,19,21,100))
+
+# Age filter
+ageFilter <- firstCourses$AGE > 11
+
+# print("Prep complete")
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+firstCourses$cleanGrade <- clean_grade(firstCourses$GRADE) 
+
+firstCourses$cleanGrade <- factor(firstCourses$cleanGrade,
+                                  levels = c(
+                                    "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                    "C", "C_minus", "D_plus", "D", "D_minus",   
+                                    "E", "EU", "W", "I", "CR",  "NC", "V", 
+                                    "missing", NA
+                                  )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- firstCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") # , "EU" convert EU to 0
+
+# WITHDRAW
+firstCourses$wdraw_binary <- NA
+firstCourses$wdraw_binary <- ifelse(firstCourses$GRADE == "W","withdraw","not_withdraw")
+
+## CONVERT APCREDIT NA VALUES to ZERO ##  
+
+firstCourses$APCREDIT[is.na(firstCourses$APCREDIT)] <- 0
+
+# print("Transformations complete")
+
+###########
+## CLEAN ##
+###########
+
+cleanFilters <- !is.na(firstCourses$cleanGrade) & 
+  !rareGrades
+#!popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") 
+
+# Outlier filters
+zeroHSGPA_filter <- firstCourses$HSGPA == 0
+highLoad_filter <- firstCourses$load > quantile(firstCourses$load, 0.99)
+preMath_filter <- firstCourses$yr_diff < -0.5 # since all cohort dates start in September, I wanted to includ the summer before the cohort date
+outlierFilters <- !zeroHSGPA_filter & !highLoad_filter & !preMath_filter
+
+# withdrawFilter
+withdrawFilter <- firstCourses$cleanGrade != "W"
+
+# Unique Identifier
+# firstCourses$key <- paste(firstCourses$EMPLID, firstCourses$CATNBR, firstCourses$TERM, sep = "_")
+
+# Combined filters
+cleanData <- firstCourses[cleanFilters & outlierFilters & course_levelFilter & recent_filter & ageFilter & withdrawFilter,]
+cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
+cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
+
+cleanData$course <- factor(cleanData$course)
+
+
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+whData <- whData[!is.na(whData$FIRST_MATH_COURSE_CATNBR),]
+
+whData$key <- paste(whData$EMPLID, whData$FIRST_MATH_COURSE_CATNBR, whData$FIRST_MATH_TERM, sep = "_")
+
+
+```
+
+
+```{r}
+
+############################
+## IDENTIFY DISCREPANCIES ##
+############################
+
+whPerTerm <- lapply(unique(whData$COHORTTERM), function(x) {
+  emplidPerTerm <- unique(whData$EMPLID[whData$COHORTTERM == x]) 
+  keyPerTerm <- unique(whData$key[whData$COHORTTERM == x])
+  return(list(emplid = emplidPerTerm, key = keyPerTerm))
+  })
+names(whPerTerm) <- unique(whData$COHORTTERM)
+
+cleanPerTerm <- lapply(unique(cleanData$COHORTTERM), function(x) {
+  emplidPerTerm <- unique(cleanData$EMPLID[cleanData$COHORTTERM == x]) 
+  keyPerTerm <- unique(cleanData$key[cleanData$COHORTTERM == x])
+  return(list(emplid = emplidPerTerm, key = keyPerTerm))
+})
+names(cleanPerTerm) <- unique(cleanData$COHORTTERM)
+
+
+comboPerTerm <- lapply(unique(whData$COHORTTERM), function(x){ 
+  x <- as.character(x)
+  EMPLIDs <- merge(data.frame(emplid = whPerTerm[[x]][["emplid"]], wh = TRUE), data.frame(emplid = cleanPerTerm[[x]][["emplid"]], clean = TRUE), by = "emplid", all = TRUE  )
+  EMPLIDs[is.na(EMPLIDs)] <- FALSE
+  keys <- merge(data.frame(key = whPerTerm[[x]][["key"]], wh = TRUE), data.frame(key = cleanPerTerm[[x]][["key"]], clean = TRUE), by = "key", all = TRUE  )
+  keys[is.na(keys)] <- FALSE
+  return(list(emplid = EMPLIDs, key = keys))
+  })
+names(comboPerTerm) <- unique(whData$COHORTTERM)
+
+missingCleanKeys <- unlist(lapply(names(comboPerTerm), function(x){
+  
+  comboPerTerm[[x]][["key"]][["key"]][comboPerTerm[[x]][["key"]]["clean"] == FALSE]
+  
+}))
+
+missingWHKeys <- unlist(lapply(names(comboPerTerm), function(x){
+  
+  # comboPerTerm[[x]][["key"]][["key"]][comboPerTerm[[x]][["key"]]["clean"] == FALSE]
+  comboPerTerm[[x]][["key"]][["key"]][comboPerTerm[[x]][["key"]]["wh"] == FALSE]
+  
+  
+}))
+
+```
+
+
+# Executive summary
+
+**PURPOSE:** The purpose of this report is to compare the data sets derived by Bill Prisbrey and Whitney Holt and explain any discrepancies.  
+
+**SITUATION:** Bill Prisbrey and Whitney Holt used different methods to derive data sets used to examine grades in first math courses.  Prisbrey (who is new to this data) derived the data set in R, while Holt used SQL.  Prisbrey extracted all available years, while Holt extracted after Fall 2021. 
+
+**COMPLICATION:** Prisbrey's data set was missing `r length(missingCleanKeys) |> format(big.mark = ",")` rows that were found in Holt's baseline data set for the terms that they had in common.  
+
+**RESOLUTION:** There are no unexplained differences.  An investigation of the filters used by Prisbrey explained all discrepancies with Holt's base data extraction.  
+
+# Filters used by Prisbrey
+
+  |Filter          |Removes                                                                   |
+  |----------------|--------------------------------------------------------------------------|
+  |High School GPA | Students without a high school GPA                                       |
+  |Withdraw        | 'W' grade values                                                         |
+  |Pre-math        | Students taking math more than half a year before their cohort date      |
+  |Volume          | Courses that are greater than 90% of the cumulative total enrollment     |
+  |Rare            | 'V', 'I', 'NC', 'CR' grade values                                        |
+  |High load       | Students taking more than the 99th percentile in total credits that term |
+  |Course level    | Courses higher than 3000 level                                           |
+  |Recent          | Courses that were not after before Spring 2021                           |
+  |First Term      | Courses taken in a term after the first term a math course is taken      |
+  |Age             | Students younger than 12 years old                                       |
+  |Clean           | 'NA' grade values                                                        |
+  |Math Lab        | Math labs                                                                |
+  
+
+```{r}
+
+filterList <- list(
+ # baseline = mathCourses$key,
+  math_lab =  mathCourses$key[!mathLabFilter],
+  first_term = mathCourses$key[firstTermFilter],
+  course_level = firstCourses$key[course_levelFilter],
+  recent = firstCourses$key[recent_filter],
+  volume = firstCourses$key[courseFilter],
+  age = firstCourses$key[ageFilter],
+  clean = firstCourses$key[!is.na(firstCourses$cleanGrade)],
+  rare = firstCourses$key[!rareGrades],
+  withdraw = firstCourses$key[withdrawFilter],
+  high_load = firstCourses$key[!highLoad_filter],
+  pre_math = firstCourses$key[!preMath_filter],
+  HS_GPA = firstCourses$key[!zeroHSGPA_filter]
+#  combined = cleanData$key[cleanFilters & outlierFilters & course_levelFilter & recent_filter & ageFilter & withdrawFilter]
+)
+
+par(mar = c(7.1,4.1,4.1,2.1))
+
+sapply(filterList, function(x) length(missingCleanKeys) - sum(missingCleanKeys %in% x)) |>
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  barplot(
+    ylab = "rows explained",
+    las = 2,
+    main = "Filters that (when combined) explain all discrepancies\nwith W.H. base data set",
+    col=viridis::viridis(length(filterList)))
+abline(h = length(missingCleanKeys), col = "red", lwd = 2, lty = 2 )
+
+```

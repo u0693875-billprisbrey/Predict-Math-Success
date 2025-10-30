@@ -26,3 +26,32 @@ dummyCM(classCount  = 4,
         accuracy =0.4) |>
   drawCM()
 
+## Gotta figure out these:
+
+> dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = "A")
+Error in cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""),  : 
+   subscript out of bounds
+                         
+> # man, why?
+> dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = "A")
+Error in cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""),  : 
+    subscript out of bounds
+                                                  
+> dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = "B")
+        Error in cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""),  : 
+       subscript out of bounds
+                                                                         
+> dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = "C")
+ Error in cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""),  : 
+    subscript out of bounds
+                                                                                                    
+> dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = NA)
+    Error in cm$byClass[grep(paste("[[:punct:]] ", metricsClass, "$", sep = ""),  : 
+   subscript out of bounds
+
+# This fails:
+dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", "Neg Pred Value"), metricsClass = "C")
+
+# This is o.k. (it provides the default metrics list, which looks for 'any' NA values)
+dummyCM(classCount = 3) |> drawCM(metrics = c("Recall", "Precision", NA, "Neg Pred Value"), metricsClass = "C")
+
