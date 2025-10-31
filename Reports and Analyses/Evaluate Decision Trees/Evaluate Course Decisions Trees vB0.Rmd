@@ -1,0 +1,172 @@
+---
+title: "Evaluate Course Decision Trees vB0"
+author: "Bill Prisbrey"
+date: "2025-10-31"
+params: 
+  version: "vB0"
+  target_classes: 
+    - course_target
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+
+# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great! # NOT great!  I just need to make this available on my personal Github, or find a differetn way to source it. 
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree Courses ", params$version, " ", params$target_classes, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  params$target_classes
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree Courses ", params$version, " ", params$target_classes, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  params$target_classes
+)
+
+```
+
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply(params$target_classes, function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  print(x)
+  print(table(missingFilter))
+}
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter,])
+  
+} )
+names(thePredictions) <- params$target_classes
+
+```
+
+### Models  
+
+Only one model. I could delete this section 
+
+### Predictors  
+
+`r colnames(data_list[[1]][["training"]])[-1]`. 
+
+"load" is the credit load per student per term. 
+"yr_diff" is the time (expressed as fractions of a year) between the cohort date and the end of term date for the course.  
+
+The other variables are either self-explanatory or taken directly from OBIA tables.  
+
+# Results
+
+Develop and report the confusion matrices 
+
+```{r}
+
+cm <- confusionMatrix(data =  thePredictions[[params$target_classes]], reference =data_list[["course_target"]][["testing"]][["course_target"]] , mode = "everything" )
+
+drawCM(cm, nameMatrix = cbind("original" = c(
+  "MATH_1010", "MATH_1030", "MATH_1050", "MATH_1070", "MATH_1080", "MATH_1090", "MATH_1210", "MATH_1220", "other" 
+  
+) ,"display" = c(
+  "1010", "1030", "1050", "1070", "1080", "1090", "1210", "1220", "other"
+  
+) ))
+
+
+drawCM(cm, 
+       basis = "recall",
+       percentage = TRUE,
+       metricsClass = "1050",
+       nameMatrix = cbind("original" = c(
+  "MATH_1010", "MATH_1030", "MATH_1050", "MATH_1070", "MATH_1080", "MATH_1090", "MATH_1210", "MATH_1220", "other" 
+  
+) ,"display" = c(
+  "1010", "1030", "1050", "1070", "1080", "1090", "1210", "1220", "other"
+  
+) ))
+
+# precision color is DEFINITELY screwed up  
+
+```
+
+
+# Variable importance
+
+```{r fig.height=5}
+
+invisible(
+  lapply(params$target_classes, function(x){
+
+  print(plot(
+    varImp(model_list[[x]]),
+    15,
+    main = x
+       )  
+  )
+})
+)
+
+```
+
+
