@@ -52,7 +52,7 @@ source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 # Strikes me that I want one list per target class, with multiple years per
 
 # Build file paths
-testYears <- 2018:2020
+testYears <- 2006:2025
 grid <- expand.grid(params$version, testYears,  params$target_classes)
 
 model_files <- here::here("Models", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " model.rds"))
@@ -98,8 +98,83 @@ data_list <- setNames(
 
 ```
 
+```{r}
+
+# Let's check a few things
+
+lapply(data_list, function(tClass){
+  lapply(tClass, function(tYr){
+  
+    print(paste("training", nrow(tYr[["training"]]), sep = ": "))
+    print(paste("testing", nrow(tYr[["testing"]]), sep = ": "))
+
+  })
+  
+})
+
+# oops
+# I'd better just re-do it and do it right
+
+lapply(data_list, function(tClass){
+  lapply(tClass, function(tYr){
+  
+    print(paste("training", levels(tYr[["training"]][["season"]]), sep = ": "))
+    print(paste("testing", levels(tYr[["testing"]][["season"]] ), sep = ": "))
+
+  })
+  
+})
+
+``` 
+
 
 ```{r}
+
+## PREDICTIONS ##
+
+predictions_over_time <- lapply(params$target_classes, function(tClass){
+  perClass <- lapply(as.character(testYears), function(tYr){
+    
+#  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+    
+    # Identify discrepancies between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingCourseFilter))
+}
+
+      missingEthnicity <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
+            
+      
+    # predict 
+    predict(model_list[[tClass]][[tYr]],
+            newdata = data_list[[tClass]][[tYr]][["testing"]][missing,]
+            )
+  })
+  names(perClass) <- testYears
+  return(perClass)
+})
+names(predictions_over_time) <- params$target_classes
 
 
 ```
@@ -147,43 +222,46 @@ The other variables are either self-explanatory or taken directly from OBIA tabl
 
 ```{r}
 
-# Doing the list-within-a-list approach
+theResults <- lapply(params$target_classes, function(tClass){
+  
+  perClass <- lapply(as.character(testYears), function(tYr){
 
-theResults <- lapply(params$target_classes, function(x) {
-  
-  lapply(x, )
-  
-  
-  print(x)
-  # identify course values in testing that aren't in training
-  
-    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
-  
-  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
-  
-  if (length(missing) == 0) {
-  # no missing values — keep everything
-  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+        # Identify discrepancies in the courses between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
 } else {
-  # normal case — exclude the missing courses
-  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][[courseColumn]] %in% missingCourse
   
-  print(x)
-  print(table(missingFilter))
+#  print(x)
+#  print(table(missingCourseFilter))
 }
-  
-  postResample(pred = thePredictions[[x]],
-                  obs = data_list[[x]][["testing"]][[x]][missingFilter]
-  
-               )
+
+       postResample(pred = predictions_over_time[[tClass]][[tYr]],
+                  obs = data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter]
+               ) 
+    
+        
+  })
+  names(perClass) <- testYears
+  return(perClass)
 })
+  
 names(theResults) <- params$target_classes
 
-# I'd like to normalize the errors with the range and standard deviation
+```
 
-# but it doesn't change that these aren't very good models
 
-# normalized errors
+
+```{r eval = FALSE}
+
+# if I ever care to develop the normalized results
+
+# normalized errors # I don't think I care
 
 normalized_metrics <- function(pred, obs) {
   rmse <- sqrt(mean((pred - obs)^2))
@@ -203,6 +281,9 @@ normalized_metrics <- function(pred, obs) {
     NMAE_sd     = mae  / sd_y
   )
 }  
+
+
+
   
 normResults <- lapply(params$target_classes, function(x) {
   
@@ -210,22 +291,22 @@ normResults <- lapply(params$target_classes, function(x) {
   
     courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
   
-  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  missingCourse <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
   
-  if (length(missing) == 0) {
-  # no missing values — keep everything
-  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+  if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
 } else {
-  # normal case — exclude the missing courses
-  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missingCourse
   
   print(x)
-  print(table(missingFilter))
+  print(table(missingCourseFilter))
 }
   
   normalized_metrics(
     pred = thePredictions[[x]],
-    obs = data_list[[x]][["testing"]][[x]][missingFilter]
+    obs = data_list[[x]][["testing"]][[x]][missingCourseFilter]
   )
   
 })  
@@ -263,21 +344,21 @@ theResults <- lapply(params$target_classes, function(x) {
   
     courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
   
-  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  missingCourse <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
   
-  if (length(missing) == 0) {
-  # no missing values — keep everything
-  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+  if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
 } else {
-  # normal case — exclude the missing courses
-  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missingCourse
   
   print(x)
-  print(table(missingFilter))
+  print(table(missingCourseFilter))
 }
   
   postResample(pred = thePredictions[[x]],
-                  obs = data_list[[x]][["testing"]][[x]][missingFilter]
+                  obs = data_list[[x]][["testing"]][[x]][missingCourseFilter]
   
                )
 })
@@ -314,22 +395,22 @@ normResults <- lapply(params$target_classes, function(x) {
   
     courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
   
-  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  missingCourse <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
   
-  if (length(missing) == 0) {
-  # no missing values — keep everything
-  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+  if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
 } else {
-  # normal case — exclude the missing courses
-  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missingCourse
   
   print(x)
-  print(table(missingFilter))
+  print(table(missingCourseFilter))
 }
   
   normalized_metrics(
     pred = thePredictions[[x]],
-    obs = data_list[[x]][["testing"]][[x]][missingFilter]
+    obs = data_list[[x]][["testing"]][[x]][missingCourseFilter]
   )
   
 })  
@@ -357,7 +438,9 @@ normResults |>
 ```
 
 
-```{r}
+```{r eval=FALSE}
+
+# boxplots per model if I ever care for them
 
 regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs Actual") {
   if (length(pred) != length(reference)) {
@@ -424,18 +507,51 @@ invisible(lapply(params$target_classes, function(x){
   
     courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
   
-  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  missingCourse <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
   
-  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  missingCourseFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missingCourse
   
   
 regression_diagnostics(pred = thePredictions[[x]],
-                       reference = data_list[[x]][["testing"]][[x]][missingFilter],
+                       reference = data_list[[x]][["testing"]][[x]][missingCourseFilter],
                        plot_title = x)
 })
 )
 
 ```
+
+```{r}
+
+# Success over time
+
+resultsDF <- lapply(theResults, function(x){
+  
+  do.call(rbind, x)
+  
+})
+names(resultsDF) <- names(theResults)
+
+
+```
+
+```{r}
+
+# Plot success over time
+
+plot(x = as.numeric(row.names(resultsDF[["GRADEGPA"]])),
+     y = resultsDF[["GRADEGPA"]][,"Rsquared"],
+     type = "b",
+     lty = 2,
+     col = "red")
+
+# needs help
+
+# but it's something
+
+
+``` 
+
+
 
 # Variable importance
 
@@ -501,7 +617,7 @@ lines(
 
 
 
-```{r fig.height=5 eval=FALSE}
+```{r fig.height=5, eval=FALSE}
 
 # This shows each year --- I am preferring the line graph over time 
 

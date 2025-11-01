@@ -460,7 +460,7 @@ set.seed(123)
 
 xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
 
-lapply(2006:2025,  function(testYear){ 
+lapply(2007:2025,  function(testYear){ 
 
 lapply(target_classes,
        
@@ -476,11 +476,13 @@ lapply(target_classes,
          # Use cleanGrade to partition on, but drop it for the test and train data
          # trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
          
-         # Use class_year 2024 and 2025 as the test set
+         # Train on years prior to the test year
+         # Test only on the test year
          trainIndex <- which(popSample$class_year < testYear)
+         testIndex <- which(popSample$class_year == testYear)
          
          trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
-         testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
+         testData  <- popSample[testIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
          
          #       return(list(training = trainData, testing = testData))
          
