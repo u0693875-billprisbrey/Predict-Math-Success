@@ -52,7 +52,7 @@ source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 # Strikes me that I want one list per target class, with multiple years per
 
 # Build file paths
-testYears <- 2006:2025
+testYears <- 2007:2025
 grid <- expand.grid(params$version, testYears,  params$target_classes)
 
 model_files <- here::here("Models", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " model.rds"))
@@ -98,7 +98,7 @@ data_list <- setNames(
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 # Let's check a few things
 
@@ -107,23 +107,21 @@ lapply(data_list, function(tClass){
   
     print(paste("training", nrow(tYr[["training"]]), sep = ": "))
     print(paste("testing", nrow(tYr[["testing"]]), sep = ": "))
-
+invisible(NULL)
   })
-  
 })
 
-# oops
-# I'd better just re-do it and do it right
+# It did it--- not the format I was expecting
+# And 2006 went wrong for some reason, but I can filter it out.  Oh, because I didn't over-write it from the first pass.  I could delete it.  
 
-lapply(data_list, function(tClass){
-  lapply(tClass, function(tYr){
-  
-    print(paste("training", levels(tYr[["training"]][["season"]]), sep = ": "))
-    print(paste("testing", levels(tYr[["testing"]][["season"]] ), sep = ": "))
+for(tClass in data_list){
+  for(tYr in tClass){
+       print(paste("training:", levels(factor(tYr[["training"]][["season"]]))))
+    print(paste("testing:", levels(factor(tYr[["testing"]][["season"]]))), collapse = ", ")
+  }
+}
 
-  })
-  
-})
+# no fall for 2025 yet
 
 ``` 
 
@@ -176,9 +174,27 @@ missing <- missingCourseFilter & missingEthnicityFilter
 })
 names(predictions_over_time) <- params$target_classes
 
+# predictions_over_time[["GRADEGPA"]][["2024"]] |> hist() # looks o.k.
+
+
 
 ```
 
+### Thoughts
+
+So what is that 2024/2025 discontinuity?  All predictors jump from model trained on 2024, and 2025 accuracy falls.
+
+And the ACT test scores are increasing in popularity.  Declining, then increasing.  
+
+I think I'll try to at least knit a version of this report, and then predict the courses in overnight training. 
+
+Or try to visualize some of the changes over time --
+
+- How many students per year in the training set  
+- Total AP credits / median ap credit for students that have them
+- Some pdp plots. I guess I can't do these over time -- but I could do pdp plots showing class year.  And why is class_year -AND- cohort year shown?
+
+Should I do a PCA?  Always love me a PCA.
 
 ### Models  
 
@@ -226,7 +242,7 @@ theResults <- lapply(params$target_classes, function(tClass){
   
   perClass <- lapply(as.character(testYears), function(tYr){
 
-        # Identify discrepancies in the courses between the testing and training sets and filter them out
+    # Identify discrepancies between the testing and training sets and filter them out
     
       missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
     
@@ -235,11 +251,24 @@ theResults <- lapply(params$target_classes, function(tClass){
   missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
 } else {
   # normal case — exclude the missingCourse courses
-  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][[courseColumn]] %in% missingCourse
+  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
   
 #  print(x)
 #  print(table(missingCourseFilter))
 }
+
+      missingEthnicity <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
 
        postResample(pred = predictions_over_time[[tClass]][[tYr]],
                   obs = data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter]
@@ -336,6 +365,8 @@ normResults |>
 
 
 ```{r eval=FALSE}
+
+# I think I can delete this section
 
 theResults <- lapply(params$target_classes, function(x) {
   
@@ -529,7 +560,6 @@ resultsDF <- lapply(theResults, function(x){
   do.call(rbind, x)
   
 })
-names(resultsDF) <- names(theResults)
 
 
 ```
@@ -544,10 +574,13 @@ plot(x = as.numeric(row.names(resultsDF[["GRADEGPA"]])),
      lty = 2,
      col = "red")
 
-# needs help
+# it might be nice to scale these and plot them on the same graphic
 
-# but it's something
+# There are two anomalies -- 2009 and 2025.
+# both are worth a closer look  
 
+# there is no covid discontinuity
+# And this could all be explained by more data
 
 ``` 
 
@@ -593,19 +626,28 @@ importance_over_time <- lapply(model_list, function(tClass) {
 
 # Plot variable importance
 # This needs some work
+# I think I'm doing this all wrong
 
-varSelection <- which(importance_over_time[["GRADEGPA"]][["var"]] %in% c("ACTMATH", "ACTENGL", "ACTCOMP", "HSGPA" ))
+# It does work, but I think I shold turn this into plotly. Some interactivity would be nice. 
+
+varSelection <- importance_over_time[["GRADEGPA"]][["var"]][order(importance_over_time[["GRADEGPA"]][["2024"]], decreasing = TRUE)] |>
+  (\(x){x[2:10]})() # top 8 predictors in 2024
+
+# varSelection <- which(importance_over_time[["GRADEGPA"]][["var"]] %in% c("ACTMATH", "ACTENGL", "ACTCOMP", "HSGPA" ))
+
+plotLines <- which(importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection)
 
 plot(50,
-     ylim = range(importance_over_time[["GRADEGPA"]][varSelection,as.character(2018:2020)] ),
-     xlim = c(1,3),
+     ylim = range(importance_over_time[["GRADEGPA"]][plotLines, as.character(testYears) ], na.rm = TRUE ),
+     xlim = range(testYears),
   type = "n"
 )
 
 invisible(
-lapply(varSelection, function(x){
+lapply(plotLines, function(x){
 lines(
-  as.numeric(importance_over_time[["GRADEGPA"]][x, as.character(2018:2020)])
+  y= as.numeric(importance_over_time[["GRADEGPA"]][x, as.character(testYears)]),
+  x = testYears
       )
 })
 )
@@ -614,12 +656,59 @@ lines(
 ```
 
 
+```{r}
 
+# plotly version courtesy of Chat
+
+## BEAUTIFUL! ##
+
+library(plotly)
+
+# Filter to selected variables
+plotData <- importance_over_time[["GRADEGPA"]][
+  importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection, 
+]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
 
 
 ```{r fig.height=5, eval=FALSE}
 
-# This shows each year --- I am preferring the line graph over time 
+# This shows variable importance with a separate graph for each year.
+
+# It's not a bad appendix item, though
+
 
 invisible(
   lapply(params$target_classes, function(tClass){
