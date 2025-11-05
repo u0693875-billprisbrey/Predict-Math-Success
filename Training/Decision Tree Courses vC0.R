@@ -469,7 +469,7 @@ set.seed(123)
 
 xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
 
-lapply(2007:2009,  function(testYear){ 
+lapply(2007:2025,  function(testYear){ 
 
 target <- "course_target"
 
@@ -497,10 +497,10 @@ testIndex <- which(popSample$class_year == testYear)
 
 
 trainData <- popSample[trainIndex, c(target, keepColumns)]
-testData  <- popSample[-trainIndex, c(target, keepColumns)]
+testData  <- popSample[testIndex, c(target, keepColumns)]
+# testData  <- popSample[-trainIndex, c(target, keepColumns)]
 
-
-
+trainData$course_target <- droplevels(trainData$course_target)
 
 #       return(list(training = trainData, testing = testData))
 
@@ -514,9 +514,9 @@ saveRDS(theData, here::here("Data","Over Time", paste("Decision Tree Courses vC0
 ## TRAIN ##  
 
 startTime <- Sys.time()
-print(paste("STARTING", targetYear, "AT", startTime,"\n"))
-print(paste("STARTING", targetYear, "AT", startTime,"\n"))
-print(paste("STARTING", targetYear, "AT", startTime,"\n"))
+print(paste("STARTING", testYear, "AT", startTime,"\n"))
+print(paste("STARTING", testYear, "AT", startTime,"\n"))
+print(paste("STARTING", testYear, "AT", startTime,"\n"))
 
 #   # Establish weighting
 #   

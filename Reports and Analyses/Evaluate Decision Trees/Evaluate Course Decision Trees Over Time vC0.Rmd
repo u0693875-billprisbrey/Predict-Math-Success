@@ -1,0 +1,340 @@
+---
+title: "Evaluate Course Decision Trees Over Time vC0"
+author: "Bill Prisbrey"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params: 
+  version: "vC0"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+
+# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+# Build file paths
+testYears <- 2007:2025
+grid <- expand.grid(params$version, testYears)
+
+model_files <- here::here("Models", "Over Time", paste0("Decision Tree Courses ", grid$Var1, " ", grid$Var2, " model.rds"))
+
+# Read this into a list
+
+model_list <-
+  lapply(testYears, function(tYr){
+    files <- model_files[grep(tYr, model_files)]
+    readRDS(files)
+  })
+names(model_list) <- testYears
+
+# Build file paths
+data_files <- here::here("Data", "Over Time", paste0("Decision Tree Courses ", grid$Var1, " ", grid$Var2, " Data.rds"))
+
+# Read each data into a named list
+data_list <-
+  lapply(testYears, function(tYr){
+    files <- data_files[grep(tYr, data_files)]
+    readRDS(files)
+  })
+names(data_list) <- testYears
+
+
+```
+
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply(as.character(testYears), function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+#  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missingCourse <- setdiff(data_list[[x]][["testing"]][["course_target"]],data_list[[x]][["training"]][["course_target"]])
+  
+  if (length(missingCourse) == 0) {
+  # no missing values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][["course_target"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  
+        missingEthnicity <- setdiff(data_list[[x]] [["testing"]][["ETHNICITY"]],data_list[[x]][["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[x]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missingFilter <- missingCourseFilter & missingEthnicityFilter  
+
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter,])
+  
+} )
+names(thePredictions) <- as.character(testYears)
+
+```
+
+# Results
+
+Develop and report the confusion matrices 
+
+```{r eval=FALSE}
+
+## CHECK ##
+
+sapply(thePredictions, length)
+sapply(data_list, function(x){ nrow(x[["testing"]])  })
+
+# I should dig into those discrepancies a little more
+# looks like we added math courses or ethnicity levels;
+# I need to be consistent in filtering them out # DONE
+
+
+```
+
+```{r}
+
+theResults <- lapply(as.character(testYears), function(x) {
+
+    missingCourse <- setdiff(data_list[[x]][["testing"]][["course_target"]],data_list[[x]][["training"]][["course_target"]])
+  
+  if (length(missingCourse) == 0) {
+  # no missing values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][["course_target"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  
+        missingEthnicity <- setdiff(data_list[[x]] [["testing"]][["ETHNICITY"]],data_list[[x]][["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[x]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missingFilter <- missingCourseFilter & missingEthnicityFilter  
+
+  
+  
+cm <- confusionMatrix(data =  thePredictions[[x]], reference =data_list[[x]][["testing"]][["course_target"]][missingFilter] , mode = "everything" )
+
+})
+names(theResults) <- as.character(testYears)
+
+nameMatrix <- cbind("original" = c(
+  "MATH_1010", "MATH_1030", "MATH_1050", "MATH_1060", "MATH_1070", "MATH_1080", "MATH_1090", "MATH_1100", "MATH_1210", "MATH_1220", "MATH_1250", "MATH_1310", "MATH_2210", "MATH_990",  "other"
+), "display" = c(
+  "1010", "1030", "1050", "1060", "1070", "1080", "1090", "1100", "1210", "1220", "1250", "1310", "2210", "990", "other"
+))
+
+# I might need a way to make a name matrix automatically per confusion matrix
+
+# not sure why this is throwing an error
+drawCM(theResults[[3]], nameMatrix = nameMatrix, percentage = TRUE, metricsClass = "1210")
+drawCM(theResults[[3]],                          percentage = TRUE, metricsClass = "MATH_1210")
+
+# precision color is screwed up
+
+```
+
+
+```{r}
+
+# extract Kappa
+
+theKappa <- sapply(theResults, function(x) {x[["overall"]]["Kappa"]})
+names(theKappa) <- names(theResults)  
+
+# plot Kappa
+plot(y = theKappa,
+     x= as.numeric(names(theKappa)),
+     type = "b",
+     col = "firebrick",
+     las = 2,
+     ylab = "Kappa",
+     xlab = ""
+     )
+
+```
+
+```{r}
+
+# Metrics per course (one dataframe per course)
+target_math_courses <- sapply(thePredictions, unique) |> unlist() |> as.character()  |> unique()
+
+perCourse <- lapply(target_math_courses, function(math_course){
+  
+  course_over_time_list <- lapply(theResults, function(result){ 
+   result[["byClass"]][grepl(math_course, row.names(result[["byClass"]])),]
+    })
+  
+  course_over_time <- do.call(rbind, course_over_time_list)
+  row.names(course_over_time) <- names(theResults)
+  return(course_over_time)
+  
+})
+names(perCourse) <- target_math_courses 
+
+```
+
+
+```{r}
+
+importance_over_time <- lapply(names(model_list), function(tYr){
+  
+  imp <- varImp(model_list[[tYr]])$importance
+  imp$var <- row.names(imp)
+  colnames(imp)[colnames(imp) %in% "Overall"] <- tYr # rename "Overall" column
+  return(imp)
+  
+})
+
+importance_over_time <- Reduce(function(m1,m2){merge(m1,m2, by = "var", all = TRUE)}, importance_over_time)
+importance_over_time <- importance_over_time[order(importance_over_time[,2], decreasing = TRUE),] # descending order by the first year of data
+
+```
+
+
+```{r}
+
+# plotly version courtesy of Chat
+
+## BEAUTIFUL! ##
+
+# library(plotly)
+
+varFilter <- apply(importance_over_time[,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time$var[varFilter & !is.na(varFilter)]
+
+# Filter to selected variables
+plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection[-1], ]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
+```{r fig.height=5, eval=FALSE}
+
+# This shows variable importance with a separate graph for each year.
+
+# It's not a bad appendix item, though
+
+
+invisible(
+
+    lapply(testYears, function(tYear){
+       print(plot(  
+           varImp(model_list[[as.character(tYear)]]),
+           15, main = paste(tYear, sep = ": ")
+       ))
+           })
+)
+
+# course is a lot harder.
+
+# let's pull in what we have
+
+
+```
+
+So accuracy at predicting courses drops incredibly.
+And I'm not sure I want to include "course_level", but why was it only super-important for a few years?  
+
+I want to see the median grade per course over time.  What's my trend over time?
+
+Similarly -- maybe I want to see the proportion of students achieving a particular grade level or grade chunk.  It's getting big, right?  Could that show grade inflation? 
+
+And we're getting closer to counter-factuals. What grade would they get in a particular course?
+
+I need to submit this to Git, and write up both reports, and get a couple of key visualizations over time. 
+
+

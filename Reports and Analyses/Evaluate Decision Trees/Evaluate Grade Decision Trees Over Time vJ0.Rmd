@@ -193,6 +193,7 @@ Or try to visualize some of the changes over time --
 - How many students per year in the training set  
 - Total AP credits / median ap credit for students that have them
 - Some pdp plots. I guess I can't do these over time -- but I could do pdp plots showing class year.  And why is class_year -AND- cohort year shown?
+- How many students take the ACT and the spread or interquartile range
 
 Should I do a PCA?  Always love me a PCA.
 
