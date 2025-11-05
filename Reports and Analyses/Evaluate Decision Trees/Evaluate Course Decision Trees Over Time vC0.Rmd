@@ -188,8 +188,8 @@ nameMatrix <- cbind("original" = c(
 # I might need a way to make a name matrix automatically per confusion matrix
 
 # not sure why this is throwing an error
-drawCM(theResults[[3]], nameMatrix = nameMatrix, percentage = TRUE, metricsClass = "1210")
-drawCM(theResults[[3]],                          percentage = TRUE, metricsClass = "MATH_1210")
+# drawCM(theResults[[3]], nameMatrix = nameMatrix, percentage = TRUE, metricsClass = "1210")
+# drawCM(theResults[[3]],                          percentage = TRUE, metricsClass = "MATH_1210")
 
 # precision color is screwed up
 
@@ -212,6 +212,24 @@ plot(y = theKappa,
      ylab = "Kappa",
      xlab = ""
      )
+
+# This would make a good plotly
+
+# library(plotly)
+
+years <- as.numeric(names(theKappa))
+kappa_values <- as.numeric(round(theKappa,3))
+
+plot_ly(x = years, 
+        y = kappa_values, 
+        type = 'scatter', 
+        mode = 'lines+markers',
+        line = list(color = 'firebrick', width = 2),
+        marker = list(color = 'firebrick', size = 8)) %>%
+  layout(title = 'Model Performance (Kappa) Over Time',
+         xaxis = list(title = '', dtick = 1, tickangle = -45),
+         yaxis = list(title = 'Kappa'),
+         hovermode = 'closest')
 
 ```
 
@@ -337,4 +355,5 @@ And we're getting closer to counter-factuals. What grade would they get in a par
 
 I need to submit this to Git, and write up both reports, and get a couple of key visualizations over time. 
 
+I'd like to see "precision" for the top three courses over time.  And "recall", sure.
 
