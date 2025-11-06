@@ -10,35 +10,6 @@ output:
 ---
 
 
-```{r include=FALSE}
-
-############
-## SET UP ##
-############
-
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
-                      fig.height=5, fig.width=7)
-
-oldPar <- par(cex.main = 3,
-    cex.lab = 3,
-    cex.axis = 2,
-    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
-    )
-
-library(here)
-library(skimr)
-library(caret)
-library(xgboost)
-library(lubridate)
-library(plotly)
-
-# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
-
-source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
-
-```
-
-
 
 ```{r}
 
@@ -357,3 +328,14 @@ I need to submit this to Git, and write up both reports, and get a couple of key
 
 I'd like to see "precision" for the top three courses over time.  And "recall", sure.
 
+I need to make the confusion matrices work--  
+
+  - name matrix
+  - whatever that error it's throwing 
+  
+I think I'll make a separate "over time" report that explores the predictors for both grades and course over time.  
+
+I'll work on all three reports in parallel -- 
+
+  - Prediction results  (course and grade)  
+  - Predictors over time

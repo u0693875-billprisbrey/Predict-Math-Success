@@ -1,0 +1,863 @@
+---
+title: "Predictors over time"
+author: "Bill Prisbrey"
+date: "2025-11-05"
+output: html_document
+output:
+  html_document:
+    keep_md: true
+---
+
+Where is that document I was working on?
+I was looking at predictors over time, and it was a report of descriptive things. 
+
+It was "Math grade by ACT math score and high school GPA.Rmd"
+
+Seems like I c/should break that into two reports, and one report is just the heatmaps. Or, more accurately, a child I guess.  And it should be "admittance" on left and "performance" on right.  
+
+I'm also pretty sure I haven't knitted the latest version of it.
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+library(stringr)
+
+# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
+
+# print("You made it past loading")
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+## IDENTIFY FIRST TERM OF MATH CLASSES ##
+
+# Identify minimum term per student
+minTerm <- aggregate(TERM ~ EMPLID, data = mathCourses, min, na.rm = TRUE)
+minTerm$reference <- paste(minTerm$EMPLID, minTerm$TERM, sep = "_") # combine for reference
+mathCourses$minTerm <- paste(mathCourses$EMPLID, mathCourses$TERM, sep = "_") %in% minTerm$reference # identify courses in minimum terms 
+
+firstTermFilter <- mathCourses$minTerm == TRUE
+
+## identify popular, high volume courses
+# mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+#                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+# mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+# popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+firstCourses <- mathCourses[firstTermFilter & !mathLabFilter,]
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+)
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+  #  SATMATH, # leaving out SAT because it's a smaller proportion
+  #  SATVERBAL,
+  #  SATWRTG        
+)
+
+firstCourses <- merge(firstCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+firstCourses <- merge(firstCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+# Freshman year
+firstCourses$cohort_year <- year(firstCourses$COHORT_DT)
+
+# Class year
+firstCourses$class_year <- year(firstCourses$EOTDATE)
+
+# Year to class
+firstCourses$yr_diff <- time_length(interval(firstCourses$COHORT_DT, firstCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+firstCourses$season <- season_map[substr(firstCourses$TERM, 4, 4)]
+
+# Course levels column
+firstCourses$course_level <- firstCourses$CATNBR %/% 1000
+
+# filter out courses at 3000+ level
+course_levelFilter <- firstCourses$course_level < 3
+
+# filter out courses that aren't recent
+course_by_year <- table(firstCourses[course_levelFilter, c("course","class_year")  ]) |> as.data.frame()
+recentCourses <- unique(course_by_year$course[course_by_year$class_year %in% c(2021:2025) & course_by_year$Freq > 0])
+recent_filter <- firstCourses$course %in% recentCourses
+
+# Course clusters by volume
+courseClusters <- table(firstCourses$course) |> # [recent_filter]
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  dist() |>
+  hclust() |>
+  cutree(k=2)
+
+firstCourses$vol_cluster <- ifelse(firstCourses$course %in% names(courseClusters)[courseClusters == 1], "hi_vol","low_vol")
+
+# Course filter
+higherVolCourses <- table(firstCourses$course) |> # [recent_filter] 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+  proportions() |> 
+  cumsum() |>
+  (\(x){names(x[x<0.95]) })()
+
+courseFilter <- firstCourses$course %in% higherVolCourses
+
+
+# Age buckets
+firstCourses$age_cut <- cut(firstCourses$AGE, breaks = c(0,17,18,19,21,100))
+
+# Age filter
+ageFilter <- firstCourses$AGE > 11
+
+# print("Prep complete")
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+firstCourses$cleanGrade <- clean_grade(firstCourses$GRADE) 
+
+firstCourses$cleanGrade <- factor(firstCourses$cleanGrade,
+                                  levels = c(
+                                    "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                    "C", "C_minus", "D_plus", "D", "D_minus",   
+                                    "E", "EU", "W", "I", "CR",  "NC", "V", 
+                                    "missing", NA
+                                  )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- firstCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") # , "EU" convert EU to 0
+
+# WITHDRAW
+firstCourses$wdraw_binary <- NA
+firstCourses$wdraw_binary <- ifelse(firstCourses$GRADE == "W","withdraw","not_withdraw")
+
+
+# Combine grades
+# BINARY
+firstCourses$grade_binary <- NA
+hiFilter <- firstCourses$GRADE %in% c("A", "A-", "B+", "B", "B-", "C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+firstCourses$grade_binary[hiFilter] <- 1
+firstCourses$grade_binary[loFilter] <- 0
+
+#popCourses$grade_binary <- factor(popCourses$grade_binary,
+#                                  levels = c("hi_grade", "low_grade"))
+
+
+# TRINARY
+firstCourses$grade_trinary <- NA
+hiFilter <- firstCourses$GRADE %in% c("A", "A-", "B+", "B", "B-")
+medFilter <- firstCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+firstCourses$grade_trinary[hiFilter] <-  2 #"hi_grade"
+firstCourses$grade_trinary[medFilter] <- 1 # "med_grade"
+firstCourses$grade_trinary[loFilter] <-  0 #"low_grade"
+
+
+# popCourses$grade_trinary <- factor(popCourses$grade_trinary,
+#                                  levels = c("hi_grade", "med_grade", "low_grade"))
+
+# QUAD
+firstCourses$grade_quad <- NA
+hiFilter <- firstCourses$GRADE %in% c("A")
+medPlusFilter <- firstCourses$GRADE %in% c("A-", "B+", "B", "B-")
+medMinusFilter <- firstCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+firstCourses$grade_quad[hiFilter] <- 3 # "hi_grade"
+firstCourses$grade_quad[medPlusFilter] <- 2 # "medPlus_grade"
+firstCourses$grade_quad[medMinusFilter] <- 1 #"medMinus_grade"
+firstCourses$grade_quad[loFilter] <-0 # "low_grade"
+
+# popCourses$grade_quad <- factor(popCourses$grade_quad,
+#                                  levels = c("hi_grade", 
+#                                             "medPlus_grade",
+#                                             "medMinus_grade",
+#                                             "low_grade"))
+
+# popCourses$cleanGrade[popCourses$cleanGrade %in% c("D_plus", "D", "D_minus") ] <- "D"
+
+## CONVERT APCREDIT NA VALUES to ZERO ##  
+
+firstCourses$APCREDIT[is.na(firstCourses$APCREDIT)] <- 0
+
+# print("Transformations complete")
+
+#################
+## PRE-PROCESS ##
+#################
+
+
+# Select columns
+
+# colnames(popCourses)
+
+keepColumns <- c(
+  #   "EMPLID"                      ,
+  #   "TERM"                        ,
+  # "course"                      ,
+  #   "class"                       ,
+  #   "CATNBR"                      ,
+  #   "TITLE"                       ,
+  #   "SECTION"                     ,
+  #   "UNITS"                       ,
+  #   "GRADE"                       ,
+  #   "GRADEGPA"                    ,
+  #   "INSTEMPLID"                  ,
+  #   "INSTNAME"                    ,
+  #   "EOTDATE"                     ,
+  #   "ACADYR"                      ,
+  #   "TERMEXTRACT"                 ,
+  #   "MAX_SNAP"                    ,
+  #   "CENSUSDATE"                  ,
+  #   "ALT_ID"                      ,
+  #   "FULLNAME"                    ,
+  #   "STUDENTCAREER"               ,
+  #   "SUBJECT_CD"                  ,
+  #   "SUBJECT_NAME"                ,
+  #   "SUBJECT_LONG"                ,
+  #   "SUBJECT_ACAD_ORG_CD"         ,
+  #   "CATNBR2"                     ,
+  #   "CLASSNBR"                    ,
+  #   "OFFERINGNBR"                 ,
+  #   "SESSIONCODE"                 ,
+  #   "COURSECAREER"                ,
+  #   "SCHEDFLAG"                   ,
+  #   "WAUTOENRL"                   ,
+  #   "AUTOENROLL"                  ,
+  #   "COMPONENT"                   ,
+  #   "GENED"                       ,
+  #   "VARCREDIT"                   ,
+  #   "CONTRACT"                    ,
+  #   "DIRECTPAY"                   ,
+  #   "CORRESPONDENCE"              ,
+  #   "ONLINECOURSE"                ,
+  #   "IVC"                         ,
+  #   "IVC_HYBRID"                  ,
+  #   "COURSE_MODALITY"             ,
+  #   "INSTRUCTION_MODE"            ,
+  #   "TELECOURSE"                  ,
+  #   "STUDYABROAD"                 ,
+  #   "EDNET"                       ,
+  #   "HYBRIDCOURSE"                ,
+  #   "COURSE_LEVEL"                ,
+  #   "USHE_COURSE_LEVEL"           ,
+  #   "FISCAL_YEAR_OF_STARTDT"      ,
+  #   "VP"                          ,
+  #   "VP_SHORT"                    ,
+  #   "VP_FORMAL"                   ,
+  #   "ACAD_COLLEGE_CD"             ,
+  #   "COLLEGE"                     ,
+  #   "COLLEGE_SHORT"               ,
+  #   "COLLEGE_FORMAL"              ,
+  #   "ACAD_COLLEGE_REG_SUPP"       ,
+  #   "ACAD_COLLEGE_TYPE"           ,
+  #   "ACAD_COLLEGE_CIP_CD"         ,
+  #   "ACAD_DEPARTMENT_CD"          ,
+  #   "DEPARTMENT"                  ,
+  #   "DEPARTMENT_SHORT"            ,
+  #   "DEPARTMENT_FORMAL"           ,
+  #   "ACAD_DEPARTMENT_REG_SUPP"    ,
+  #   "ACAD_DEPARTMENT_TYPE"        ,
+  #   "ACAD_DEPARTMENT_CIP_CD"      ,
+  #   "ACAD_DIVISION_CD"            ,
+  #   "DIVISION"                    ,
+  #   "DIVISION_SHORT"              ,
+  #   "DIVISION_FORMAL"             ,
+  #   "ACAD_DIVISION_REG_SUPP"      ,
+  #   "ACAD_DIVISION_TYPE"          ,
+  #   "ACAD_DIVISION_CIP_CD"        ,
+  #   "VP_CD"                       ,
+  #   "COLLEGE_CD"                  ,
+  #   "DEPARTMENT_CD"               ,
+  #   "DIVISION_CD"                 ,
+  #   "ROLLUP_SORT_ORDER"           ,
+  #   "PS_ACAD_ORG"                 ,
+  #   "PS_ACAD_GROUP"               ,
+  #   "CAMPUS"                      ,
+  #   "COURSE_CAMPUS"               ,
+  #   "USHE_SITE_TYPE_CD"           ,
+  #   "USHE_SITE_TYPE"              ,
+  #   "ONOFFCAMPUS"                 ,
+  #   "COURSELOCATION"              ,
+  #   "CONTACTMINUTES"              ,
+  #   "TEAMTAUGHT"                  ,
+  #   "XLIST"                       ,
+  #   "BEGTIME1"                    ,
+  #   "BEGTIME2"                    ,
+  #   "BEGTIME3"                    ,
+  #   "DAYS1"                       ,
+  #   "DAYS2"                       ,
+  #   "DAYS3"                       ,
+  #   "ENDTIME1"                    ,
+  #   "ENDTIME2"                    ,
+  #   "ENDTIME3"                    ,
+  #   "CLASSLOC1"                   ,
+  #   "CLASSLOC2"                   ,
+  #   "CLASSLOC3"                   ,
+  #   "CLASSLOCBUILDNAME1"          ,
+  #   "CLASSLOCBUILDROOM1"          ,
+  #   "CLASSLOCBUILDNAME2"          ,
+  #   "CLASSLOCBUILDROOM2"          ,
+  #   "CLASSLOCBUILDNAME3"          ,
+  #   "CLASSLOCBUILDROOM3"          ,
+  #   "STARTDT"                     ,
+  #   "ENDDT"                       ,
+  #   "BUDGETCODE"                  ,
+  #   "LINEITEM"                    ,
+  #   "SERVICELEARNING"             ,
+  #   "XLIST_ID"                    ,
+  #   "COMBINEDID"                  ,
+  #   "USHE_ACADYR"                 ,
+  #   "USHE_TERM"                   ,
+  #   "TERM2"                       ,
+  #   "ORG_EFFDT"                   ,
+  #   "CLASSENROLLMENTCAPACITY"     ,
+  #   "ROOM_MAX_1"                  ,
+  #   "ROOM_MAX_2"                  ,
+  #   "ROOM_MAX_3"                  ,
+  #   "TERM_NBR"                    ,
+  #   "CLASS_ATTR_LIST"             ,
+  #   "EXCLUDE_BUDGET_SCH"          ,
+  #   "SPR_CORRECTION_NOT_USHE_FLAG",
+  #   "Section Divider: OLD"        ,
+  #   "SUBJECTCOLL"                 ,
+  #   "SUBJECT"                     ,
+  #   "class.1"                     ,
+  #   "COHORT_DT"                   ,
+  "SEX"                         ,
+  "FIRST_GEN_STATUS_CD"         ,
+  "ETHNICITY"                   ,
+  "RESSTAT"                     ,
+  "FA_PELL"                     ,
+  # "AGE"                         ,
+  "APCREDIT"                    ,
+  "HSGPA"                       ,
+  "HSPRIVATE"                   ,
+  "HONORS"                      ,
+  "ACTCOMP"                     ,
+  "ACTENGL"                     ,
+  "ACTMATH"                     ,
+  "ACTSCI"                      ,
+  #  "load"                        ,
+  "cohort_year"                 ,
+  "class_year"                  ,
+  "yr_diff"                     ,
+  "season"                      ,
+  "course_level"                ,
+#   "vol_cluster"                 ,
+  "age_cut"                     
+  # "cleanGrade"                  
+  #   "wdraw_binary"                ,
+  #   "grade_binary"                ,
+  #   "grade_trinary"               ,
+  #   "grade_quad" 
+)
+
+# target_classes <- c("GRADEGPA",  "grade_binary", "grade_trinary", "grade_quad") # "wdraw_binary",
+target_classes <- c("GRADEGPA", "grade_quad")
+
+# stop("Work on keep columns")
+
+###########
+## CLEAN ##
+###########
+
+cleanFilters <- !is.na(firstCourses$cleanGrade) & 
+  !rareGrades
+#!popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") 
+
+# Outlier filters
+zeroHSGPA_filter <- firstCourses$HSGPA == 0
+highLoad_filter <- firstCourses$load > quantile(firstCourses$load, 0.99)
+preMath_filter <- firstCourses$yr_diff < -0.5 # since all cohort dates start in September, I wanted to includ the summer before the cohort date
+outlierFilters <- !zeroHSGPA_filter & !highLoad_filter & !preMath_filter
+
+# withdrawFilter
+withdrawFilter <- firstCourses$cleanGrade != "W"
+
+# Combined filters
+cleanData <- firstCourses[cleanFilters & outlierFilters & course_levelFilter  & ageFilter & withdrawFilter,] # & recent_filter
+cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
+cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
+
+cleanData$course <- factor(cleanData$course)
+
+# Combine math courses
+topCourses <- table(cleanData$course, useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+  proportions() |> 
+  cumsum() |>
+  (\(x){x[x<0.95]})() |>
+  names()
+
+# I'm only adding three more to my volume clustering.
+# I guess I'll comment that column out as a ringer
+
+cleanData$course_target <- ifelse(cleanData$course %in% topCourses, as.character(cleanData$course), "other")
+cleanData$course_target <- factor(cleanData$course_target)
+
+# stop("Next step is the training")
+
+
+
+```
+
+I need to create an appendix that shows all of these cleaning steps. All of these filters and complete cases. 
+
+But first, let's show our math classes by enrollment
+
+STARTING DESCRIPTIVES
+
+
+```{r}
+
+# Show enrollment and the top 95th percentile (with a red line, or a second cumulative graphic.) 
+# Highlight high volume courses
+
+table(cleanData$course, useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+  proportions() |> 
+  cumsum() |>
+  (\(x){names(x[x<0.95]) })()
+  # plot()
+
+#  eh let's just do the barplot
+
+# high volume CATNBR per cluster  
+hiVolCatNbr <- names(courseClusters)[courseClusters == 1] |>
+(\(x){gsub("MATH_", "", x) })()
+
+
+theBar <- table(cleanData$course, useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  barplot(plot = FALSE)
+
+table(cleanData$course, useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> # put in order
+  (\(x){names(x) <- gsub("MATH_", "", names(x)) ; return(x) })() |> # remove preceding "MATH_"
+  (\(x){
+  barplot(x,
+          plot = TRUE,
+          col = ifelse(names(x) %in% hiVolCatNbr, "red","green"),
+          las = 2)
+    })()
+
+table(cleanData$course, useNA = "always") |> 
+    (\(x){x[order(x, decreasing = TRUE)]})() |> 
+    proportions() |> 
+    cumsum() |>
+    (\(x){which(x<0.95)})() |>
+    max() |>
+  (\(x){abline(v=mean(theBar[c(x,x+1)]), lwd = 2, col = "blue")})()
+
+# I'd like to mess with graphics
+# but let's put a text on here at least
+
+text(x = theBar[14],
+     y = 8000,
+     label = "Keep",
+     adj = c(1,0))
+
+text(x = theBar[15],
+     y = 8000,
+     label = "Lump as 'Other'",
+     adj = c(0,0))
+
+# needs arrows
+
+# Add a block arrow to your plot
+arrows(x0 = theBar[14.5],   # starting x position
+       y0 = 10000,   # starting y position
+       x1 = theBar[11],   # ending x position
+       y1 = 10000,   # ending y position
+       col = "blue",
+       lwd = 3,
+       length = 0.15,  # arrowhead size
+       angle = 20,     # arrowhead angle
+       code = 2)       # code=2 puts arrow at the end
+
+
+arrows(x0 = theBar[15.5],   # starting x position
+       y0 = 10000,   # starting y position
+       x1 = theBar[18],   # ending x position
+       y1 = 10000,   # ending y position
+       col = "blue",
+       lwd = 3,
+       length = 0.15,  # arrowhead size
+       angle = 20,     # arrowhead angle
+       code = 2)       # code=1 puts arrow at the beginning
+
+
+mtext(side = 1, text = "Course", cex = 1.2, line = 4)
+mtext(side = 2, text = "Enrollment", cex = 1.2, line = 3)
+mtext(side = 3, text = "Enrollment by math course", cex = 1.75, font = 2, line = 2)
+
+legend("topright",
+       col = c("red","green"),
+       pch = 19,
+       pt.cex =2,
+       legend = c("High","Regular"))
+
+# mess with colors another day
+
+```
+
+
+### ACT math scores per course over time
+
+```{r fig.height=9}
+
+par(mfrow=c(5,1), mar = c(0,3,3,1), oma = c(4,2,0,0))
+
+for(crse in names(courseClusters[courseClusters == 1]) ){
+daBox <- boxplot(ACTMATH ~ course + cohort_year, data = droplevels(cleanData[cleanData$course == "MATH_1010",]), 
+         outline = FALSE,
+         col = "aliceblue",
+         las = 2,
+         xlab = "",
+         main = crse,
+        xaxt = "n")
+}
+
+axis(side = 1,
+     at = 1:length(2005:2024),
+     labels = 2005:2024,
+     outer = TRUE,
+     las = 2,
+     font = 2,
+     cex.axis = 1.2)
+
+mtext(text = "ACT math score", side = 2, line = 0.25, outer = TRUE)
+
+```
+
+
+```{r}
+
+# let's see that as lines, one line per course
+
+par(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))
+
+median_ACT <- aggregate(ACTMATH ~ course + class_year, data = cleanData[cleanData$vol_cluster == "hi_vol",], median, na.rm = TRUE)
+
+plot(median(median_ACT$ACTMATH),
+     xlim = range(median_ACT$class_year),
+     ylim = range(median_ACT$ACTMATH), 
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+    # yaxt = "n",
+     type = "n",
+    las = 2,
+    main = "Median ACT math score per course over time"
+)
+
+colorMap <- c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown")
+names(colorMap) <- names(courseClusters[courseClusters == 1]) 
+
+lapply(names(courseClusters[courseClusters == 1]), function(crse){
+  
+  filter <- median_ACT$course == crse
+  
+  lines(y = median_ACT$ACTMATH[filter],
+        x = median_ACT$class_year[filter],
+        col = colorMap[crse],
+        lwd = 3
+        )
+  
+})
+
+
+axis(side = 1,
+     at = 2005:2025,
+     labels = 2005:2025,
+     las = 2,
+     font = 1,
+     cex.axis = 1.2
+     )
+
+legend("topright",
+       legend = names(colorMap) |> (\(x){  gsub("MATH_","",x)})(),
+       lty = 1,
+       lwd = 3,
+       col = colorMap,
+       xpd = TRUE,
+       inset = c(-0.25,0))
+
+
+``` 
+
+And this would look good as a plotly.
+
+I need to see if ACT has gone down over time  
+I need to see how the math grade and the HSGPA have changed over time 
+
+```{r}
+
+median_overall_ACT <- aggregate(ACTMATH ~ class_year, data = cleanData[cleanData$vol_cluster == "hi_vol",], median, na.rm = TRUE)
+
+
+boxplot(ACTMATH ~ class_year, data = cleanData[cleanData$vol_cluster == "hi_vol",])
+
+# So that's stable over time for the high volume courses 
+
+# And it's really stable for all-l the courses
+boxplot(ACTMATH ~ class_year, data = cleanData) 
+
+# now let's see high school grade
+
+boxplot(HSGPA ~ class_year, 
+        data = cleanData,
+        outline = FALSE)
+
+# now actual math grade
+
+boxplot(GRADEGPA ~ class_year, 
+        data = cleanData,
+        outline = FALSE)
+
+``` 
+
+```{r eval=FALSE}
+
+# Hunting for changes in grade over time
+
+library(ggridges)
+library(ggplot2)
+
+ggplot(your_data, aes(x = HSGPA, y = as.factor(year), fill = as.factor(year))) +
+  geom_density_ridges(alpha = 0.7) +
+  scale_x_continuous(limits = c(0, 4)) +
+  labs(y = "Year", x = "HSGPA") +
+  theme_ridges() +
+  theme(legend.position = "none")
+
+# doesn't show the subtlety
+
+```
+
+
+```{r}
+
+# Time to turn this into a function
+
+
+overTime <- function(variable = "ACTMATH", 
+                     agg = median, 
+                     data = cleanData[cleanData$vol_cluster == "hi_vol",], title = NA, 
+                     featureMap = NA,
+                     plot_params_list = list(),
+                     legend_params_list = list(),
+                     ...){
+
+  if(is.na(title)){
+    
+    agg_name <- deparse(substitute(agg))
+    title <- paste(str_to_title(agg_name), variable, "per course over time", sep=" ")
+    
+  }
+  
+  if(is.na(featureMap)){
+    
+    featureMap <- data.frame(color = c( c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown"), c( 
+        "darkseagreen3",   
+  "lightgoldenrod3", 
+  "tan3",            
+  "thistle3",        
+  "lightskyblue3",   
+  "wheat3",          
+  "plum3",           
+  "darkseagreen4",   
+  "burlywood3"
+      )),
+  lty = c(rep(1,5), rep(2:5,3)[1:9]),
+  course = c(
+     "MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090", "MATH_1070", "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310",
+"MATH_2210", "MATH_990",  "MATH_1100", "MATH_1250"
+  ),
+lwd = c(rep(3,5), rep(2,9))
+                             )
+  }
+
+
+plot_params_default <- list(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))  
+plot_params_list <- modifyList(plot_params_default, plot_params_list)
+do.call(par, plot_params_list)
+
+# par(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))
+
+theAgg <- aggregate(get(variable) ~ course + class_year, data = data, FUN = agg, ...)
+
+# merge 
+
+theAgg <- merge(theAgg, featureMap, by = "course", all.x = TRUE)
+
+theAgg <- theAgg[order(theAgg$class_year),]
+
+plot(median(theAgg[,3]),
+     xlim = range(theAgg[,2]),
+     ylim = range(theAgg[,3]), 
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+    # yaxt = "n",
+     type = "n",
+    las = 2,
+    main = title
+)
+
+
+lapply(unique(theAgg$course), function(crse){
+  
+  filter <- theAgg[,1] == crse
+  
+  lines(y = theAgg[,3][filter],
+        x = theAgg[,2][filter],
+        col = theAgg[filter,"color"],
+        lwd = theAgg[filter,"lwd"],
+        lty = theAgg[filter,"lty"],
+        )
+  
+})
+
+
+axis(side = 1,
+     at = 2005:2025,
+     labels = 2005:2025,
+     las = 2,
+     font = 1,
+     cex.axis = 1.2
+     )
+
+forLegend <- unique(theAgg[,c("course", "color", "lwd", "lty")])
+legend_params_default <- list(x = "center",
+                              legend = gsub("MATH_","",forLegend[,"course"]),
+                              lty = forLegend[,"lty"],
+                              lwd = forLegend[,"lwd"],
+                              col = forLegend[,"color"],
+                              xpd = TRUE,
+                              inset = c(-0.15,0)
+                                )
+
+legend_params_list <- modifyList(legend_params_default, legend_params_list)
+do.call(legend, legend_params_list)
+
+
+
+#legend("topright",
+#       legend = forLegend[,"course"] |> (\(x){  gsub("MATH_","",x)})(),
+#       lty = forLegend[,"lty"],
+#       lwd = forLegend[,"lwd"],
+#       col = forLegend[,"color"],
+#       xpd = TRUE,
+#       inset = c(-0.25,0))
+
+#legend("bottomleft",
+#       legend = theAgg[,3] |> unique() |> (\(x){  gsub("MATH_","",x)})(),
+#       lty = unique(theAgg[,"lty"]),
+#       lwd = unique(theAgg[,"lwd"]),
+#       col = unique(theAgg[,"color"]),
+#       xpd = TRUE,
+#       inset = c(-0.25,0))
+
+}
+
+# time to mess with the legend
+# Getting closer
+
+
+``` 
+
+I want to see course attendandance over time.
+Is "other" getting more popular?
+
+
