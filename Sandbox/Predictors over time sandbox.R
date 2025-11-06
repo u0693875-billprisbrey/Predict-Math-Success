@@ -3,7 +3,8 @@
 # PURPOSE:  Develop a simple line plot that shows the values of various predictors over time.
 # Taken from "Predictors over time" report. 
 
-overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title = NA,
+overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+                     title = NA,
                      variable = "ACTMATH",
                      by = "course",
                      agg = median, 
@@ -16,7 +17,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
   if(is.na(title)){
     
     agg_name <- deparse(substitute(agg))
-    title <- paste(str_to_title(agg_name), variable, "per course over time", sep=" ")
+    title <- paste(str_to_title(agg_name), variable, "per", by, "over time", sep=" ")
     
   }
   
@@ -167,6 +168,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
                                   lwd = forLegend[,"lwd"],
                                   col = forLegend[,"color"],
                                   xpd = TRUE,
+                                  title = by,
                                   inset = c(-0.15,0)
     ) 
     
