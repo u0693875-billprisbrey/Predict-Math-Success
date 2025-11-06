@@ -4,7 +4,8 @@
 # Taken from "Predictors over time" report. 
 
 overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title = NA,
-                     variable = "ACTMATH", 
+                     variable = "ACTMATH",
+                     by = "course",
                      agg = median, 
                      featureMap = NA,
                      showOther = TRUE,
@@ -19,7 +20,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
     
   }
   
-  if(is.na(featureMap)){
+  if(by == "course" & is.na(featureMap)){
     
     featureMap <- data.frame(color = c( c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown"), c( 
       "darkseagreen3",   
@@ -27,7 +28,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
       "tan3",            
       "thistle3",        
       "lightskyblue3",   
-      "wheat3",          
+      "paleturquoise3", #"wheat3",          
       "plum3",           
       "darkseagreen4",   
       "burlywood3"
@@ -39,21 +40,62 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
     ),
     lwd = c(rep(3,5), rep(2,9))
     )
+  } else if(is.na(featureMap)) {
+    
+    featureMap <- data.frame(color = c( "darkseagreen3",   
+                                        "lightgoldenrod3", 
+                                        "tan3",            
+                                        "thistle3",        
+                                        "lightskyblue3",   
+                                        "paleturquoise3", #  "wheat3",          
+                                        "plum3",           
+                                        "darkseagreen4",   
+                                        "burlywood3")[1:length(unique(data[,by]))],
+                              by = unique(data[,by]),
+                              lty = rep(1, length(unique(data[,by]))) ,
+                              lwd = rep(3, length(unique(data[,by])))
+                             
+                             )
+    
   }
 
+
+  
+  
+  if(by == "course" & showOther){
+    
+    levels(data$course) <- c(levels(data$course),"other")
+    data$course[!data$course %in% featureMap$course] <- "other"
+    
+    featureMap <- rbind(featureMap, data.frame(color = "red",
+                                               lty = 6,
+                                               course = "other",
+                                               lwd = 4
+                                               ))
+  }
   
   
   plot_params_default <- list(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))  
   plot_params_list <- modifyList(plot_params_default, plot_params_list)
   do.call(par, plot_params_list)
   
-  # par(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))
+  # Build formula dynamically
+  by_vars <- paste(by, collapse = " + ")
+  formula_str <- paste(variable, "~", by_vars, "+ class_year")
+  formula_obj <- as.formula(formula_str)
   
-  theAgg <- aggregate(get(variable) ~ course + class_year, data = data, FUN = agg, ...)
+  
+  theAgg <- aggregate(formula_obj, data = data, FUN = agg, ...)
   
   # merge 
-  
+  if(by == "course") {
   theAgg <- merge(theAgg, featureMap, by = "course", all.x = TRUE)
+  } else {
+    theAgg <- merge(theAgg, featureMap, by.x = by, by.y = "by", all.x = TRUE)
+  }
+  
+  
+  
   theAgg <- theAgg[order(theAgg$class_year),]
   
   # Erase features not specified in the featureMap
@@ -71,7 +113,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
        main = title
   )
   
-  
+  if(by == "course") {
   lapply(unique(theAgg$course), function(crse){
     
     filter <- theAgg[,1] == crse
@@ -84,7 +126,19 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
     )
     
   })
-  
+  } else {
+    lapply(unique(theAgg[,by]), function(by_value){
+      
+      filter <- theAgg[,1] == by_value
+      
+      lines(y = theAgg[filter,3],
+            x = theAgg[filter,2],
+            col = theAgg[filter,"color"],
+            lwd = theAgg[filter,"lwd"],
+            lty = theAgg[filter,"lty"],
+      )
+    })
+  }
   
   axis(side = 1,
        at = 2005:2025,
@@ -93,6 +147,8 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
        font = 1,
        cex.axis = 1.2
   )
+  
+  if(by == "course") {
   
   forLegend <- unique(theAgg[,c("course", "color", "lwd", "lty")])
   legend_params_default <- list(x = "topright",
@@ -103,6 +159,18 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title
                                 xpd = TRUE,
                                 inset = c(-0.15,0)
   )
+  } else {
+    forLegend <- unique(theAgg[,c(by, "color", "lwd", "lty")])
+    legend_params_default <- list(x = "topright",
+                                  legend = forLegend[,by],
+                                  lty = forLegend[,"lty"],
+                                  lwd = forLegend[,"lwd"],
+                                  col = forLegend[,"color"],
+                                  xpd = TRUE,
+                                  inset = c(-0.15,0)
+    ) 
+    
+  }
   
   legend_params_list <- modifyList(legend_params_default, legend_params_list)
   do.call(legend, legend_params_list)
