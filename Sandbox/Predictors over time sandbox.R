@@ -3,10 +3,11 @@
 # PURPOSE:  Develop a simple line plot that shows the values of various predictors over time.
 # Taken from "Predictors over time" report. 
 
-overTime <- function(variable = "ACTMATH", 
+overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], title = NA,
+                     variable = "ACTMATH", 
                      agg = median, 
-                     data = cleanData[cleanData$vol_cluster == "hi_vol",], title = NA, 
                      featureMap = NA,
+                     showOther = TRUE,
                      plot_params_list = list(),
                      legend_params_list = list(),
                      ...){
@@ -39,6 +40,7 @@ overTime <- function(variable = "ACTMATH",
     lwd = c(rep(3,5), rep(2,9))
     )
   }
+
   
   
   plot_params_default <- list(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))  
@@ -52,8 +54,10 @@ overTime <- function(variable = "ACTMATH",
   # merge 
   
   theAgg <- merge(theAgg, featureMap, by = "course", all.x = TRUE)
-  
   theAgg <- theAgg[order(theAgg$class_year),]
+  
+  # Erase features not specified in the featureMap
+  theAgg <- theAgg[complete.cases(theAgg),]
   
   plot(median(theAgg[,3]),
        xlim = range(theAgg[,2]),
@@ -91,7 +95,7 @@ overTime <- function(variable = "ACTMATH",
   )
   
   forLegend <- unique(theAgg[,c("course", "color", "lwd", "lty")])
-  legend_params_default <- list(x = "center",
+  legend_params_default <- list(x = "topright",
                                 legend = gsub("MATH_","",forLegend[,"course"]),
                                 lty = forLegend[,"lty"],
                                 lwd = forLegend[,"lwd"],
