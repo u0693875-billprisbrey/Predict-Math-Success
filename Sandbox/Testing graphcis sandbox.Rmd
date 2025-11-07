@@ -1,0 +1,82 @@
+---
+title: "Testing graphics sandbox"
+author: "Bill Prisbrey"
+date: "2025-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+library(extrafont)
+loadfonts()
+
+```
+
+## Testing pipeline
+
+Default
+
+```{r}
+
+displayPipeline()
+
+```
+
+Width = 10 and height = 5
+
+```{r fig.height=5, fig.width=10}
+
+displayPipeline()
+
+```
+
+
+## Testing performance
+
+Default
+
+```{r}
+
+displayPerformance()
+
+```
+
+
+Width = 7 and height = 5
+
+```{r fig.height=5, fig.width=7}
+
+displayPerformance()
+
+```
+
+
+Width = 10 and height = 5
+
+```{r fig.height=5, fig.width=10}
+
+displayPerformance()
+
+```
+
+Width = 11 and height = 5
+
+```{r fig.height=5, fig.width=11}
+
+displayPerformance()
+
+```
+
+
+Width = 11 and height = 5 and par toggle
+
+```{r fig.height=5, fig.width=11}
+
+par(fig = c(0, 1, 0.2, 0.8))
+displayPerformance()
+
+```
+
