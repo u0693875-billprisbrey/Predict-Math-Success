@@ -8,6 +8,18 @@ output:
     keep_md: true
 ---
 
+This report needs a complete overhaul.
+
+What I need to do: 
+ - Keep your first graphic that explains enrollment numbers and lumping into "other"
+ - Repeat function "overTime" for the top handful of predictors
+ - Double-check the use of "length" to mean the number of people enrolling or submitting test scores.  It seems too low 
+    - I want to find out what percentage of students submit ACTMATH scores. 
+ - Pull in some of the graphics from "Math grade by ACT and test score" into here, and leave that for just the heat maps
+ - Compare pre-2020 heatmaps vs the heatmaps of 2024
+
+==
+
 Where is that document I was working on?
 I was looking at predictors over time, and it was a report of descriptive things. 
 
@@ -755,6 +767,8 @@ overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,], var
 
 # seems I can dynamically re-name "course" values to aggregate as I want
 # Is this a whole 'nuther function?
+
+overTime(data = cleanData, by = "vol_cluster")
 
 
 ```

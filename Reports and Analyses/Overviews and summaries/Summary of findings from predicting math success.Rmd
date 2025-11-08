@@ -1,0 +1,55 @@
+---
+title: "Summary of findings from predicting math success"
+author: "Bill Prisbrey"
+date: "2025-11-07"
+output: html_document
+---
+
+```{r}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+library(extrafont)
+loadfonts()
+
+```
+
+
+Highlights  (work, brain, work) 
+
+Brain, brain, brain
+
+Strongest predictors of grade performance is HSGPA and ACTMATH. 
+Strongest predictors of course is ACTMATH.
+
+Ability to predict course is declining over time, almost gone.
+
+Ability to predict grade is about plus-or-minus 0.6 GPA points (R-sq of 0.3) consistently 
+
+Course seems irrelevant to predicting the grade, although developing a counterfactual will shed more light into that.  
+
+2020 --- discontinuity, and 2024 is esp weird.
+
+I probably want to put a couple of highlights here, but otherwise call the child reports.  Or they are separate reports. 
+
+Looks like ACTMATH is declining in importance.  Isn't that interesting.  
+
+Let's trim off 2025 from all of these graphics, then work on the predictor graphic.  
+
+
+
+
+
+```{r fig.height=5, fig.width=10}
+
+displayPerformance()
+
+```
+
+```{r fig.height=5, fig.width=11}
+
+displayPipeline()
+
+```

@@ -1,0 +1,39 @@
+Musing on report ideas
+Rough report outlines
+11.6.2025
+
+Seems like I want a report that is "overview of first time freshman" and describes a few factoids about first time freshmen over time --
+
+-- Like, how many, median HSGPA and ACT MATH scores, how many submit the scores 
+-- Focus on the predictors that I'm using.
+
+Then, I want an "overview of first math courses for first time freshmen" ... and then describe like I'm doing here.  What fraction of first time freshmen take a math class at the U? What fraction take them in Semesters 1 thru 4?  What fraction only take one math class ... and they are done?   I'd want to compare this to the top ten math courses, and include a nod to the number of instructors. 
+
+Then, I can show "predicting course selection and academic performance" ... and that's my predictive models.  
+
+Then, using causal inference methods, I can write a "recommending course".
+
+A couple of explanatory graphics includes --
+- PERFORMANCE = MOTIVATION x ABILITY and subset ability to "Math"  and "Study" Ability
+
+- Time experience  (Prior knowledge --> course selection --> course performance)
+
+There's a lot that I don't have explained  --
+
+Like, so --- so the grade prediction remains high even though the course performance is low.  How irrelevant is course selection?  Isn't that interesting? 
+
+If I told a student, "You'll get a B plus-or-minus one letter grade," I mean, is that what I'm telling him?  
+
+I have a lot of good stuff here.  I just gotta, like, write it up.
+
+I still want to see heatmaps at different instances in time.  
+
+It's almost like I need to write several reports.  One, the massive appendix, is a pile of technical reports that can be referenced.  Then, on top of that, is the "summary" for the lay-reader with the main take-aways and points. 
+
+O.k., let's get three reports polished and moved to the U drive-- Course over time, Grades over time, and predictors over time. 
+
+Maybe I'll write my summary report and then expand as I need with the other two (?)
+
+Maybe I'll experiment with my heat map?
+
+

@@ -1,0 +1,354 @@
+---
+title: "Course and grade predictions for 2024"
+author: "Bill Prisbrey"
+date: "2025-11-07"
+output: html_document
+---
+
+## PURPOSE: 
+
+The purpose of this report is to experiment with counter-factuals by examining the predictions for grades of all courses in the model.
+
+
+What is outrageous is that the predicted grades aren't varying by course.
+
+Well, only a little for only  a couple of courses.
+
+This doesn't seem at all consistent with the linear regression model I made -- why does that show a lot of course effect?
+
+Are they consistent -- the prediction and the linear model showing the same effect, at least directionally?  Or did I lump together too many courses for the xgboost prediction, so they aren't available for comparison?
+
+Should I make a new prediction model for 2024, using all available courses? 
+
+
+```{r}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+library(stringr)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+
+``` 
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# I just need the 2024 models and data
+
+# vH2
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH2", " ", c("GRADEGPA", "grade_quad"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  c("GRADEGPA", "grade_quad")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH2", " ", c("GRADEGPA", "grade_quad"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  c("GRADEGPA", "grade_quad")
+)
+
+# courses vC0
+courseModel <- readRDS(here::here("Models", "Over Time", "Decision Tree Courses vC0 2024 model.rds"))
+courseData <- readRDS(here::here("Data", "Over Time", "Decision Tree Courses vC0 2024 Data.rds")) # should be the same as vH2
+
+
+
+```
+
+```{r}
+
+# Predict grade for all combinations of students and courses
+
+thePred <- predict(model_list[["GRADEGPA"]], data_list[["GRADEGPA"]][["testing"]] )
+
+# Quick comparisons:
+
+# hist(thePred, col = "green")
+# data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]] |> hist(add = TRUE, col = "aliceblue")
+
+# All combinations of students and grid
+# First, add unique identifiers
+
+testingGround <- data_list[["GRADEGPA"]][["testing"]]
+testingGround$unid <- 10001:(10000+nrow(testingGround))
+
+courseGrid <- expand.grid(testingGround$unid, unique(testingGround$course))
+
+testingGround <- merge(testingGround, courseGrid, by.x = "unid", by.y="Var1", all = TRUE)
+names(testingGround)[names(testingGround) == "course"] <- "course_orig"
+names(testingGround)[names(testingGround) == "Var2"] <- "course"
+
+testingGround$pred <- predict(model_list[["GRADEGPA"]], testingGround[,-which(colnames(testingGround) %in% c("unid","course_orig"))])
+
+# ok, fun!
+# Now let's look at the predictions per UNID
+
+plot(y = testingGround$pred,
+     x = testingGround$course)
+
+# WOW.  THE COURSE IS INVISIBLE!  
+randomUnidFilter <- testingGround$unid == sample(testingGround$unid, 1)
+plot(y = testingGround$pred[randomUnidFilter],
+     x = testingGround$course[randomUnidFilter])
+
+# Cool.  Let's pivot that and put a red "x" on the actual
+
+# And...notice how the course disappears
+randomUnid <- sample(testingGround$unid, 1)
+randomUnidFilter <- testingGround$unid == randomUnid
+plot(x = testingGround$pred[randomUnidFilter],
+     y = testingGround$course[randomUnidFilter],
+     xlim = c(0,4))
+points(x = unique(testingGround$GRADEGPA[randomUnidFilter]),
+       y = unique(testingGround$course_orig[randomUnidFilter]), pch = "X", col = "red")
+
+# This needs to be it's own function.
+# I'd like to see both horizontal and vertical bands
+
+# I think I'm doing this wrong, frankly
+# They've already optimized the course selection.
+# I'm looking to see what effect the courses have, by --- taking avg grade per course?
+# I guess I gotta do some more reading  
+
+# I need to see the average per course
+
+par(mar=c(3,7,4,1))
+boxplot(pred ~ course, data = testingGround, horizontal = TRUE, las = 2, ylab = "")
+
+# THE. COURSE. IS. DISAPPEARING. AS. A. MEANINGFUL. FACTOR.
+# But all I'm doing, by just looking at the predictions, is repeating the variable importance.
+
+# Let's see actual,
+# and then let's see the blend of actual and predicted
+
+# boxplot(GRADEGPA ~ course_orig, data = unique(testingGround[,c("course_orig","GRADEGPA")]), horizontal = TRUE, las = 2, ylab = "")
+
+# Why is this different?
+boxplot(GRADEGPA ~ course, data = data_list[["GRADEGPA"]][["testing"]], horizontal = TRUE, las = 2, ylab = "")
+
+testingGround$actual <- NA
+testingGround$actual[testingGround$course_orig == testingGround$course] <- testingGround$GRADEGPA[testingGround$course_orig == testingGround$course]
+
+
+testingGround$counterfactual <- NA
+testingGround$counterfactual[testingGround$course_orig != testingGround$course] <- testingGround$pred[testingGround$course_orig != testingGround$course]
+testingGround$counterfactual[testingGround$course_orig == testingGround$course] <- testingGround$GRADEGPA[testingGround$course_orig == testingGround$course]
+
+
+boxplot(actual ~ course, data = testingGround, horizontal = TRUE, las = 2, ylab = "")
+boxplot(counterfactual ~ course, data = testingGround, horizontal = TRUE, las = 2, ylab = "")
+
+# I'm getting nowhere with this.  It's basically told me that "course" is invisible.
+# Per the linear model, turns out a lot of these courses may be equivalent  
+
+```
+
+```{r}
+
+# Can I find an at-risk population, by prediction, and see how they actually did?
+
+testingGround$pred_tile <- cut(testingGround$pred,quantile(testingGround$pred, probs = seq(0,1,0.1)))
+
+
+# And...notice how the course disappears
+randomUnid <- sample(testingGround$unid[testingGround$pred_tile %in% c("(0.26,1.8]",  "(1.8,2.15]" )], 1)
+randomUnidFilter <- testingGround$unid == randomUnid
+plot(x = testingGround$pred[randomUnidFilter],
+     y = testingGround$course[randomUnidFilter],
+     xlim = c(0,4))
+points(x = unique(testingGround$GRADEGPA[randomUnidFilter]),
+       y = unique(testingGround$course_orig[randomUnidFilter]), pch = "X", col = "red")
+
+# let's get the mean absolute error
+
+testingGround$error <- NA
+testingGround$error[!is.na(testingGround$actual)] <- testingGround$pred[!is.na(testingGround$actual)]-testingGround$GRADEGPA[!is.na(testingGround$actual)]
+
+# > mean(abs(testingGround$error), na.rm= TRUE)
+# [1] 0.842303
+
+# let's set my risk threshold at 1.0 + 0.85 = 1.85
+
+mean(abs(testingGround$error[testingGround$pred_tile == "(0.26,1.8]"]), na.rm=TRUE) # 1.2
+# it's higher
+
+# > mean((testingGround$error[testingGround$pred_tile == "(0.26,1.8]"]), na.rm = TRUE)
+# [1] -0.5216743
+
+
+# I kind of like this series.  It would make a nice "ridgeline"
+# and shows the range of a prediction for the grades.
+
+# I could inverse this as well -- show the range of grades for a prediction
+hist(testingGround$pred[!is.na(testingGround$actual) & testingGround$actual < 1])
+hist(testingGround$pred[!is.na(testingGround$actual) & testingGround$actual >= 1 & testingGround$actual < 2])
+hist(testingGround$pred[!is.na(testingGround$actual) & testingGround$actual >= 2 & testingGround$actual < 3])
+hist(testingGround$pred[!is.na(testingGround$actual) & testingGround$actual >= 3])
+
+``` 
+
+
+
+Claude on causal inference: 
+
+This is a great question about the intersection of prediction and causal inference. Let me help clarify what's happening and what your options are.
+What Your Model Is Telling You
+Your predictive model is revealing something important: conditional on student characteristics (whatever features you're using), course selection explains very little variation in grades. The model is essentially saying "if I know about the student, knowing which course they take doesn't help me predict their grade much."
+But this doesn't answer the causal question: "Does course selection affect grades?"
+The Core Problem: Prediction ≠ Causation
+You're experiencing a classic issue. Your predictive model is optimized to minimize prediction error, but it's doing so under the observed data distribution where:
+
+Students self-select into courses (non-random assignment)
+Advisors guide students into appropriate courses
+Students likely choose courses where they expect to do well
+
+This creates confounding: the same factors that make students likely to succeed also influence which courses they take. Your model correctly learns that "course" adds little predictive value because student characteristics already capture most of the grade variation.
+Why Blending Doesn't Help
+Your blended approach (actual when available, predicted otherwise) doesn't solve the causal problem because:
+
+The predicted grades still come from a model that doesn't capture causal effects
+You're still mixing observational data with predictions based on observational patterns
+
+What You Should Do for Causal Inference
+Here are your options, ordered by rigor:
+1. Randomized Experiment (Gold Standard)
+
+Randomly assign students to courses
+Compare outcomes
+This is probably infeasible for ethical/practical reasons
+
+2. Natural Experiments / Instrumental Variables
+
+Find quasi-random variation in course assignment (e.g., lottery for oversubscribed courses, randomized scheduling conflicts)
+Use this as an instrument for course selection
+
+3. Matching / Propensity Score Methods
+
+Match students who took different courses but are similar on all observable characteristics
+Compare grades between matched pairs
+Limitation: only controls for observed confounders
+
+4. Fixed Effects Models
+
+If you have panel data (students taking multiple courses), you can use student fixed effects to control for time-invariant student characteristics
+Compare the same student's performance across different courses
+
+5. Regression Discontinuity
+
+If there are cutoffs for course placement (e.g., placement test scores), students just above/below the cutoff are likely similar
+Compare outcomes for students near the threshold
+
+A Practical Approach for Your Context
+Given your data structure, I'd suggest:
+Step 1: Descriptive Analysis with Controls
+
+Run a regression of grade on course indicators, controlling for all your student characteristics
+This tells you: "Among students who look similar, do those in different courses get different grades?"
+Interpret cautiously—this still isn't causal due to unobserved confounding
+
+Step 2: Investigate Selection
+
+Model course choice as a function of student characteristics
+Understand the selection mechanism
+This helps you assess how severe the confounding might be
+
+Step 3: Consider Your Research Question
+
+Are you asking: "If we assigned Student X to Course A vs Course B, what would happen?" (individual treatment effect)
+Or: "Which courses are 'easier' on average?" (average treatment effect)
+These require different approaches
+
+The Fundamental Tension
+Your prediction task and causal inference have different goals:
+
+Prediction: "What grade will this student get?" → Your model is doing reasonably well (R²=0.30 is decent for grades)
+Causal inference: "What would happen if we changed their course?" → Requires different methods entirely
+
+The fact that course doesn't matter for prediction might mean: (a) courses don't causally affect grades, OR (b) students sort into appropriate courses so well that course differences don't show up in predictive models.
+Does this help clarify the issue? What's your ultimate goal—better grade prediction, or understanding whether course selection causally affects outcomes?RetryBPTell me about Step 1: Descriptive Analysis with Controls.   Isn't this the predictive model I already created (R-squared of 0.3?)Great question! No, they're actually different analyses, even though they might use the same variables. Let me explain the key distinction.
+Your Current Predictive Model
+Your model with R² = 0.30 is optimized for prediction accuracy. This typically means:
+
+The model may not include course as a feature at all (or gives it very low weight)
+Variable importance showed course wasn't predictive
+The model learned: "knowing the student characteristics is enough; course doesn't add predictive value"
+
+What Step 1 Would Look Like
+A descriptive analysis with controls would be a different regression specifically designed to estimate course effects:
+Grade = β₀ + β₁·Course₁ + β₂·Course₂ + ... + β₂₅·Course₂₅ 
+        + γ·(student characteristics) + ε
+Key differences:
+1. Course is FORCED into the model
+
+You include dummy variables for all 25 courses (or 24 with one reference category)
+You're explicitly asking: "After controlling for student characteristics, do grades differ by course?"
+
+2. Different interpretation
+
+Your predictive model asks: "What helps me predict grades?"
+This regression asks: "What is the association between course and grades, holding student characteristics constant?"
+
+3. Focus on coefficients, not R²
+
+You'd examine the β coefficients for each course
+Are they statistically different from each other?
+What's the magnitude of differences?
+
+What You Might Find
+Given your variable importance results, you'll likely find:
+Scenario A: Course coefficients are small and not significantly different from each other
+
+This means: even after controlling for observables, courses don't differ much
+But this could still be because of unobserved confounding (selection on unobservables)
+
+Scenario B: Course coefficients ARE significantly different
+
+This would contradict your variable importance finding
+It would suggest courses do differ, but your predictive model downweighted this because:
+
+The variation is small relative to student-level variation
+Course effects are complex/nonlinear and your model didn't capture them
+Regularization penalized the course features
+
+
+
+Why This Matters
+This analysis tells you: "In the observed data, are there grade differences between courses after accounting for student characteristics?"
+It doesn't prove causation, but it's the first step. If you find NO differences here, then there's likely no causal effect to discover (though unobserved confounding could still hide effects). If you DO find differences, then you know there's something to explain—either causal effects or remaining selection bias.
+The Key Question
+Have you actually included course indicators in your predictive model and examined their coefficients? Or did your model-building process (feature selection, regularization, etc.) effectively exclude or minimize course effects because they don't improve predictive accuracy?
+That's the distinction: predictive models optimize for accuracy, but you need to explicitly estimate course effects to do causal inference.
+Does this clarify the difference?
+
+
+
