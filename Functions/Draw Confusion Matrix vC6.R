@@ -160,7 +160,7 @@ drawCM <- function(cm,
 
   on.exit({
     par(incomingPar)
-    layout(1)
+    layout(matrix(1))
   })
   
   

@@ -11,6 +11,35 @@ output:
 
 
 
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+library(stringr)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
 ```{r}
 
 ##########
@@ -156,13 +185,8 @@ nameMatrix <- cbind("original" = c(
   "1010", "1030", "1050", "1060", "1070", "1080", "1090", "1100", "1210", "1220", "1250", "1310", "2210", "990", "other"
 ))
 
-# I might need a way to make a name matrix automatically per confusion matrix
 
-# not sure why this is throwing an error
-# drawCM(theResults[[3]], nameMatrix = nameMatrix, percentage = TRUE, metricsClass = "1210")
-# drawCM(theResults[[3]],                          percentage = TRUE, metricsClass = "MATH_1210")
 
-# precision color is screwed up
 
 ```
 
@@ -175,14 +199,14 @@ theKappa <- sapply(theResults, function(x) {x[["overall"]]["Kappa"]})
 names(theKappa) <- names(theResults)  
 
 # plot Kappa
-plot(y = theKappa,
-     x= as.numeric(names(theKappa)),
-     type = "b",
-     col = "firebrick",
-     las = 2,
-     ylab = "Kappa",
-     xlab = ""
-     )
+# plot(y = theKappa,
+#     x= as.numeric(names(theKappa)),
+#     type = "b",
+#     col = "firebrick",
+#     las = 2,
+#     ylab = "Kappa",
+#     xlab = ""
+#     )
 
 # This would make a good plotly
 
@@ -242,20 +266,17 @@ importance_over_time <- importance_over_time[order(importance_over_time[,2], dec
 ```
 
 
+
 ```{r}
 
-# plotly version courtesy of Chat
-
-## BEAUTIFUL! ##
-
-# library(plotly)
+# Plotly graphic of all predictors that have an importance value over 10 in any model
 
 varFilter <- apply(importance_over_time[,-1],1, function(x){any(x>10)}) 
 
 varSelection <- importance_over_time$var[varFilter & !is.na(varFilter)]
 
 # Filter to selected variables
-plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection[-1], ]
+plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection, ]
 
 # Initialize plot
 p <- plot_ly()
@@ -279,6 +300,55 @@ for(i in 1:nrow(plotData)) {
 # Customize layout
 p <- p %>%
   layout(
+    title = 'Variable Importance Over Time (all variables)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
+
+```{r}
+
+# Plotly graphic of all predictors that have an importance value less than fifty and over 10 in any model
+
+
+varFilter <- apply(importance_over_time[,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time$var[varFilter & !is.na(varFilter)]
+
+# Filter to selected variables
+plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection[!varSelection %in% c("ACTMATH", "course_level")], ]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Variable Importance Over Time (low importance variables)',
     xaxis = list(title = "Test Year"),
     yaxis = list(title = "Variable Importance"),
     hovermode = "closest",
@@ -315,6 +385,128 @@ invisible(
 
 ```
 
+
+Should I put a heatmap?  Really would tell the story well, don't you think?
+
+I should put in an example confusion matrix.  
+
+
+Possible next steps:
+- explain NA values
+- explain course_level strong showing
+
+
+Show precision/recall over time
+
+```{r}
+
+# An example confusion matrix
+
+drawCM(theResults[["2024"]],nameMatrix = nameMatrix, metricsClass = "1050") # eh.
+
+# precision color is screwed up
+
+```  
+
+
+
+```{r}
+
+# extract precision and recall
+
+thePrecisions <- lapply(theResults, function(results) {
+    results[["byClass"]][,"Precision"]
+})
+thePrecisions <- do.call(cbind, thePrecisions)  
+  
+theRecalls <- lapply(theResults, function(results) {
+    results[["byClass"]][,"Recall"]
+})
+theRecalls <- do.call(cbind, theRecalls)    
+
+
+
+```
+
+
+```{r}
+
+# Precision and recall per course over time
+
+plotData <- thePrecisions
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(thePrecisions)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(thePrecisions)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Precision: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Precision Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Precision"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+plotData <- theRecalls
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(theRecalls)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(theRecalls)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Recall: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Recall Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Recall"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+```
+
+
+Where is my "cleaning" and "prep" boilerplate?
+
+
 So accuracy at predicting courses drops incredibly.
 And I'm not sure I want to include "course_level", but why was it only super-important for a few years?  
 
@@ -339,3 +531,82 @@ I'll work on all three reports in parallel --
 
   - Prediction results  (course and grade)  
   - Predictors over time
+  
+
+### SUMMARY
+
+### METHODOLOGY 
+
+All math courses taken by first time freshmen were identified.  The term per student with that student's first math class was identified, and performance (grade) in all math courses taken during that term were queried.  These are called the initial math courses. 
+Math labs were filtered out.
+
+The early information variables included: 
+
+Demographics: 
+
+  * Age 
+  * Sex
+  * First generation status
+  * Ethnicity 
+  
+High school performance and information:  
+
+  * High school GPA 
+  * Number of AP credits
+  * Whether the high school was public or private   
+  * Honors achievement
+
+
+University information: 
+
+  * Residence status  
+  * Pell grant eligibility  
+  * Cohort year (2005 to 2024)
+  * Class year (2005 to 2025)
+  * Years from the cohort date (always fall of the year) until the first term with math courses 
+  * Season (spring, summer, or fall)  
+  
+  
+  
+  
+  
+
+Test scores:  
+
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT comprehensive
+
+
+
+### DISCUSSION  
+
+The relationship between early information and course selection was moderate for many years, until it started eroding in 2016 and approached random (or a very weak relationship) after Covid (2021).  
+
+The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most influential in course selection.  
+
+The model was able to correctly identify participants in Math 1010 until the year 2022 with a reasonably high recall score of 0.74, after which recall declined to 0.08 in 2024.  In 2024, the model's greatest success was in identifying Math 1210 with a recall score of 0.52 (which course had also been gently declining over time.) 
+
+Historically, the model could most accurately predict 2210 with a precision of 0.93 (2014) and 1010 with a precision of 0.83 (2016.)  In 2024, the most precise predictions were 2210 (0.44) and 1090 (0.39).
+
+Taken together, the decline in model accuracy (Kappa, precision, and recall) over the years suggests a collapse of guidelines and either a free-for-all in selecting courses, or the use of some other guideline or mechanism that aligns weakly with prior knowledge.
+
+
+### CONCLUSIONS  
+
+Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is almost completely determined by variables other than early available information in 2024.
+
+Predictive models had Kappa values as high as 0.4, indicating a moderate degree of determinism between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2016 until 2024 Kappa values were as low as 0.13, indicating a near-random relationship between prior information and course selection. 
+
+All models in all years used ACTMATH scores as the most important predictor of course selection.  APCREDIT increased in importance in predicting math course selection, as did information about the class year and cohort year.  
+
+
+
+
+By 2024, models that use a handful of variables are almost completeley unable to predict initial course selection.  Or, in other words, course selection is almost completely determined by factors other than these variables.  This can be compared to 2013 to 2016, 
+
+
+### RESULTS 
+
+Put graphics down here. 
