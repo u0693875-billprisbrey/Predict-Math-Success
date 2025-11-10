@@ -537,27 +537,33 @@ I'll work on all three reports in parallel --
 
 ### METHODOLOGY 
 
-All math courses taken by first time freshmen were identified.  The term per student with that student's first math class was identified, and performance (grade) in all math courses taken during that term were queried.  These are called the initial math courses. 
+All math courses taken by first time freshmen were identified.  The term per student with that student's first math class was identified, and grade performance in all math courses taken during that term were queried.  These are called the initial math courses.   
 Math labs were filtered out.
 
 The early information variables included: 
 
-Demographics: 
+*Demographics:* 
 
-  * Age 
-  * Sex
+  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
+  * Sex (male or female)
   * First generation status
   * Ethnicity 
   
-High school performance and information:  
+*High school information and performance:*  
 
   * High school GPA 
   * Number of AP credits
   * Whether the high school was public or private   
   * Honors achievement
 
+*Test scores:*    
 
-University information: 
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT comprehensive
+
+*University information:*  
 
   * Residence status  
   * Pell grant eligibility  
@@ -565,26 +571,59 @@ University information:
   * Class year (2005 to 2025)
   * Years from the cohort date (always fall of the year) until the first term with math courses 
   * Season (spring, summer, or fall)  
-  
-  
-  
-  
-  
 
-Test scores:  
 
-  * ACT Math
-  * ACT English
-  * ACT Science
-  * ACT comprehensive
+The following filters were applied: 
 
+ * Courses higher than 3000 level were removed. 
+ * Students younger than 11 yrs old were removed. 
+ * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
+ * Students with high school GPA values of zero were removed. 
+ * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
+ * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
+ * All records with incomplete information were removed.  
+
+The following transformations were applied: 
+
+  * AP credit values of "NA" were converted to zero.  
+  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
+  
+A predictive model was trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2);colsample_bytree(0.8); subsample(0.8)).  
+
+An expanding window of historical data was used, where one model was trained per year, incrementally adding an additional year's data and predicting on the subsequent year.  For example, the course selection for the year 2010 was trained on data from the years 2005 to 2009.  The course selection for the year 2024 was trained on data from the years 2005 to 2023.  Nineteen models were trained. 
+
+Each model predicted a value for a math course out of the following possibilities:  
+
+    "MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090", "MATH_1070",   "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310", "MATH_2210", "MATH_990",  "MATH_1100", "MATH_1250" or "other".
+ 
+The following math courses were combined into "other":  
+
+    "MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180, MATH_1010, MATH_1030, MATH_1050, MATH_1060, MATH_1070, MATH_1080, MATH_1090, MATH_1100, MATH_1210, MATH_1220, MATH_1250, MATH_1310, MATH_2210, MATH_990"
+  
+*this belongs in the other report, not here!*
+In one model, the actual GPA performance was targeted with the following values:  
+
+  |         |***GPA model***| ***Quad Model*** |
+  | Letter  | GPA           |  Grouping        |
+  | E, EU   | 0             | "Low"            |
+  | D-      | 0.7           | "Low"            |
+  | D       | 1.0           | "Low"            |
+  | D+      | 1.3           | "Low"            |
+  | C-      | 1.7           | "Med-Minus"      | 
+  | C       | 2.0           | "Med-Minus"      |  
+  | C+      | 2.3           | "Med-Minus"      |
+  | B-      | 2.7           | "Med-Plus"       |
+  | B       | 3.0           | "Med-Plus"       |
+  | B+      | 3.3           | "Med-Plus"       |
+  | A-      | 3.7           | "Med-Plus"       |
+  | A       | 4.0           | "High"           |
 
 
 ### DISCUSSION  
 
-The relationship between early information and course selection was moderate for many years, until it started eroding in 2016 and approached random (or a very weak relationship) after Covid (2021).  
+The relationship between early information and course selection was moderate for many years, until it started eroding in 2016 and approached random (or a very weak relationship) after covid (2021 onwards).  
 
-The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most influential in course selection.  
+The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most important variable in predicting course selection.  
 
 The model was able to correctly identify participants in Math 1010 until the year 2022 with a reasonably high recall score of 0.74, after which recall declined to 0.08 in 2024.  In 2024, the model's greatest success was in identifying Math 1210 with a recall score of 0.52 (which course had also been gently declining over time.) 
 
