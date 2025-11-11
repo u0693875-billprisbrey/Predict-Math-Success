@@ -1,9 +1,9 @@
 ---
-title: "Evaluate Course Decision Trees Over Time vC0"
+title: "Evaluate Course Decision Trees Over Time vC1"
 author: "Bill Prisbrey"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params: 
-  version: "vC0"
+  version: "vC1"
 output:
   html_document:
     keep_md: true
