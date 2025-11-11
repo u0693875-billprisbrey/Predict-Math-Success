@@ -35,6 +35,7 @@ library(skimr)
 library(caret)
 library(xgboost)
 library(lubridate)
+library(plotly)
 
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 
@@ -54,7 +55,7 @@ source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 testYears <- 2007:2025
 grid <- expand.grid(params$version, testYears,  params$target_classes)
 
-model_files <- here::here("Models", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " model.rds"))
+model_files <- here::here("Models", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " model.rds"))
 
 # Read this into a list of lists by target class
 
@@ -76,7 +77,7 @@ model_list <- setNames(
 
 
 # Build file paths
-data_files <- here::here("Data", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " Data.rds"))
+data_files <- here::here("Data", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " Data.rds"))
 
 # Read each model into a named list
 data_list <- setNames(
@@ -179,6 +180,377 @@ names(predictions_over_time) <- params$target_classes
 
 ```
 
+
+```{r}
+
+theResults <- lapply(params$target_classes, function(tClass){
+  
+  perClass <- lapply(as.character(testYears), function(tYr){
+
+    # Identify discrepancies between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingCourseFilter))
+}
+
+      missingEthnicity <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
+
+       postResample(pred = predictions_over_time[[tClass]][[tYr]],
+                  obs = data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter]
+               ) 
+    
+        
+  })
+  names(perClass) <- testYears
+  return(perClass)
+})
+  
+names(theResults) <- params$target_classes
+
+```
+
+
+
+```{r}
+
+# Success over time
+
+resultsDF <- lapply(theResults, function(x){
+  
+  do.call(rbind, x)
+  
+})
+
+
+```
+
+
+### SUMMARY 
+
+### METHODOLOGY 
+
+All math courses taken by first time freshmen were identified. Each student's first math courses were identified (or multiple courses if taken in the same term.)   Grade performance for these math courses was queried.  These are called the initial math courses.   
+
+Predictive models were trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2); colsample_bytree(0.8); subsample(0.8).)    
+
+An expanding window of historical data was used, where one model was trained per year for nineteen models.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2010 was trained on data from the years 2005 to 2009.  The predicted course selection for the year 2024 was trained on data from the years 2005 to 2023.  
+
+A value for math course was predicted.  
+
+#### Variables 
+
+The variables included: 
+
+*Demographics:* 
+
+  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
+  * Sex (male or female)
+  * First generation status
+  * Ethnicity 
+  
+*High school information and performance:*  
+
+  * High school GPA 
+  * Number of AP credits
+  * Whether the high school was public or private   
+  * Honors achievement
+
+*Test scores:*    
+
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT comprehensive
+
+*University information:*  
+
+  * Residence status  
+  * Pell grant eligibility  
+  * Cohort year (2005 to 2024)
+  * Class year (2005 to 2025)
+  * Years from the cohort date (always fall of the year) until the first term with math courses 
+  * Season (spring, summer, or fall)  
+
+#### Filters  
+
+The following filters were applied: 
+
+ * Math labs are filtered out.  
+ * Courses higher than 3000 level were removed. 
+ * Students younger than 11 yrs old were removed. 
+ * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
+ * Students with high school GPA values of zero were removed. 
+ * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
+ * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
+ * All records with incomplete information were removed.  
+
+#### Transformations    
+
+The following transformations were applied: 
+
+  * AP credit values of "NA" were converted to zero.  
+  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
+  
+#### Target values    
+
+Each model predicted a value for a math course out of the following possibilities:  
+
+MATH_1010, MATH_1050, MATH_1210, MATH_1030, MATH_1090, MATH_1070, MATH_1220, MATH_1080, MATH_1060, MATH_1310, MATH_2210, MATH_990, MATH_1100, MATH_1250 or "other".
+ 
+The following math courses were combined into "other":  
+
+MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180.
+  
+### DISCUSSION  
+
+### CONCLUSIONS  
+
+### RESULTS 
+
+
+```{r}
+
+# I want three plotly graphics, one per RMSE, R-squared, and MAE
+# Each plot has one line per GRADEGPA and grade_quad
+
+# Extract years from row names
+years <- as.numeric(rownames(resultsDF$GRADEGPA))[-19]
+
+# Create RMSE plot
+plot_rmse <- plot_ly() |>
+  add_trace(x = years, 
+            y = resultsDF[["GRADEGPA"]][-19,"RMSE"], 
+            name = "GPA Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  add_trace(x = years, 
+            y = resultsDF[["grade_quad"]][-19,"RMSE"], 
+            name = "Quad Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  layout(title = "RMSE Over Years",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "RMSE"))
+
+# Create R-squared plot
+plot_rsq <- plot_ly() |>
+  add_trace(x = years, 
+            y = resultsDF[["GRADEGPA"]][-19,"Rsquared"], 
+            name = "GPA Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  add_trace(x = years, 
+            y = resultsDF[["grade_quad"]][-19,"Rsquared"], 
+            name = "Quad Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  layout(title = "R-squared Over Years",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "R-squared"))
+
+# Create MAE plot
+plot_mae <- plot_ly() |>
+  add_trace(x = years, 
+            y = resultsDF[["GRADEGPA"]][-19,"MAE"], 
+            name = "GPA Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  add_trace(x = years, 
+            y = resultsDF[["grade_quad"]][-19,"MAE"], 
+            name = "Quad Model",
+            type = 'scatter', 
+            mode = 'lines+markers') |>
+  layout(title = "MAE Over Years",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "MAE"))
+
+# Display the plots
+plot_rsq
+plot_mae
+plot_rmse
+
+
+```
+
+
+
+```{r}
+
+# extract variable importance
+# re-shape into a data frame per target class with one column per year
+
+importance_over_time <- lapply(model_list, function(tClass) {
+  
+     # Extract importance
+      impList <- lapply(tClass, function(tYr){
+        
+        imp <- varImp(tYr)$importance
+        imp$var <- row.names(imp)
+        return(imp)
+      })  
+      
+    # Re-name 'overall' column  
+      
+    impList <- lapply(names(impList), function(yearName){
+      
+      colnames(impList[[yearName]])[colnames(impList[[yearName]]) == "Overall"] <- yearName
+      return(impList[[yearName]])
+    })  
+      
+  # Collapse into one data frame
+    
+    impOverTime <- Reduce(function(m1,m2){merge(m1,m2, by = "var", all = TRUE)}, impList)
+    impOverTime <- impOverTime[order(impOverTime[,2], decreasing = TRUE),] # descending order by the first year of data
+    
+      return(impOverTime)
+})
+
+
+```
+
+
+
+
+
+```{r}
+
+# plotly version of importance_over_time
+
+varFilter <- apply(importance_over_time[["GRADEGPA"]][,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time[["GRADEGPA"]][["var"]][varFilter & !is.na(varFilter)]
+
+# varSelection <- importance_over_time[["GRADEGPA"]][["var"]][order(importance_over_time[["GRADEGPA"]][["2024"]], decreasing = TRUE)] |>
+#  (\(x){x[2:10]})() # top 8 predictors in 2024
+
+# Filter to selected variables
+plotData <- importance_over_time[["GRADEGPA"]][
+  importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection, 
+]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p |>
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p |>
+  layout(
+    title = 'Variable Importance Over Time (all variables, GPA)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
+
+```{r}
+
+# plotly version of importance_over_time
+
+varFilter <- apply(importance_over_time[["grade_quad"]][,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time[["grade_quad"]][["var"]][varFilter & !is.na(varFilter)]
+
+
+# Filter to selected variables
+plotData <- importance_over_time[["grade_quad"]][
+  importance_over_time[["grade_quad"]][,"var"] %in% varSelection, 
+]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p |>
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p |>
+  layout(
+    title = 'Variable Importance Over Time (all variables, Quad)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+Discretize and create a confusion matrix
+
+```{r}
+
+# Discretize and create a couple of confusion matrices
+# Should I do the high accuracy, or preserve the C+/D- barrier? 
+
+
+
+
+
+```
+
+
+Extract accuracy metrics for the courses
+
+
+
+
 ### Thoughts
 
 So what is that 2024/2025 discontinuity?  All predictors jump from model trained on 2024, and 2025 accuracy falls.
@@ -250,56 +622,7 @@ Should I do a PCA?  Always love me a PCA.
 
 The other variables are either self-explanatory or taken directly from OBIA tables.  
 
-# Results
-
-
-```{r}
-
-theResults <- lapply(params$target_classes, function(tClass){
-  
-  perClass <- lapply(as.character(testYears), function(tYr){
-
-    # Identify discrepancies between the testing and training sets and filter them out
-    
-      missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
-    
-      if (length(missingCourse) == 0) {
-  # no missingCourse values — keep everything
-  missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
-} else {
-  # normal case — exclude the missingCourse courses
-  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
-  
-#  print(x)
-#  print(table(missingCourseFilter))
-}
-
-      missingEthnicity <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
-    
-      if (length(missingEthnicity) == 0) {
-  # no missingCourse values — keep everything
-  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
-} else {
-  # normal case — exclude the missingCourse courses
-  missingEthnicityFilter <- !data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
-  
-}
-      
-missing <- missingCourseFilter & missingEthnicityFilter  
-
-       postResample(pred = predictions_over_time[[tClass]][[tYr]],
-                  obs = data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter]
-               ) 
-    
-        
-  })
-  names(perClass) <- testYears
-  return(perClass)
-})
-  
-names(theResults) <- params$target_classes
-
-```
+Results
 
 
 
@@ -570,20 +893,7 @@ regression_diagnostics(pred = thePredictions[[x]],
 
 ```{r}
 
-# Success over time
-
-resultsDF <- lapply(theResults, function(x){
-  
-  do.call(rbind, x)
-  
-})
-
-
-```
-
-```{r}
-
-# Plot success over time
+# Plot success over time, one line per target  
 
 plot(x = as.numeric(row.names(resultsDF[["GRADEGPA"]])),
      y = resultsDF[["GRADEGPA"]][,"Rsquared"],
@@ -604,40 +914,6 @@ plot(x = as.numeric(row.names(resultsDF[["GRADEGPA"]])),
 
 
 # Variable importance
-
-```{r}
-
-# extract variable importance
-# re-shape into a data frame per target class with one column per year
-
-importance_over_time <- lapply(model_list, function(tClass) {
-  
-     # Extract importance
-      impList <- lapply(tClass, function(tYr){
-        
-        imp <- varImp(tYr)$importance
-        imp$var <- row.names(imp)
-        return(imp)
-      })  
-      
-    # Re-name 'overall' column  
-      
-    impList <- lapply(names(impList), function(yearName){
-      
-      colnames(impList[[yearName]])[colnames(impList[[yearName]]) == "Overall"] <- yearName
-      return(impList[[yearName]])
-    })  
-      
-  # Collapse into one data frame
-    
-    impOverTime <- Reduce(function(m1,m2){merge(m1,m2, by = "var", all = TRUE)}, impList)
-    impOverTime <- impOverTime[order(impOverTime[,2], decreasing = TRUE),] # descending order by the first year of data
-    
-      return(impOverTime)
-})
-
-
-```
 
 ```{r}
 
@@ -668,53 +944,6 @@ lines(
       )
 })
 )
-
-
-```
-
-
-```{r}
-
-# plotly version courtesy of Chat
-
-## BEAUTIFUL! ##
-
-library(plotly)
-
-# Filter to selected variables
-plotData <- importance_over_time[["GRADEGPA"]][
-  importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection, 
-]
-
-# Initialize plot
-p <- plot_ly()
-
-# Add a line for each variable
-for(i in 1:nrow(plotData)) {
-  p <- p %>%
-    add_lines(
-      x = testYears,
-      y = as.numeric(plotData[i, as.character(testYears)]),
-      name = plotData[i, "var"],
-      hovertemplate = paste0(
-        "<b>", plotData[i, "var"], "</b><br>",
-        "Year: %{x}<br>",
-        "Importance: %{y:.2f}<br>",
-        "<extra></extra>"
-      )
-    )
-}
-
-# Customize layout
-p <- p %>%
-  layout(
-    xaxis = list(title = "Test Year"),
-    yaxis = list(title = "Variable Importance"),
-    hovermode = "closest",
-    legend = list(title = list(text = "Variable"))
-  )
-
-p
 
 
 ```
