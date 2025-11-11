@@ -7,6 +7,7 @@ params:
 output:
   html_document:
     keep_md: true
+    toc: true
 ---
 
 
@@ -123,9 +124,7 @@ names(thePredictions) <- as.character(testYears)
 
 ```
 
-# Results
 
-Develop and report the confusion matrices 
 
 ```{r eval=FALSE}
 
@@ -191,6 +190,131 @@ nameMatrix <- cbind("original" = c(
 ```
 
 
+### SUMMARY
+
+In order to examine trends in initial math course selection by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen.  
+
+Nineteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's course selection was predicted. 
+
+The predictive model found a moderate relationship between math course selection and predictors early on (Kappa of ~0.35), but that relationship eroded to a very weak relationship by 2024 (when the Kappa value declined to 0.17).   
+
+The most important predictor in every year was the ACT test scores.  Distantly, the number of AP credits, cohort year, and class year were next highest in model importance.  
+
+Some courses such as Math 2210 bucked the trend and increased in accuracy metrics over time.  
+
+The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores, high school GPA, and AP credits, and math course selection.  Instead, it suggests something like a new free-for-all where historical guidelines have been abandoned, or the introduction of new guidelines that do not align with historical practices.  
+
+### METHODOLOGY 
+
+All math courses taken by first time freshmen were identified. Each student's first math courses were identified (or multiple courses if taken in the same term.)   Grade performance for these math courses was queried.  These are called the initial math courses.   
+
+Predictive models were trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2); colsample_bytree(0.8); subsample(0.8).)    
+
+An expanding window of historical data was used, where one model was trained per year for nineteen models.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2010 was trained on data from the years 2005 to 2009.  The predicted course selection for the year 2024 was trained on data from the years 2005 to 2023.  
+
+A value for math course was predicted.  
+
+#### Variables 
+
+The variables included: 
+
+*Demographics:* 
+
+  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
+  * Sex (male or female)
+  * First generation status
+  * Ethnicity 
+  
+*High school information and performance:*  
+
+  * High school GPA 
+  * Number of AP credits
+  * Whether the high school was public or private   
+  * Honors achievement
+
+*Test scores:*    
+
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT comprehensive
+
+*University information:*  
+
+  * Residence status  
+  * Pell grant eligibility  
+  * Cohort year (2005 to 2024)
+  * Class year (2005 to 2025)
+  * Years from the cohort date (always fall of the year) until the first term with math courses 
+  * Season (spring, summer, or fall)  
+
+#### Filters  
+
+The following filters were applied: 
+
+ * Math labs are filtered out.  
+ * Courses higher than 3000 level were removed. 
+ * Students younger than 11 yrs old were removed. 
+ * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
+ * Students with high school GPA values of zero were removed. 
+ * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
+ * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
+ * All records with incomplete information were removed.  
+
+#### Transformations    
+
+The following transformations were applied: 
+
+  * AP credit values of "NA" were converted to zero.  
+  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
+  
+#### Target values    
+
+Each model predicted a value for a math course out of the following possibilities:  
+
+MATH_1010, MATH_1050, MATH_1210, MATH_1030, MATH_1090, MATH_1070, MATH_1220, MATH_1080, MATH_1060, MATH_1310, MATH_2210, MATH_990, MATH_1100, MATH_1250 or "other".
+ 
+The following math courses were combined into "other":  
+
+MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180.
+  
+### DISCUSSION  
+
+The relationship between early information and course selection was moderately predictive for many years, with Kappa values around 0.35 from 2013 to 2017, when it rapidly started eroding to a Kappa value of 0.17 in 2024. 
+
+Kappa values also dipped in 2011 and 2012, suggesting a change in practices or guidelines or expectations for course selection.
+
+The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most influential variable of these in course selection today.
+
+Some notable courses include: 
+
+  - *Math 1010:*  The model was able to correctly identify participants in Math 1010 until the year 2022 with reasonably high precision and recall scores (except for the 2011-12 dip), but declined steeply to precision and recall scores of about only 0.16 in 2024.  
+  - *Math 1310:*  The model's precision in identifying Math 1310 has improved, but the recall numbers are very low (with a high of 0.03.)  
+  - *Math 1030:* The model's recall has improved since 2018 until it had comparatively high recall in 2024 (0.42) with relatively moderate precision as well (0.28). 
+  - *Math 2210:* The model's recall has improved since 2015 until it has relatively high recall and precision in 2024.
+  
+It might be useful to cluster the courses to separate courses with rising, declining, or stable trends.  
+  
+Taken together, the overall decline in model accuracy (Kappa, precision, and recall) over the years suggests several possibilities:  
+
+  (1) A collapse of guidelines and a free-for-all in selecting courses
+  (2) The introduction of some new guideline or mechanism that aligns weakly with prior practices.    
+  (3) At the same time, some courses with improving accuracy (such as Math 2210 with improving precision and recall) suggest more rigid course selection.  
+
+
+### CONCLUSIONS  
+
+Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is almost completely determined by variables other than early available information in 2024.
+
+Predictive models had Kappa values as high as 0.4, indicating a moderate degree of determinism between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2016 until Kappa values were as low as 0.13 by 2024, indicating a near-random or weak relationship between prior information and course selection. 
+
+All models in all years used ACT Math scores as the most important predictor of course selection.  AP credit increased in importance in predicting math course selection, as did information about the class year and cohort year.  
+
+Some courses have run counter to the general trend, as precision and recall scores have improved over the years.
+
+### RESULTS 
+
+
 ```{r}
 
 # extract Kappa
@@ -215,8 +339,8 @@ names(theKappa) <- names(theResults)
 years <- as.numeric(names(theKappa))
 kappa_values <- as.numeric(round(theKappa,3))
 
-plot_ly(x = years, 
-        y = kappa_values, 
+plot_ly(x = years[-length(years)], 
+        y = kappa_values[-length(kappa_values)], 
         type = 'scatter', 
         mode = 'lines+markers',
         line = list(color = 'firebrick', width = 2),
@@ -227,6 +351,102 @@ plot_ly(x = years,
          hovermode = 'closest')
 
 ```
+
+```{r}
+
+# extract precision and recall
+
+thePrecisions <- lapply(theResults, function(results) {
+    results[["byClass"]][,"Precision"]
+})
+thePrecisions <- do.call(cbind, thePrecisions)  
+  
+theRecalls <- lapply(theResults, function(results) {
+    results[["byClass"]][,"Recall"]
+})
+theRecalls <- do.call(cbind, theRecalls)    
+
+
+
+```
+
+
+
+```{r}
+
+# Precision and recall per course over time
+
+plotData <- thePrecisions[,-which(colnames(thePrecisions) %in% c("2025"))]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears[-which(testYears %in% "2025")],
+      y = as.numeric(plotData[i, as.character(testYears[-which(testYears %in% "2025")])]),
+      name = gsub("Class: MATH_","", rownames(plotData)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(thePrecisions)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Precision: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Precision Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Precision"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+plotData <- theRecalls[,-which(colnames(theRecalls) %in% c("2025"))]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears[-which(testYears %in% "2025")],
+      y = as.numeric(plotData[i, as.character(testYears[-which(testYears %in% "2025")])]),
+      name = gsub("Class: MATH_","", rownames(theRecalls)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(theRecalls)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Recall: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Recall Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Recall"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+```
+
+
 
 ```{r}
 
@@ -264,6 +484,8 @@ importance_over_time <- Reduce(function(m1,m2){merge(m1,m2, by = "var", all = TR
 importance_over_time <- importance_over_time[order(importance_over_time[,2], decreasing = TRUE),] # descending order by the first year of data
 
 ```
+
+
 
 
 
@@ -386,266 +608,18 @@ invisible(
 ```
 
 
-Should I put a heatmap?  Really would tell the story well, don't you think?
-
-I should put in an example confusion matrix.  
-
-
-Possible next steps:
-- explain NA values
-- explain course_level strong showing
-
-
-Show precision/recall over time
-
 ```{r}
 
 # An example confusion matrix
 
-drawCM(theResults[["2024"]],nameMatrix = nameMatrix, metricsClass = "1050") # eh.
+drawCM(theResults[["2024"]],nameMatrix = nameMatrix, metricsClass = "2210", title = "2024 Results") 
 
 # precision color is screwed up
 
 ```  
 
-
-
 ```{r}
 
-# extract precision and recall
-
-thePrecisions <- lapply(theResults, function(results) {
-    results[["byClass"]][,"Precision"]
-})
-thePrecisions <- do.call(cbind, thePrecisions)  
-  
-theRecalls <- lapply(theResults, function(results) {
-    results[["byClass"]][,"Recall"]
-})
-theRecalls <- do.call(cbind, theRecalls)    
-
-
+skim(data_list[["2025"]][["training"]])
 
 ```
-
-
-```{r}
-
-# Precision and recall per course over time
-
-plotData <- thePrecisions
-
-# Initialize plot
-p <- plot_ly()
-
-# Add a line for each variable
-for(i in 1:nrow(plotData)) {
-  p <- p %>%
-    add_lines(
-      x = testYears,
-      y = as.numeric(plotData[i, as.character(testYears)]),
-      name = gsub("Class: MATH_","", rownames(thePrecisions)[i]), #     plotData[i, "var"],
-      hovertemplate = paste0(
-        "<b>", gsub("Class: MATH_","", rownames(thePrecisions)[i]), "</b><br>",
-        "Year: %{x}<br>",
-        "Precision: %{y:.2f}<br>",
-        "<extra></extra>"
-      )
-    )
-}
-
-# Customize layout
-p <- p %>%
-  layout(
-    title = 'Precision Over Time',
-    xaxis = list(title = "Test Year"),
-    yaxis = list(title = "Precision"),
-    hovermode = "closest",
-    legend = list(title = list(text = "Course"))
-  )
-
-p
-
-
-plotData <- theRecalls
-
-# Initialize plot
-p <- plot_ly()
-
-# Add a line for each variable
-for(i in 1:nrow(plotData)) {
-  p <- p %>%
-    add_lines(
-      x = testYears,
-      y = as.numeric(plotData[i, as.character(testYears)]),
-      name = gsub("Class: MATH_","", rownames(theRecalls)[i]), #     plotData[i, "var"],
-      hovertemplate = paste0(
-        "<b>", gsub("Class: MATH_","", rownames(theRecalls)[i]), "</b><br>",
-        "Year: %{x}<br>",
-        "Recall: %{y:.2f}<br>",
-        "<extra></extra>"
-      )
-    )
-}
-
-# Customize layout
-p <- p %>%
-  layout(
-    title = 'Recall Over Time',
-    xaxis = list(title = "Test Year"),
-    yaxis = list(title = "Recall"),
-    hovermode = "closest",
-    legend = list(title = list(text = "Course"))
-  )
-
-p
-
-
-```
-
-
-Where is my "cleaning" and "prep" boilerplate?
-
-
-So accuracy at predicting courses drops incredibly.
-And I'm not sure I want to include "course_level", but why was it only super-important for a few years?  
-
-I want to see the median grade per course over time.  What's my trend over time?
-
-Similarly -- maybe I want to see the proportion of students achieving a particular grade level or grade chunk.  It's getting big, right?  Could that show grade inflation? 
-
-And we're getting closer to counter-factuals. What grade would they get in a particular course?
-
-I need to submit this to Git, and write up both reports, and get a couple of key visualizations over time. 
-
-I'd like to see "precision" for the top three courses over time.  And "recall", sure.
-
-I need to make the confusion matrices work--  
-
-  - name matrix
-  - whatever that error it's throwing 
-  
-I think I'll make a separate "over time" report that explores the predictors for both grades and course over time.  
-
-I'll work on all three reports in parallel -- 
-
-  - Prediction results  (course and grade)  
-  - Predictors over time
-  
-
-### SUMMARY
-
-### METHODOLOGY 
-
-All math courses taken by first time freshmen were identified.  The term per student with that student's first math class was identified, and grade performance in all math courses taken during that term were queried.  These are called the initial math courses.   
-Math labs were filtered out.
-
-The early information variables included: 
-
-*Demographics:* 
-
-  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
-  * Sex (male or female)
-  * First generation status
-  * Ethnicity 
-  
-*High school information and performance:*  
-
-  * High school GPA 
-  * Number of AP credits
-  * Whether the high school was public or private   
-  * Honors achievement
-
-*Test scores:*    
-
-  * ACT Math
-  * ACT English
-  * ACT Science
-  * ACT comprehensive
-
-*University information:*  
-
-  * Residence status  
-  * Pell grant eligibility  
-  * Cohort year (2005 to 2024)
-  * Class year (2005 to 2025)
-  * Years from the cohort date (always fall of the year) until the first term with math courses 
-  * Season (spring, summer, or fall)  
-
-
-The following filters were applied: 
-
- * Courses higher than 3000 level were removed. 
- * Students younger than 11 yrs old were removed. 
- * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
- * Students with high school GPA values of zero were removed. 
- * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
- * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
- * All records with incomplete information were removed.  
-
-The following transformations were applied: 
-
-  * AP credit values of "NA" were converted to zero.  
-  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
-  
-A predictive model was trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2);colsample_bytree(0.8); subsample(0.8)).  
-
-An expanding window of historical data was used, where one model was trained per year, incrementally adding an additional year's data and predicting on the subsequent year.  For example, the course selection for the year 2010 was trained on data from the years 2005 to 2009.  The course selection for the year 2024 was trained on data from the years 2005 to 2023.  Nineteen models were trained. 
-
-Each model predicted a value for a math course out of the following possibilities:  
-
-    "MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090", "MATH_1070",   "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310", "MATH_2210", "MATH_990",  "MATH_1100", "MATH_1250" or "other".
- 
-The following math courses were combined into "other":  
-
-    "MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180, MATH_1010, MATH_1030, MATH_1050, MATH_1060, MATH_1070, MATH_1080, MATH_1090, MATH_1100, MATH_1210, MATH_1220, MATH_1250, MATH_1310, MATH_2210, MATH_990"
-  
-*this belongs in the other report, not here!*
-In one model, the actual GPA performance was targeted with the following values:  
-
-  |         |***GPA model***| ***Quad Model*** |
-  | Letter  | GPA           |  Grouping        |
-  | E, EU   | 0             | "Low"            |
-  | D-      | 0.7           | "Low"            |
-  | D       | 1.0           | "Low"            |
-  | D+      | 1.3           | "Low"            |
-  | C-      | 1.7           | "Med-Minus"      | 
-  | C       | 2.0           | "Med-Minus"      |  
-  | C+      | 2.3           | "Med-Minus"      |
-  | B-      | 2.7           | "Med-Plus"       |
-  | B       | 3.0           | "Med-Plus"       |
-  | B+      | 3.3           | "Med-Plus"       |
-  | A-      | 3.7           | "Med-Plus"       |
-  | A       | 4.0           | "High"           |
-
-
-### DISCUSSION  
-
-The relationship between early information and course selection was moderate for many years, until it started eroding in 2016 and approached random (or a very weak relationship) after covid (2021 onwards).  
-
-The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most important variable in predicting course selection.  
-
-The model was able to correctly identify participants in Math 1010 until the year 2022 with a reasonably high recall score of 0.74, after which recall declined to 0.08 in 2024.  In 2024, the model's greatest success was in identifying Math 1210 with a recall score of 0.52 (which course had also been gently declining over time.) 
-
-Historically, the model could most accurately predict 2210 with a precision of 0.93 (2014) and 1010 with a precision of 0.83 (2016.)  In 2024, the most precise predictions were 2210 (0.44) and 1090 (0.39).
-
-Taken together, the decline in model accuracy (Kappa, precision, and recall) over the years suggests a collapse of guidelines and either a free-for-all in selecting courses, or the use of some other guideline or mechanism that aligns weakly with prior knowledge.
-
-
-### CONCLUSIONS  
-
-Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is almost completely determined by variables other than early available information in 2024.
-
-Predictive models had Kappa values as high as 0.4, indicating a moderate degree of determinism between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2016 until 2024 Kappa values were as low as 0.13, indicating a near-random relationship between prior information and course selection. 
-
-All models in all years used ACTMATH scores as the most important predictor of course selection.  APCREDIT increased in importance in predicting math course selection, as did information about the class year and cohort year.  
-
-
-
-
-By 2024, models that use a handful of variables are almost completeley unable to predict initial course selection.  Or, in other words, course selection is almost completely determined by factors other than these variables.  This can be compared to 2013 to 2016, 
-
-
-### RESULTS 
-
-Put graphics down here. 
