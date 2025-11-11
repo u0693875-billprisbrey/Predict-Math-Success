@@ -532,6 +532,61 @@ p
 
 ```
 
+
+
+```{r}
+
+# plotly version of importance_over_time, low importance variables only
+
+varFilter <- apply(importance_over_time[["GRADEGPA"]][,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time[["GRADEGPA"]][["var"]][varFilter & !is.na(varFilter)]
+
+varSelection <- varSelection[-which(varSelection %in% "HSGPA")]
+
+# varSelection <- importance_over_time[["GRADEGPA"]][["var"]][order(importance_over_time[["GRADEGPA"]][["2024"]], decreasing = TRUE)] |>
+#  (\(x){x[2:10]})() # top 8 predictors in 2024
+
+# Filter to selected variables
+plotData <- importance_over_time[["GRADEGPA"]][
+  importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection, 
+]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p |>
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p |>
+  layout(
+    title = 'Variable Importance Over Time (low importance variables, GPA)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
 Discretize and create a confusion matrix
 
 ```{r}
@@ -546,10 +601,171 @@ Discretize and create a confusion matrix
 ```
 
 
-Extract accuracy metrics for the courses
+
+```{r}
+
+# Extract accuracy metrics per course
+
+courses <- levels(data_list[["GRADEGPA"]][["2024"]][["testing"]]$course)
+
+courseResults <- lapply(params$target_classes, function(tClass){
+  
+  perClass <- lapply(as.character(testYears), function(tYr){
+
+    # Identify discrepancies between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["course"]],data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingCourseFilter))
+}
+
+      missingEthnicity <- setdiff(data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
+
+# Iterate through each course at a time
+  
+perCourse <- lapply(courses, function(crse){ 
+
+         course_filter <- data_list[[tClass]][[tYr]][["testing"]][["course"]] == crse
+  
+       postResample(pred = predictions_over_time[[tClass]][[tYr]][course_filter],
+                  obs = data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter][course_filter]
+               ) 
+    
+        
+  })
+
+names(perCourse) <- courses
+return(perCourse)
+
+})
+
+  names(perClass) <- testYears
+  return(perClass)
+})
+  
+names(courseResults) <- params$target_classes
+
+# I could have built this into the lapply, but I'll work with it
+
+gradeGPA_by_course <- lapply(courseResults[["GRADEGPA"]], function(x){ 
+  
+  do.call(rbind, x)
+  })
+
+# ok, I want a list of three dataframes, courses as row names and years as colnames
+
+accuracy_metrics <- c("RMSE", "Rsquared", "MAE")  
+
+course_over_time <- lapply(accuracy_metrics, function(metric){
+  
+  metricExtract <- lapply(gradeGPA_by_course, function(x){ 
+    anExtract <- x[,metric]
+    return(anExtract)
+    })
+  
+  course_per_year <- do.call(cbind, metricExtract)
+  
+  return(course_per_year)
+})
+
+names(course_over_time) <- accuracy_metrics
+
+# if I want, I could do "grade_quad"
+
+``` 
+
+
+```{r eval=FALSE}
+
+# Check 2024 values for RMSE
+
+course_counts2024 <- table(data_list[["GRADEGPA"]][["2024"]][["testing"]][["course"]])
+
+weighted_rmse2024 <- sqrt(sum((gradeGPA_by_course[["2024"]][,"RMSE"]^2 *
+                                 course_counts2024[rownames(gradeGPA_by_course[["2024"]])]), na.rm = TRUE) / 
+        sum(course_counts2024[rownames(gradeGPA_by_course[["2024"]])], na.rm = TRUE))
+
+cat("Overall RMSE:", theResults[["GRADEGPA"]][["2024"]]["RMSE"], "\n")
+# Overall RMSE: 1.012924 
+cat("Weighted RMSE from courses:", weighted_rmse2024, "\n")
+# Weighted RMSE from courses: 1.012924 
+
+# Looks like we're good!
+
+```
+
+```{r}
+
+# plot accuracy per course over time  
+
+plot_course_metric <- function(metric_df, metric_name = NULL) {
+  library(plotly)
+  
+  # Get metric name from list if not provided
+  if(is.null(metric_name)) {
+    metric_name <- "Metric"
+  }
+  
+  # Get courses and years
+  courses <- rownames(metric_df)
+  years <- as.numeric(colnames(metric_df))
+  
+  # Initialize plot
+  p <- plot_ly()
+  
+  # Add a line for each course
+  for(course in courses) {
+    p <- p %>%
+      add_trace(x = years,
+                y = as.numeric(metric_df[course, ]),
+                name = course,
+                type = 'scatter',
+                mode = 'lines+markers')
+  }
+  
+  # Add layout
+  p <- p %>%
+    layout(title = paste(metric_name, "by Course Over Years"),
+           xaxis = list(title = "Year"),
+           yaxis = list(title = metric_name),
+           hovermode = "closest")
+  
+  return(p)
+}
+
+# Usage:
+plot_course_metric(course_over_time$RMSE, "RMSE")
+plot_course_metric(course_over_time$Rsquared, "R-squared")
+plot_course_metric(course_over_time$MAE, "MAE")
 
 
 
+```
+
+
+
+# Old stuff
+
+Eventually delete everything below this
 
 ### Thoughts
 
