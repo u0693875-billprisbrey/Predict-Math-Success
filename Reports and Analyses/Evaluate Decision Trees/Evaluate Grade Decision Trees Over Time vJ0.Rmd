@@ -753,9 +753,9 @@ plot_course_metric <- function(metric_df, metric_name = NULL) {
 }
 
 # Usage:
-plot_course_metric(course_over_time$RMSE, "RMSE")
-plot_course_metric(course_over_time$Rsquared, "R-squared")
-plot_course_metric(course_over_time$MAE, "MAE")
+plot_course_metric(course_over_time[["RMSE"]][,-which(colnames(course_over_time[["RMSE"]]) %in% "2025")], "RMSE")
+plot_course_metric(course_over_time[["Rsquared"]][,-which(colnames(course_over_time[["Rsquared"]]) %in% "2025")], "R-squared")
+plot_course_metric(course_over_time[["MAE"]][,-which(colnames(course_over_time[["MAE"]]) %in% "2025")], "MAE")
 
 
 

@@ -2,32 +2,11 @@
 title: "Predictors over time"
 author: "Bill Prisbrey"
 date: "2025-11-05"
-output: html_document
 output:
   html_document:
     keep_md: true
+    toc: true
 ---
-
-This report needs a complete overhaul.
-
-What I need to do: 
- - Keep your first graphic that explains enrollment numbers and lumping into "other"
- - Repeat function "overTime" for the top handful of predictors
- - Double-check the use of "length" to mean the number of people enrolling or submitting test scores.  It seems too low 
-    - I want to find out what percentage of students submit ACTMATH scores. 
- - Pull in some of the graphics from "Math grade by ACT and test score" into here, and leave that for just the heat maps
- - Compare pre-2020 heatmaps vs the heatmaps of 2024
-
-==
-
-Where is that document I was working on?
-I was looking at predictors over time, and it was a report of descriptive things. 
-
-It was "Math grade by ACT math score and high school GPA.Rmd"
-
-Seems like I c/should break that into two reports, and one report is just the heatmaps. Or, more accurately, a child I guess.  And it should be "admittance" on left and "performance" on right.  
-
-I'm also pretty sure I haven't knitted the latest version of it.
 
 
 ```{r include=FALSE}
@@ -56,6 +35,8 @@ library(stringr)
 # source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
 
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Sandbox", "Predictors over time with plotly sandbox.R"))
 
 ```
 
@@ -72,6 +53,7 @@ creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
 # print("You made it past loading")
 
 ```
+
 
 
 ```{r}
@@ -444,7 +426,7 @@ keepColumns <- c(
   "class_year"                  ,
   "yr_diff"                     ,
   "season"                      ,
-  "course_level"                ,
+#  "course_level"                ,
 #   "vol_cluster"                 ,
   "age_cut"                     
   # "cleanGrade"                  
@@ -503,11 +485,8 @@ cleanData$course_target <- factor(cleanData$course_target)
 
 ```
 
-I need to create an appendix that shows all of these cleaning steps. All of these filters and complete cases. 
 
-But first, let's show our math classes by enrollment
-
-STARTING DESCRIPTIVES
+Some kind of words here.
 
 
 ```{r}
@@ -602,6 +581,291 @@ legend("topright",
 # mess with colors another day
 
 ```
+
+ACT over time
+
+- Number of students who submit a score 
+- Median score, maybe 75th or 90th percentile
+- Enrollment, using EMPLID
+
+I need to compare over-all population, and "complete.cases" population used in the predictor.  ACT MATH submissions especially.
+
+
+```{r}
+
+# Additional column creation and filters
+
+completeCases <- complete.cases(cleanData[, keepColumns])
+# View(cleanData[!completeCases, keepColumns]) # at a quick glance it's all missing ACT test submissions  
+
+# Enrollment
+
+remove2025 <- cleanData$class_year < 2025
+
+cleanData$all <- rep(1, nrow(cleanData))
+
+cleanData$submitted <- ifelse(is.na(cleanData$ACTMATH), "not_submitted","submitted")
+
+```
+
+
+# Enrollment
+
+```{r}
+
+# I probably need a ylab value of "Count of students" 
+
+overTime(data= cleanData[remove2025,],
+         variable = "EMPLID", agg = length, by = "all",
+        title = "Students enrolled in initial math courses has steadily increased")
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "EMPLID", agg = length, by = "vol_cluster",
+         title = "Students enrolled in high volume courses has increased more")
+
+
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
+         variable = "EMPLID", agg = length,
+         title = "Enrollment in 1010 has declined while the others, esp 1090, have increased")
+
+# decline to show this
+# overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,],
+#         variable = "EMPLID", agg = length)
+
+# COMPLETE.CASES enrollment
+
+# overTime(data= cleanData[remove2025 & completeCases,],
+#         variable = "EMPLID", agg = length, by = "vol_cluster")
+
+
+# overTime(data= cleanData[remove2025,],
+#         variable = "EMPLID", agg = length, by = "all")
+
+```
+
+# Submission of ACT test scores
+
+```{r eval = FALSE}
+
+# FRACTION SUBMITTING TEST SCORES 
+
+enrollment_by_vol_cluster <- aggregate(EMPLID ~ vol_cluster + class_year, data = cleanData, length)
+actmath_by_vol_cluster <- aggregate(ACTMATH ~ vol_cluster + class_year, data = cleanData, length)
+
+score_submission <- merge(enrollment_by_vol_cluster, actmath_by_vol_cluster, by = c("vol_cluster","class_year"), all = TRUE)
+
+plot(y = score_submission$ACTMATH/score_submission$EMPLID, 
+     x = score_submission$class_year,
+     col = c("red","green")[factor(score_submission$vol_cluster)] )
+
+# wow, ok that's interesting.
+# I wonder if I can make my "overTime" cough that up?
+
+score_submission <- aggregate(cbind(enrollment = EMPLID, actmath = ACTMATH) ~ vol_cluster + class_year, 
+                              data = cleanData, 
+                              FUN = length)
+
+score_submission <- transform(
+  aggregate(cbind(enrollment = EMPLID, actmath = ACTMATH) ~ vol_cluster + class_year, 
+            data = cleanData, 
+            FUN = length),
+  submission_rate = actmath / enrollment
+)
+
+# I think it would take a bit of work to convert this to my overTime function,...
+# but why not? Instead of calculating an agg, I'd just pass a completed one to it.  That preserves colors, formatting, and style  
+
+
+```
+
+
+```{r}
+
+# TEST SCORE SUBMISSION
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "ACTMATH", agg = length, by = "all",
+         title = "Submission of ACT math test scores has declined")
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "ACTMATH", agg = length, by = "vol_cluster",
+         title = "Test submission has especially declined for low volume math courses")
+
+
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "ACTMATH", agg = length,
+         title = "Students in 1010 have essentially stopped submitting test scores")
+
+overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,], variable = "ACTMATH", agg = length,
+         title = "Students in 1080 have essentially stopped submitting test scores")
+
+
+
+
+```
+
+### Fraction submitting test scores
+
+```{r}
+
+# FRACTION SUBMITTING TEST SCORES
+
+enrollment_by_vol_cluster <- aggregate(EMPLID ~ vol_cluster + class_year, data = cleanData, length)
+actmath_by_vol_cluster <- aggregate(ACTMATH ~ vol_cluster + class_year, data = cleanData, length)
+
+score_submission <- merge(enrollment_by_vol_cluster, actmath_by_vol_cluster, by = c("vol_cluster","class_year"), all = TRUE)
+
+
+score_submission$submit_rate <- score_submission$ACTMATH/score_submission$EMPLID
+
+plot(x = score_submission$class_year,
+     y = score_submission$submit_rate,
+     type = "n",
+     las = 2)
+
+invisible(
+lapply(unique(score_submission$vol_cluster), function(clust){
+  
+  lineFilter <- score_submission$vol_cluster == clust
+  lines(x = score_submission$class[lineFilter],
+        y = score_submission$submit_rate[lineFilter],
+     type = "l",
+     lwd = 3,
+     lty = 1,
+     col = c("darkseagreen3", "lightgoldenrod3")[factor(score_submission$vol_cluster)[lineFilter]]
+     )
+})
+)
+
+legend(x="topright",
+       legend = c("hi_vol", "low_vol"),
+       title = "Course enrollment",
+       col = c("darkseagreen3", "lightgoldenrod3"),
+       pch = 19,
+       pt.cex = 3)
+
+mtext(side = 2, text = "Fraction of enrollment", line=3, cex = 1.2)
+mtext(side =3, text = "Fraction of students submitting ACT math scores", line = 1.2, cex = 1.5, font = 2)
+
+``` 
+
+# Comparing submitters and non-submitters
+
+```{r}
+
+# COMPARING TEST SUBMITTERS AND NON-SUBMITTERS 
+
+overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "median", title = "Median math grade by test submission over time")
+
+overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by test submission over time")
+
+```
+
+Math grades have diverged such that test submitters have a median math GPA of 3.6 compared to 3.0 for non-test submitters. 
+
+```{r}
+
+medHSGPA <- overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "median", title = "Median high school GPA by test submission over time")
+
+overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by test submission over time")
+
+```
+
+On average, test submitters' high school GPA is `r aggregate(HSGPA ~ submitted, data = medHSGPA, mean) |> (\(x){ diff(x[,"HSGPA"])})() |> round(2) ` higher than non-test submitters. 
+
+
+```{r}
+
+# cleanData$all <- rep(1, nrow(cleanData))
+
+overTime(data=cleanData[remove2025,], variable = "ACTMATH", by = "all", agg = "median", title = "Median ACT math score submitted over time")
+
+```
+
+
+
+
+```{r eval = FALSE}
+
+# Modify to enable a list of two "by" values
+# Can I get two "by" values?
+overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = list( "submitted", "vol_cluster") , agg = "median") 
+# hold -up right now is the feature map.
+
+# this will take a little work
+overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = list( "submitted", "vol_cluster") , agg = "median", featureMap = data.frame(color= c("red","blue","green","gray"),
+           by = c("submitted","not_submitted","hi_vol","low_vol"),
+           lty = 1:4,
+           lwd = 1:4
+          )) 
+
+# wow, really diverging
+overTime(data=cleanData[remove2025 & cleanData$vol_cluster == "hi_vol",], variable = "GRADEGPA", by = "submitted", agg = "median") 
+
+overTime(data=cleanData[remove2025 & cleanData$vol_cluster == "low_vol",], variable = "GRADEGPA", by = "submitted", agg = "median") 
+
+
+```
+
+# Grade inflation
+
+I'm not sure if I have much to show here.
+
+```{r}
+
+# GRADE INFLATION
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "GRADEGPA", agg = function(x){quantile(x,0.75)}) # getting an A is easier?
+
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "GRADEGPA", agg = function(x){quantile(x,0.25)}) # getting harder to flunk?
+
+
+
+```
+
+
+Check out hsgpa, and gpa, and actmath scores by submitted and un-submitted over time.
+Looks like submitters might simply be an increasingly elite group of students, so it "looks like" grade inflation but I'm just getting the more elite students to self-identify.
+
+
+
+
+
+
+
+
+
+
+
+
+This report needs a complete overhaul.
+
+What I need to do: 
+ - Keep your first graphic that explains enrollment numbers and lumping into "other"
+ - Repeat function "overTime" for the top handful of predictors
+ - Double-check the use of "length" to mean the number of people enrolling or submitting test scores.  It seems too low 
+    - I want to find out what percentage of students submit ACTMATH scores. 
+ - Pull in some of the graphics from "Math grade by ACT and test score" into here, and leave that for just the heat maps
+ - Compare pre-2020 heatmaps vs the heatmaps of 2024
+
+==
+
+Where is that document I was working on?
+I was looking at predictors over time, and it was a report of descriptive things. 
+
+It was "Math grade by ACT math score and high school GPA.Rmd"
+
+Seems like I c/should break that into two reports, and one report is just the heatmaps. Or, more accurately, a child I guess.  And it should be "admittance" on left and "performance" on right.  
+
+I'm also pretty sure I haven't knitted the latest version of it.
+
+
+I need to create an appendix that shows all of the cleaning steps. All of these filters and complete cases. 
+
+But first, let's show our math classes by enrollment
+
+STARTING DESCRIPTIVES
 
 
 ### ACT math scores per course over time
