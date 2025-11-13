@@ -16,7 +16,7 @@ output:
 ############
 
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
-                      fig.height=5, fig.width=7)
+                      fig.height=5, fig.width=11)
 
 oldPar <- par(cex.main = 3,
     cex.lab = 3,
@@ -485,8 +485,26 @@ cleanData$course_target <- factor(cleanData$course_target)
 
 ```
 
+**PURPOSE:**  This report examines predictors of math course selection and academic performance over time.  
 
-Some kind of words here.
+**EXECUTIVE SUMMARY:**  This report finds that a decreasing number of students submit ACT test scores.  Theses students are increasingly elite, with better high school GPA's, test scores, and grade performance in initial math courses.
+
+# DISCUSSION
+
+
+
+# Enrollment  
+
+### *Courses are separated into high volume or low volume courses.  Courses with less than five percent of the cumulative enrollment are combined together as 'other'.* 
+
+
+Five math courses have distinctly high enrollment.  These courses are categorized together as "high volume" and designated as "hi_vol" in legends in this course.  These courses are Math 1010, 1050, 1210, 1030, and 1090.  
+
+An additional nine courses are categorized together as "low volume."  They are Math 1070, 1220, 1080, 1060, 1310, 2210, 990, 1100, and 1250.
+
+The high and low volume courses together consist of 95% of the cumulative total enrollment.  
+
+The remaining courses are lumped together as "other." 
 
 
 ```{r}
@@ -494,11 +512,11 @@ Some kind of words here.
 # Show enrollment and the top 95th percentile (with a red line, or a second cumulative graphic.) 
 # Highlight high volume courses
 
-table(cleanData$course, useNA = "always") |> 
-  (\(x){x[order(x, decreasing = TRUE)]})() |> 
-  proportions() |> 
-  cumsum() |>
-  (\(x){names(x[x<0.95]) })()
+# table(cleanData$course, useNA = "always") |> 
+#  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+#  proportions() |> 
+#  cumsum() |>
+#  (\(x){names(x[x<0.95]) })()
   # plot()
 
 #  eh let's just do the barplot
@@ -518,7 +536,7 @@ table(cleanData$course, useNA = "always") |>
   (\(x){
   barplot(x,
           plot = TRUE,
-          col = ifelse(names(x) %in% hiVolCatNbr, "red","green"),
+          col = ifelse(names(x) %in% hiVolCatNbr, "darkorange2","dodgerblue3"),
           las = 2)
     })()
 
@@ -573,22 +591,13 @@ mtext(side = 2, text = "Enrollment", cex = 1.2, line = 3)
 mtext(side = 3, text = "Enrollment by math course", cex = 1.75, font = 2, line = 2)
 
 legend("topright",
-       col = c("red","green"),
+       col = c("darkorange2","dodgerblue3"),
        pch = 19,
        pt.cex =2,
-       legend = c("High","Regular"))
+       legend = c("High","Low"))
 
-# mess with colors another day
 
 ```
-
-ACT over time
-
-- Number of students who submit a score 
-- Median score, maybe 75th or 90th percentile
-- Enrollment, using EMPLID
-
-I need to compare over-all population, and "complete.cases" population used in the predictor.  ACT MATH submissions especially.
 
 
 ```{r}
@@ -606,10 +615,17 @@ cleanData$all <- rep(1, nrow(cleanData))
 
 cleanData$submitted <- ifelse(is.na(cleanData$ACTMATH), "not_submitted","submitted")
 
+volumeMap <- data.frame(
+      color = c("darkorange2", "dodgerblue3"),
+      by = c("high", "low"),
+      lty = rep(1,2) ,
+      lwd = rep(3,2)
+    )
+
 ```
 
 
-# Enrollment
+### Enrollment over time
 
 ```{r}
 
@@ -617,17 +633,63 @@ cleanData$submitted <- ifelse(is.na(cleanData$ACTMATH), "not_submitted","submitt
 
 overTime(data= cleanData[remove2025,],
          variable = "EMPLID", agg = length, by = "all",
-        title = "Students enrolled in initial math courses has steadily increased")
-
+         title = "",
+         legend_params_list = list(plot=FALSE)
+         )
+mtext(side = 3, 
+      text = "Enrollment over time",
+      line = 2.6,
+      font = 2, 
+      cex=1.7)
+mtext(side = 3, 
+      text = "Students enrolled in initial math courses have steadily increased.", 
+      line = 1.2, 
+      font = 3,
+      cex = 1.1)
+mtext(side = 2,
+      text = "Count of students",
+      line = 3,
+      cex = 1.1
+      )
 
 overTime(data= cleanData[remove2025,],
          variable = "EMPLID", agg = length, by = "vol_cluster",
-         title = "Students enrolled in high volume courses has increased more")
-
+         title = "",
+         featureMap = volumeMap)
+mtext(side = 3, 
+      text = "Enrollment over time broken by course enrollment",
+      line = 2.8,
+      font = 2, 
+      cex=1.5)
+mtext(side = 3, 
+      text = "Students enrolled in high volume courses have increased more.", 
+      line = 1.2, 
+      font = 3)
+mtext(side = 2,
+      text = "Count of students",
+      line = 3,
+      cex = 0.8
+      )
 
 overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
          variable = "EMPLID", agg = length,
          title = "Enrollment in 1010 has declined while the others, esp 1090, have increased")
+mtext(side = 3, 
+      text = "High enrollment courses over time",
+      line = 2.8,
+      font = 2, 
+      cex=1.5)
+mtext(side = 3, 
+      text = "Enrollment in 1010 has declined while the others, esp 1090, have increased.", 
+      line = 1.2, 
+      font = 3)
+mtext(side = 2,
+      text = "Count of students",
+      line = 3,
+      cex = 0.8
+      )
+
+
 
 # decline to show this
 # overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,],
@@ -872,6 +934,12 @@ STARTING DESCRIPTIVES
 
 ```{r fig.height=9}
 
+# Improve this  graphic by:
+# Using the matched color per course
+# Placing a grid behind the boxes ---
+#  ... or 
+# ....comparing all the courses in year 2024 at the end
+
 par(mfrow=c(5,1), mar = c(0,3,3,1), oma = c(4,2,0,0))
 
 for(crse in names(courseClusters[courseClusters == 1]) ){
@@ -895,6 +963,16 @@ axis(side = 1,
 mtext(text = "ACT math score", side = 2, line = 0.25, outer = TRUE)
 
 ```
+
+```{r}
+
+boxplot(ACTMATH ~ droplevels(course),
+        data = cleanData[cleanData$vol_cluster == "hi_vol" & cleanData$class_year == 2024,],
+        col = c("red","blue","green"))
+
+
+```
+
 
 
 ```{r}

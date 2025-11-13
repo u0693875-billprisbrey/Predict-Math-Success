@@ -17,32 +17,35 @@ output:
 
 
 
+**PURPOSE:**  This report examines predictors of math course selection and academic performance over time.  
 
-Some kind of words here.
+**EXECUTIVE SUMMARY:**  This report finds that a decreasing number of students submit ACT test scores.  Theses students are increasingly elite, with better high school GPA's, test scores, and grade performance in initial math courses.
+
+# DISCUSSION
 
 
 
-```
-##  [1] "MATH_1010" "MATH_1050" "MATH_1210" "MATH_1030" "MATH_1090" "MATH_1070"
-##  [7] "MATH_1220" "MATH_1080" "MATH_1060" "MATH_1310" "MATH_2210" "MATH_990" 
-## [13] "MATH_1100" "MATH_1250"
-```
+# Enrollment  
+
+### *Courses are separated into high volume or low volume courses.  Courses with less than five percent of the cumulative enrollment are combined together as 'other'.* 
+
+
+Five math courses have distinctly high enrollment.  These courses are categorized together as "high volume" and designated as "hi_vol" in legends in this course.  These courses are Math 1010, 1050, 1210, 1030, and 1090.  
+
+An additional nine courses are categorized together as "low volume."  They are Math 1070, 1220, 1080, 1060, 1310, 2210, 990, 1100, and 1250.
+
+The high and low volume courses together consist of 95% of the cumulative total enrollment.  
+
+The remaining courses are lumped together as "other." 
+
 
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
-ACT over time
-
-- Number of students who submit a score 
-- Median score, maybe 75th or 90th percentile
-- Enrollment, using EMPLID
-
-I need to compare over-all population, and "complete.cases" population used in the predictor.  ACT MATH submissions especially.
 
 
 
 
-
-# Enrollment
+### Enrollment over time
 
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-6-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
 
@@ -129,6 +132,9 @@ STARTING DESCRIPTIVES
 
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
+![](Predictors-over-time_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
+
 
 
 ```
@@ -148,20 +154,20 @@ STARTING DESCRIPTIVES
 ## NULL
 ```
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 And this would look good as a plotly.
 
 I need to see if ACT has gone down over time  
 I need to see how the math grade and the HSGPA have changed over time 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-4.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-18-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-18-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-18-4.png)<!-- -->
 
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-4.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-5.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-6.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-4.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-5.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-6.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
 Seems like I want a report that is "overview of first time freshman" and describes a few factoids about first time freshmen over time --
 

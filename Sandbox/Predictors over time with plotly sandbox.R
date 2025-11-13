@@ -34,7 +34,7 @@ overTimePlotly <- function(data,
     )
   } else if(is.na(featureMap)) {
     featureMap <- data.frame(
-      color = c("darkseagreen3", "lightgoldenrod3", "tan3", "thistle3", 
+      color = c("darkorange2", "dodgerblue3",  "darkseagreen3", "lightgoldenrod3", "tan3", "thistle3", 
                 "lightskyblue3", "paleturquoise3", "plum3", 
                 "darkseagreen4", "burlywood3")[1:length(unique(data[,by]))],
       by = unique(data[,by]),
