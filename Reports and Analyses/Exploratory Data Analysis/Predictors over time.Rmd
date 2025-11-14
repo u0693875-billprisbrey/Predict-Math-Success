@@ -37,6 +37,7 @@ library(stringr)
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 source(here::here("Functions", "Predict Math Success Functions.R"))
 source(here::here("Sandbox", "Predictors over time with plotly sandbox.R"))
+source(here::here("Sandbox", "Rate over time sandbox.R"))
 
 ```
 
@@ -500,11 +501,10 @@ cleanData$course_target <- factor(cleanData$course_target)
 
 Five math courses have distinctly high enrollment.  These courses are categorized together as "high volume" and designated as "hi_vol" in legends in this course.  These courses are Math 1010, 1050, 1210, 1030, and 1090.  
 
-An additional nine courses are categorized together as "low volume."  They are Math 1070, 1220, 1080, 1060, 1310, 2210, 990, 1100, and 1250.
+An additional nine courses are categorized as "low volume."  They are Math 1070, 1220, 1080, 1060, 1310, 2210, 990, 1100, and 1250.
 
-The high and low volume courses together consist of 95% of the cumulative total enrollment.  
+Many small courses that consist of less than 5% of the total enrollment combined are lumped together as "other."
 
-The remaining courses are lumped together as "other." 
 
 
 ```{r}
@@ -617,15 +617,45 @@ cleanData$submitted <- ifelse(is.na(cleanData$ACTMATH), "not_submitted","submitt
 
 volumeMap <- data.frame(
       color = c("darkorange2", "dodgerblue3"),
-      by = c("high", "low"),
+      by = c("hi_vol", "low_vol"),
       lty = rep(1,2) ,
       lwd = rep(3,2)
     )
 
+submitMap <- data.frame(
+      color = c("mediumpurple3", "forestgreen"),
+      by = c("not_submitted", "submitted"),
+      lty = rep(1,2) ,
+      lwd = rep(3,2)
+    )
+
+courseMap <- data.frame(color = c( c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown"), c( 
+      "darkseagreen3",   
+      "lightgoldenrod3", 
+      "tan3",            
+      "thistle3",        
+      "lightskyblue3",   
+      "paleturquoise3", #"wheat3",          
+      "plum3",           
+      "darkseagreen4",   
+      "burlywood3"
+    )),
+    lty = c(rep(1,5), rep(2:5,3)[1:9]),
+    course = c(
+      "MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090", "MATH_1070", "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310",
+      "MATH_2210", "MATH_990",  "MATH_1100", "MATH_1250"
+    ),
+    lwd = c(rep(3,5), rep(2,9))
+    )
+
+yCex <- 1.5
+subCex <- 1.1
+mainCex <- 1.7
+
 ```
 
 
-### Enrollment over time
+### *Although enrollment has steadily increased over time, the course mixture has changed as Math 1010 has declined to be replaced by Math 1090.* 
 
 ```{r}
 
@@ -640,16 +670,16 @@ mtext(side = 3,
       text = "Enrollment over time",
       line = 2.6,
       font = 2, 
-      cex=1.7)
+      cex=mainCex)
 mtext(side = 3, 
-      text = "Students enrolled in initial math courses have steadily increased.", 
+      text = "Enrollment has steadily increased.", 
       line = 1.2, 
       font = 3,
-      cex = 1.1)
+      cex = subCex)
 mtext(side = 2,
       text = "Count of students",
       line = 3,
-      cex = 1.1
+      cex = yCex
       )
 
 overTime(data= cleanData[remove2025,],
@@ -657,36 +687,37 @@ overTime(data= cleanData[remove2025,],
          title = "",
          featureMap = volumeMap)
 mtext(side = 3, 
-      text = "Enrollment over time broken by course enrollment",
+      text = "Enrollment over time broken by course cluster",
       line = 2.8,
       font = 2, 
-      cex=1.5)
+      cex=mainCex)
 mtext(side = 3, 
       text = "Students enrolled in high volume courses have increased more.", 
       line = 1.2, 
-      font = 3)
+      font = subCex)
 mtext(side = 2,
       text = "Count of students",
       line = 3,
-      cex = 0.8
+      cex = yCex
       )
 
 overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
          variable = "EMPLID", agg = length,
-         title = "Enrollment in 1010 has declined while the others, esp 1090, have increased")
+         title = "")
 mtext(side = 3, 
       text = "High enrollment courses over time",
       line = 2.8,
       font = 2, 
-      cex=1.5)
+      cex=mainCex)
 mtext(side = 3, 
-      text = "Enrollment in 1010 has declined while the others, esp 1090, have increased.", 
+      text = "Enrollment in 1010 has declined while others, especially 1090, have increased.", 
       line = 1.2, 
-      font = 3)
+      font = 3,
+      cex = subCex)
 mtext(side = 2,
       text = "Count of students",
       line = 3,
-      cex = 0.8
+      cex = yCex
       )
 
 
@@ -706,11 +737,128 @@ mtext(side = 2,
 
 ```
 
-# Submission of ACT test scores
+# ACT test scores
+### *Submission of ACT test scores has steeply declined, especially for high volume courses.  Only a third of students in some courses (like Math 1090) have submitted ACT test scores.*
+
+
+```{r}
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "ACTMATH", agg = length, by = "all",
+         title = "Submission of ACT math test scores has declined")
+
+```
+
+
+
+```{r}
+
+ratesOverTime(data= cleanData[remove2025, ], variable ="ACTMATH", by = "vol_cluster", featureMap = transform(volumeMap, lty = 3))
+mtext(side = 2,
+      text = "                 Fraction of students",
+      line = 2,
+      cex = 1.0
+      )
+
+
+ratesOverTime(data= cleanData[remove2025 & cleanData$vol_cluster == "hi_vol", ], variable ="ACTMATH", by = "course")
+mtext(side = 2,
+      text = "Fraction of students",
+      line = 2,
+      cex = 1.0,
+      xpd = TRUE
+      )
+
+
+
+```
 
 ```{r eval = FALSE}
 
-# FRACTION SUBMITTING TEST SCORES 
+# FRACTION SUBMITTING TEST SCORES DEVELOPED
+
+enrollment_by_vol_cluster <- aggregate(EMPLID ~ vol_cluster + class_year, data = cleanData, length)
+actmath_by_vol_cluster <- aggregate(ACTMATH ~ vol_cluster + class_year, data = cleanData, length)
+
+score_submission <- merge(enrollment_by_vol_cluster, actmath_by_vol_cluster, by = c("vol_cluster","class_year"), all = TRUE)
+
+
+score_submission$submit_rate <- score_submission$ACTMATH/score_submission$EMPLID
+
+plot(x = score_submission$class_year,
+     y = score_submission$submit_rate,
+     ylab = "",
+     xlab = "",
+     type = "n",
+     las = 2)
+
+invisible(
+lapply(unique(score_submission$vol_cluster), function(clust){
+  
+  lineFilter <- score_submission$vol_cluster == clust
+  lines(x = score_submission$class[lineFilter],
+        y = score_submission$submit_rate[lineFilter],
+     type = "l",
+     lwd = 3,
+     lty = 1,
+     col = c("darkorange2", "dodgerblue3")[factor(score_submission$vol_cluster)[lineFilter]]
+     )
+})
+)
+
+legend(x="topright",
+       legend = c("hi_vol", "low_vol"),
+       title = "Course enrollment",
+       col = c("darkorange2", "dodgerblue3"),
+       pch = 19,
+       pt.cex = 3)
+
+mtext(side = 2, text = "Fraction of enrollment", line=3, cex = 1.2)
+mtext(side =3, 
+      text = "Fraction of students submitting ACT math scores",
+      line = 2.8, 
+      cex = 1.5, 
+      font = 2)
+mtext(side = 3, 
+      text = "Submission of test scores has greatly declined", 
+      line = 1.2, 
+      font = 3,
+      cex = 1.1
+        )
+
+``` 
+
+
+```{r eval=FALSE}
+
+# Turned this into it's own function
+# almost want to expand the "overTime" function to caclulate and display "rate" 
+
+
+submission_by_cluster <- overTime(data= cleanData[remove2025,],
+         variable = "ACTMATH", agg = length, by = "vol_cluster",
+         title = "Test submission has especially declined for high volume math courses",
+         featureMap = volumeMap)
+
+enrollment_by_cluster <- overTime(data= cleanData[remove2025,],
+         variable = "EMPLID", agg = length, by = "vol_cluster",
+         title = "Enrollment has increased",
+         featureMap = volumeMap)
+
+
+submit_rate <- merge(submission_by_cluster, enrollment_by_cluster[,-which(colnames(enrollment_by_cluster) %in% c("color","lty","lwd"))], by = c("vol_cluster","class_year"))
+
+submit_rate$rate <- submit_rate$ACTMATH/submit_rate$EMPLID
+
+
+
+```
+
+
+```{r eval = FALSE}
+
+# FRACTION SUBMITTING TEST SCORES SANDBOX DEUX
 
 enrollment_by_vol_cluster <- aggregate(EMPLID ~ vol_cluster + class_year, data = cleanData, length)
 actmath_by_vol_cluster <- aggregate(ACTMATH ~ vol_cluster + class_year, data = cleanData, length)
@@ -742,10 +890,10 @@ score_submission <- transform(
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
-# TEST SCORE SUBMISSION
-
+# REPLACED
+# test score submission
 
 overTime(data= cleanData[remove2025,],
          variable = "ACTMATH", agg = length, by = "all",
@@ -768,74 +916,28 @@ overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,], var
 
 ```
 
-### Fraction submitting test scores
+### *Students who submit test scores are a self-selected elite, with better high school GPAs and more AP credits, a rising median ACT score, and consequent better math performance.*   
 
 ```{r}
 
-# FRACTION SUBMITTING TEST SCORES
+medHSGPA <- overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "median", title = "Median high school GPA by test submission over time", featureMap = submitMap)
 
-enrollment_by_vol_cluster <- aggregate(EMPLID ~ vol_cluster + class_year, data = cleanData, length)
-actmath_by_vol_cluster <- aggregate(ACTMATH ~ vol_cluster + class_year, data = cleanData, length)
-
-score_submission <- merge(enrollment_by_vol_cluster, actmath_by_vol_cluster, by = c("vol_cluster","class_year"), all = TRUE)
-
-
-score_submission$submit_rate <- score_submission$ACTMATH/score_submission$EMPLID
-
-plot(x = score_submission$class_year,
-     y = score_submission$submit_rate,
-     type = "n",
-     las = 2)
-
-invisible(
-lapply(unique(score_submission$vol_cluster), function(clust){
-  
-  lineFilter <- score_submission$vol_cluster == clust
-  lines(x = score_submission$class[lineFilter],
-        y = score_submission$submit_rate[lineFilter],
-     type = "l",
-     lwd = 3,
-     lty = 1,
-     col = c("darkseagreen3", "lightgoldenrod3")[factor(score_submission$vol_cluster)[lineFilter]]
-     )
-})
-)
-
-legend(x="topright",
-       legend = c("hi_vol", "low_vol"),
-       title = "Course enrollment",
-       col = c("darkseagreen3", "lightgoldenrod3"),
-       pch = 19,
-       pt.cex = 3)
-
-mtext(side = 2, text = "Fraction of enrollment", line=3, cex = 1.2)
-mtext(side =3, text = "Fraction of students submitting ACT math scores", line = 1.2, cex = 1.5, font = 2)
-
-``` 
-
-# Comparing submitters and non-submitters
-
-```{r}
-
-# COMPARING TEST SUBMITTERS AND NON-SUBMITTERS 
-
-overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "median", title = "Median math grade by test submission over time")
-
-overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by test submission over time")
-
-```
-
-Math grades have diverged such that test submitters have a median math GPA of 3.6 compared to 3.0 for non-test submitters. 
-
-```{r}
-
-medHSGPA <- overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "median", title = "Median high school GPA by test submission over time")
-
-overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by test submission over time")
+overTime(data=cleanData[remove2025,], variable = "HSGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by test submission over time", featureMap = submitMap)
 
 ```
 
 On average, test submitters' high school GPA is `r aggregate(HSGPA ~ submitted, data = medHSGPA, mean) |> (\(x){ diff(x[,"HSGPA"])})() |> round(2) ` higher than non-test submitters. 
+
+```{r}
+
+medAP <- overTime(data=cleanData[remove2025,], variable = "APCREDIT", by = "submitted", agg = "median", title = "Median AP credits by test submission over time", featureMap = submitMap)
+
+overTime(data=cleanData[remove2025,], variable = "APCREDIT", by = "submitted", agg = "sd", title = "AP credit standard deviation by test submission over time", featureMap = submitMap)
+
+
+```
+
+Test score submitters' median AP credit was three credits higher than non-test submitters' median.
 
 
 ```{r}
@@ -844,7 +946,21 @@ On average, test submitters' high school GPA is `r aggregate(HSGPA ~ submitted, 
 
 overTime(data=cleanData[remove2025,], variable = "ACTMATH", by = "all", agg = "median", title = "Median ACT math score submitted over time")
 
+overTime(data=cleanData[remove2025,], variable = "ACTMATH", by = "all", agg = "mean", title = "Mean ACT math score submitted over time")
+
 ```
+
+```{r}
+
+# COMPARING TEST SUBMITTERS AND NON-SUBMITTERS 
+
+math_grade <- overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "median", title = "Median math grade by score submission over time", featureMap = submitMap)
+
+overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", agg = "sd", title = "Math grade standard deviation by score submission over time", featureMap = submitMap)
+
+```
+
+Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
 
 
@@ -871,16 +987,120 @@ overTime(data=cleanData[remove2025 & cleanData$vol_cluster == "low_vol",], varia
 
 ```
 
-# Grade inflation
-
-I'm not sure if I have much to show here.
+###  *Courses are distinguished by ACT math scores with heavy overlap.*
 
 ```{r}
+
+# Boxplot of 2024 ACT test scores per class.  
+
+boxplotSubset <- cleanData[cleanData$vol_cluster == "hi_vol" & cleanData$class_year == 2024,] 
+
+course_levels <- levels(droplevels(boxplotSubset$course))
+
+# Align to color map
+boxplotColors <- courseMap$color[match(course_levels, courseMap$course)]
+
+boxplot(ACTMATH ~ droplevels(course),
+        data = boxplotSubset,
+        col = boxplotColors,
+        xlab = "",
+        ylab = "")
+
+mtext(side = 3,
+      text = "ACT Math test scores per course in 2024",
+      line = 2.8,
+      font = 2,
+      cex = mainCex
+      )
+mtext(side = 3, 
+      text = "Courses are distinguished by ACT math scores with heavy overlap.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "ACT Math",
+      line = 2,
+      cex = yCex
+      )
+
+
+
+
+
+
+
+```
+
+```{r}
+
+
+overTime(data = cleanData[remove2025,],
+         variable = "ACTMATH",
+         agg = median,
+         by = "vol_cluster")
+
+
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
+         variable = "ACTMATH",
+         agg = median,
+         by = "course")
+
+
+```
+
+
+
+```{r}
+
+# Boxplot of 2024 ACT test scores per class.  
+
+boxplotSubset <- cleanData[cleanData$vol_cluster == "hi_vol" & cleanData$class_year == 2024,] 
+
+course_levels <- levels(droplevels(boxplotSubset$course))
+
+# Align to color map
+boxplotColors <- courseMap$color[match(course_levels, courseMap$course)]
+
+boxplot(GRADEGPA ~ droplevels(course),
+        data = boxplotSubset,
+        col = boxplotColors,
+        xlab = "",
+        ylab = "")
+
+mtext(side = 3,
+      text = "Grade distribution per course in 2024",
+      line = 2.8,
+      font = 2,
+      cex = mainCex
+      )
+mtext(side = 3, 
+      text = "Courses are not distinguished by grade distribution.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "ACT Math",
+      line = 2,
+      cex = yCex
+      )
+
+
+```
+
+
+
+# Nothing happens after here
+
+Grade inflation
+
+Looks like 1010 is tough and 1090 is easy (....?)
+
+```{r eval=FALSE}
 
 # GRADE INFLATION
 overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "GRADEGPA", agg = function(x){quantile(x,0.75)}) # getting an A is easier?
 
-overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "GRADEGPA", agg = function(x){quantile(x,0.25)}) # getting harder to flunk?
+# overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,], variable = "GRADEGPA", agg = function(x){quantile(x,0.25)}) # getting harder to flunk?
 
 
 
@@ -964,18 +1184,8 @@ mtext(text = "ACT math score", side = 2, line = 0.25, outer = TRUE)
 
 ```
 
-```{r}
 
-boxplot(ACTMATH ~ droplevels(course),
-        data = cleanData[cleanData$vol_cluster == "hi_vol" & cleanData$class_year == 2024,],
-        col = c("red","blue","green"))
-
-
-```
-
-
-
-```{r}
+```{r eval=FALSE}
 
 # let's see that as lines, one line per course
 
@@ -1035,7 +1245,7 @@ And this would look good as a plotly.
 I need to see if ACT has gone down over time  
 I need to see how the math grade and the HSGPA have changed over time 
 
-```{r}
+```{r eval=FALSE}
 
 median_overall_ACT <- aggregate(ACTMATH ~ class_year, data = cleanData[cleanData$vol_cluster == "hi_vol",], median, na.rm = TRUE)
 
@@ -1079,7 +1289,7 @@ ggplot(your_data, aes(x = HSGPA, y = as.factor(year), fill = as.factor(year))) +
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 remove2025 <- cleanData$class_year < 2025
 
@@ -1105,7 +1315,7 @@ overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,], var
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 # seems I can dynamically re-name "course" values to aggregate as I want
 # Is this a whole 'nuther function?

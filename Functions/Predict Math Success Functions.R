@@ -354,13 +354,20 @@ displayPipeline <- function(mainFont = "Bahnschrift",
        font = 2, 
        family = mainFont, 
        adj = c(0.4,0))
-  
-  text(0.58, 0.76, "1010\n1050\n1210\n1030\n1090\netc", 
+
+  text(0.67, 0.76, "Counselor guidance\nPlacement tests\nWord of mouth", 
        cex = 1.381, 
        col = textColor, 
        font = 2, 
        family = subFont, 
-       adj = c(0,1))
+       adj = c(1,1))  
+  
+#  text(0.62, 0.76, "1010\n1050\n1210\n1030\n1090\netc", 
+#       cex = 1.381, 
+#       col = textColor, 
+#       font = 2, 
+#       family = subFont, 
+#       adj = c(0,1))
   
   # black box
   rect(xleft = 0.375, 
@@ -396,7 +403,7 @@ displayPipeline <- function(mainFont = "Bahnschrift",
        family = mainFont, 
        adj = c(0,0))
   
-  text(0.9, 0.76, "A\nB\nC\nD\nF", 
+  text(0.9, 0.76, "A\nB\nC\nD\nE,EU", 
        cex = 1.381,
        col = textColor, 
        font = 2, 

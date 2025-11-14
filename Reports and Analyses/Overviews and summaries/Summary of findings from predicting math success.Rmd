@@ -5,7 +5,7 @@ date: "2025-11-07"
 output: html_document
 ---
 
-```{r}
+```{r include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -17,9 +17,55 @@ loadfonts()
 ```
 
 
-Highlights  (work, brain, work) 
+- Historically, roughly ACT Math test would determine the course and HSGPA would determine the grade.
+  - I am thinking of this as math ability and study ability.
+- A few things have changed:
 
-Brain, brain, brain
+  (1) Mix of courses has changed.	
+        1010 is all-but abandoned; replaced by 1090
+
+  (2) Fewer test score submissions
+  	- Less than half of students are submitting ACT test scores
+  	- This is an increasingly elite group of students:  higher HSGPA and math grades than non-submitters; higher ACT median than historically
+	- This self-selection will make it harder to generalize from the test-submitting population to the general population	
+
+
+  (3) Reduced course selection accuracy:
+	- The connection between "prior" information and course selection is approaching random or no relationship		
+	- This is not taking into account knowledge of who submitted and did not submit test scores (this would improve the model)
+	
+
+  (3) Improved grade prediction	
+	- R-squared for grade prediction has improved 
+	- I'm not sure why.  Right now I suspect it is because a larger proportion of test submitters get A's as they are both better at math and better students.
+        	 
+  (4) Course selection doesn't seem to matter very much		
+	- I'm not sure why.  Right now I suspect it is because test submitters are better students, making course choice more irrelevant 
+	- This is the area of next focus		
+
+
+ 
+- Possible next steps include:
+	- Predict course and grade for the non-submitters
+	- Include a submission flag prediction variable, and impute test scores	(probably knn)
+	- Include SAT scores (why not?)	
+- Develop "warning" threshold:  Can I identify at-risk students?	
+- Focus on predicting W's.	
+
+
+
+```{r fig.height=5, fig.width=11}
+
+displayPerformance()
+
+```
+
+```{r fig.height=5, fig.width=11}
+
+displayPipeline()
+
+```
+
 
 Strongest predictors of grade performance is HSGPA and ACTMATH. 
 Strongest predictors of course is ACTMATH.
@@ -39,17 +85,3 @@ Looks like ACTMATH is declining in importance.  Isn't that interesting.
 Let's trim off 2025 from all of these graphics, then work on the predictor graphic.  
 
 
-
-
-
-```{r fig.height=5, fig.width=10}
-
-displayPerformance()
-
-```
-
-```{r fig.height=5, fig.width=11}
-
-displayPipeline()
-
-```
