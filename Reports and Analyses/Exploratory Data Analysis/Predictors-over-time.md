@@ -40,23 +40,27 @@ Many small courses that consist of less than 5% of the total enrollment combined
 
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
+These courses are more prominent recently but have been included in the 'other' category.
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-5-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
+
 
 
 
 
 ### *Although enrollment has steadily increased over time, the course mixture has changed as Math 1010 has declined to be replaced by Math 1090.* 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-6-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
 
 # ACT test scores
 ### *Submission of ACT test scores has steeply declined, especially for high volume courses.  Only a third of students in some courses (like Math 1090) have submitted ACT test scores.*
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-8-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
 
 
 
@@ -71,18 +75,18 @@ Many small courses that consist of less than 5% of the total enrollment combined
 
 ### *Students who submit test scores are a self-selected elite, with better high school GPAs and more AP credits, a rising median ACT score, and consequent better math performance.*   
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-13-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
 
 On average, test submitters' high school GPA is 0.26 higher than non-test submitters. 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
 
 Test score submitters' median AP credit was three credits higher than non-test submitters' median.
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
-
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-2.png)<!-- -->
 
 Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
@@ -93,13 +97,13 @@ Math grades have diverged until test score submitters have a median math grade 0
 
 ###  *Courses are distinguished by ACT math scores with heavy overlap.*
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-2.png)<!-- -->
 
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
 
 
@@ -157,7 +161,7 @@ STARTING DESCRIPTIVES
 
 ### ACT math scores per course over time
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
 
 

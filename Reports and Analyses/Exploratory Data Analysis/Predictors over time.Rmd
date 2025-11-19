@@ -599,6 +599,48 @@ legend("topright",
 
 ```
 
+These courses are more prominent recently but have been included in the 'other' category.
+
+```{r}
+
+droppedRecentCourses <- recentCourses[!recentCourses %in% topCourses]
+droppedRecentCoursesFilter <- cleanData$course %in% droppedRecentCourses
+
+  
+theBar <- table(droplevels(cleanData$course[droppedRecentCoursesFilter]), useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  barplot(plot = FALSE)
+
+table(droplevels(cleanData$course[droppedRecentCoursesFilter]), useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> # put in order
+  (\(x){names(x) <- gsub("MATH_", "", names(x)) ; return(x) })() |> # remove preceding "MATH_"
+  (\(x){
+  barplot(x,
+          plot = TRUE,
+          col = ifelse(names(x) %in% hiVolCatNbr, "darkorange2","dodgerblue3"),
+          las = 2)
+    })()
+
+
+recent_filter_clean <- cleanData$course %in% recentCourses
+
+theBar <- table(droplevels(cleanData$course[recent_filter_clean]), useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  barplot(plot = FALSE)
+
+table(droplevels(cleanData$course[recent_filter_clean]), useNA = "always") |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> # put in order
+  (\(x){names(x) <- gsub("MATH_", "", names(x)) ; return(x) })() |> # remove preceding "MATH_"
+  (\(x){
+  barplot(x,
+          plot = TRUE,
+          col = ifelse(names(x) %in% hiVolCatNbr, "darkorange2","dodgerblue3"),
+          las = 2)
+    })()
+
+
+```
+
 
 ```{r}
 
@@ -623,8 +665,8 @@ volumeMap <- data.frame(
     )
 
 submitMap <- data.frame(
-      color = c("mediumpurple3", "forestgreen"),
-      by = c("not_submitted", "submitted"),
+      color = c( "forestgreen", "mediumpurple3"),
+      by = c("submitted", "not_submitted"),
       lty = rep(1,2) ,
       lwd = rep(3,2)
     )

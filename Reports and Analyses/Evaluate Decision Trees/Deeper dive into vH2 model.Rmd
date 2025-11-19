@@ -32,8 +32,14 @@ library(caret)
 library(xgboost)
 library(lubridate)
 
-source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
+# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
 
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+source(here::here("Sandbox", "Prediction map sandbox.R"))
+source(here::here("Sandbox", "alignPrediction sandbox.R"))
 
 ```
 
@@ -498,6 +504,22 @@ regression_diagnostics(pred = thePredictions[[x]],
 )
 
 ```
+
+
+
+```{r}
+
+aligned <- alignPrediction(prediction_list = thePredictions, reference_list = data_list)
+
+# ACTUAL vs PREDICTED HEATMAP
+predictionMap(data = aligned[["GRADEGPA"]], 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+
+
+```
+
+You know, what 
 
 # Variable importance
 

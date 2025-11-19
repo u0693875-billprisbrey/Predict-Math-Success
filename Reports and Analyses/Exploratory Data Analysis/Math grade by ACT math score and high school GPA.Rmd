@@ -549,26 +549,48 @@ boxplot(yr_diff ~ GRADEGPA, data = cleanData[cleanData$vol_cluster == "low_vol",
 
 ```{r}
 
-plotHex(data = cleanData, title = "All courses after all filters")
+plotHex(data = cleanData, title = "Full data (All courses, all years, all filters")
+
+plotHex(data = cleanData[cleanData$class_year <= 2020,], title = "<=2020\n(All courses, year 2020 or less, all filters")
+
+plotHex(data = cleanData[cleanData$class_year > 2020,], title = ">=2021\n(All courses, year 2021 or greater, all filters")
+
+plotHex(data = cleanData[cleanData$class_year == 2024,], title = "2024\n(All courses, year 2024, all filters")
+
+
+plotHex(data = cleanData[cleanData$class_year == 2024 & cleanData$vol_cluster == "hi_vol",], title = "2024\n(High vol courses, year 2024, all filters")
+
+plotHex(data = cleanData[cleanData$class_year == 2024 & cleanData$vol_cluster == "low_vol",], title = "2024\n(Low vol courses, year 2024, all filters")
+
 
 for(crse in names(courseClusters[courseClusters == 1])){
 
-
-#lapply(courseClusters[courseClusters == 1], function(crse) {
   
   thePlot <- plotHex(data = cleanData[cleanData$course == crse,],
-          title = paste(crse, "\nafter all filters")
+          title = paste(crse, "\n(All years, after all filters)")
+  )
+
+   beforePlot <- plotHex(data = cleanData[cleanData$course == crse & cleanData$class_year <=2020,],
+          title = paste(crse, "\n(<=2020, after all filters)")
+  )  
+  
+  plot2024 <- plotHex(data = cleanData[cleanData$course == crse & cleanData$class_year ==2024,],
+          title = paste(crse, "\n(2024, after all filters)")
   )
   
- print(thePlot)
-  
-#  })
+ print(thePlot)  
+ print(beforePlot)
+ print(plot2024)  
 
 }
 
+# I might need to make an app so I can really look at these
+
 ```
 
-```{r}
+```{r eval=FALSE}
+
+# Too many; kinda cluttered
 
 for(crse in names(courseClusters[courseClusters == 2])){
 
