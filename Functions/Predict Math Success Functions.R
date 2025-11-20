@@ -411,3 +411,437 @@ displayPipeline <- function(mainFont = "Bahnschrift",
        adj = c(0,1))
   
 }
+
+predictionHistogram <- function(data, 
+                                cuts = NA, 
+                                show = "prediction",
+                                title = NA,
+                                cap = TRUE,
+                                plot_params = list(),
+                                legend_params = list(),
+                                mtext_params = list(),
+                                rect_params = list(),
+                                background_params = list(),
+                                hist_params = list()
+) {
+  
+  # where data is the output of alignPrediction
+  # where "show" determines if I am showing precision or recall, actual values or predicted values
+  # where "cap" determines if I cap the data between 0 and 4.0 or not
+  
+  # Currently only works with "GRADEGPA"
+  
+  # background colors: "ivory", "bisque",  "linen", "honeydew", "seashell" ,"lavenderblush" ,"mintcream", "ghostwhite"
+  
+  incoming.par <- par(mar = c(4,3,3,5), oma = c(0,0,0,0), mfrow = c(1,1))
+  on.exit(par(incoming.par))
+  
+  if(any(is.na(cuts))){
+    cuts <- 0:4
+    
+  }
+  
+  if(is.na(title)){ 
+    # title <- tools::toTitleCase(show)
+    if(grepl(show, "actual precision")) {
+      title <- "Range of actual grades compared to the prediction"
+    } else if (grepl(show, "predict predicted prediction recall")){
+      title <- "Range of predicted grades compared to actual"
+    } else {
+      title <- tools::toTitleCase(show)
+    }
+  }
+  
+  # Possibly cap prediction to a min of 0 and max of 4
+  if(cap){
+    data$pred <- pmin(pmax(data$pred, 0), 4)
+  }
+  
+  # Expand to include the maximum prediction
+  if(max(data$pred, na.rm = TRUE) > max(cuts)){
+    
+    cuts <- c(cuts,max(data$pred, na.rm = TRUE))
+    
+  }
+  
+  
+  
+  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE)
+  data$ref_cut <- cut(data$GRADEGPA, cuts, include.lowest = TRUE)
+  
+  cm <- confusionMatrix(data$pred_cut, data$ref_cut, mode = "everything")
+  
+  # Create color gradient
+  color_gradient <- colorRampPalette(c("darkblue", "cyan", "yellow", "red"))
+  
+  # Create histogram breaks
+  hist_breaks <- unique(c(0.0, 0.7, 1.0, 1.3, 1.7, 2.0, 2.3, 2.7, 3.0, 3.3, 3.7, 4.0, max(data$pred, na.rm = TRUE)))
+  
+  # Calculate bin midpoints
+  bin_midpoints <- (hist_breaks[-length(hist_breaks)] + hist_breaks[-1]) / 2
+  
+  # Map midpoints to colors (normalize to 0-1 range, then get colors)
+  normalized_midpoints <- (bin_midpoints - 0) / (4 - 0)
+  bin_colors <- color_gradient(100)[pmax(1, pmin(100, round(normalized_midpoints * 99 + 1)))]
+  
+  
+  # Plot
+  
+  if(grepl(show, "actual precision")) {
+    
+    default_plot_params <- list(mfrow = c(length(levels(data$pred_cut)),1),
+                                mar = c(1,4,1,0),
+                                oma = c(2,0,4,1), 
+                                bg = "aliceblue", # "bisque",
+                                fg = "gray20")
+    plot_params <- modifyList(default_plot_params, plot_params)
+    do.call(par, plot_params)
+    
+    
+    
+    counter <-0  
+    for(theCut in levels(data$pred_cut)){
+      
+      
+      counter <- counter + 1
+      
+      # Plot histogram
+      default_hist_params <- list(
+        x = data[data$pred_cut == theCut,"GRADEGPA"],
+        breaks = hist_breaks,
+        freq = FALSE,
+        col = bin_colors,
+        las = 2,
+        xaxt = "n",
+        yaxt = "n",
+        ylab = "",
+        xlab = "",
+        main = ""
+      )
+      
+      current_hist_params <- modifyList(default_hist_params, hist_params)
+      do.call(hist, current_hist_params)
+      
+      # Over-write histogram with a background rect of chosen color
+      default_background_params <- list(xleft = par("usr")[1],
+                                        ybottom = par("usr")[3],
+                                        xright = par("usr")[2],
+                                        ytop = par("usr")[4],
+                                        border = NA,
+                                        col = "gray80"
+      )
+      
+      current_background_params <- modifyList(default_background_params, background_params)
+      do.call(rect, current_background_params)
+      
+      # Re-write histogram
+      current_hist_params <- modifyList(current_hist_params, list(add = TRUE))
+      do.call(hist, current_hist_params)
+      
+      axis(side = 2, at = axTicks(2), las = 2, font = 2)
+      
+      if(counter == 1  ) {
+        axis(side = 3, at = 0:4, labels = TRUE, tick = TRUE, font = 2)
+      }
+      
+      if(counter == length(levels(data$pred_cut))  ) {
+        axis(side = 1, at = 0:4, labels = TRUE, tick = TRUE, font = 2)
+      }
+      
+      
+      xInterval <- theCut |>
+        as.character() |>
+        (\(x){gsub("[^0-9.,]", "",x) })() |>
+        (\(x){as.numeric(strsplit(x, ",")[[1]])})()
+      
+      default_rect_params <- list(xleft = xInterval[1],
+                                  ybottom = par("usr")[3],
+                                  xright = xInterval[2],
+                                  ytop = par("usr")[4]*0.618,
+                                  border = bin_colors[max(which(bin_midpoints < max(xInterval) ))],
+                                  lty =2,
+                                  lwd = 3
+      )
+      current_rect_params <- modifyList(default_rect_params, rect_params)
+      do.call(rect, current_rect_params)
+      
+      default_legend_params <- list(x = "topright",
+                                    legend = paste(theCut, " Predicted"),
+                                    bg = "ivory",
+                                    pch = 22,
+                                    pt.cex = 3,
+                                    pt.lwd = 2,
+                                    pt.bg = NA,
+                                    lty = 0,
+                                    col = bin_colors[max(which(bin_midpoints < max(xInterval) ))]
+      )
+      current_legend_params <- modifyList(default_legend_params, legend_params)
+      do.call(legend, current_legend_params)
+      
+    }
+    
+  }
+  
+  
+  if(grepl(show, "predict predicted prediction recall")) {
+    
+    
+    if(sum(data$ref_cut == levels(data$ref_cut)[length(levels(data$ref_cut))]) == 0){
+      
+      default_plot_params <- list(mfrow = c(length(levels(data$ref_cut))-1,1),
+                                  mar = c(1,4,1,0),
+                                  oma = c(2,0,4,1), 
+                                  bg = "aliceblue", # "bisque",
+                                  fg = "gray20")
+      plot_params <- modifyList(default_plot_params, plot_params)
+      do.call(par, plot_params)
+      
+    } else {
+      
+      default_plot_params <- list(mfrow = c(length(levels(data$ref_cut)),1),
+                                  mar = c(1,4,1,0),
+                                  oma = c(2,0,4,1), 
+                                  bg = "aliceblue", # "bisque",
+                                  fg = "gray20")
+      plot_params <- modifyList(default_plot_params, plot_params)
+      do.call(par, plot_params)  
+      
+      
+    }
+    
+    counter <-0  
+    for(theCut in levels(data$ref_cut)){ 
+      
+      counter <- counter + 1
+      
+      if(nrow(data[data$ref_cut == theCut,]) == 0 ){next}
+      
+      # Plot histogram
+      default_hist_params <- list(
+        x = data[data$ref_cut == theCut,"pred"],
+        breaks = hist_breaks,
+        freq = FALSE,
+        col = bin_colors,
+        las = 2,
+        xaxt = "n",
+        yaxt = "n",
+        ylab = "",
+        xlab = "",
+        main = ""
+      )
+      
+      current_hist_params <- modifyList(default_hist_params, hist_params)
+      do.call(hist, current_hist_params)
+      
+      # Over-write histogram with a background rect of chosen color
+      default_background_params <- list(xleft = par("usr")[1],
+                                        ybottom = par("usr")[3],
+                                        xright = par("usr")[2],
+                                        ytop = par("usr")[4],
+                                        border = NA,
+                                        col = "gray80"
+      )
+      
+      current_background_params <- modifyList(default_background_params, background_params)
+      do.call(rect, current_background_params)
+      
+      # Re-write histogram
+      current_hist_params <- modifyList(current_hist_params, list(add = TRUE))
+      do.call(hist, current_hist_params)
+      
+      # Axis
+      
+      axis(side = 2, at = axTicks(2), las = 2, font = 2)
+      
+      if(counter == 1  ) {
+        axis(side = 3, at = 0:4, labels = TRUE, tick = TRUE)
+      }
+      
+      if(counter == length(levels(data$pred_cut))  ) {
+        axis(side = 1, at = 0:4, labels = TRUE, tick = TRUE)
+      }
+      
+      xInterval <- theCut |>
+        as.character() |>
+        (\(x){gsub("[^0-9.,]", "",x) })() |>
+        (\(x){as.numeric(strsplit(x, ",")[[1]])})()
+      
+      default_rect_params <- list(xleft = xInterval[1],
+                                  ybottom = par("usr")[3],
+                                  xright = xInterval[2],
+                                  ytop = par("usr")[4]*0.618,
+                                  border = bin_colors[max(which(bin_midpoints < max(xInterval) ))],
+                                  lty =2,
+                                  lwd = 3
+      )
+      current_rect_params <- modifyList(default_rect_params, rect_params)
+      do.call(rect, current_rect_params)
+      
+      default_legend_params <- list(x = "topright",
+                                    legend = paste(theCut, " Actual"),
+                                    bg = "ivory",
+                                    pch = 22,
+                                    pt.cex = 3,
+                                    pt.lwd = 2,
+                                    pt.bg = NA,
+                                    lty = 0,
+                                    col = bin_colors[max(which(bin_midpoints < max(xInterval) ))]
+      )
+      current_legend_params <- modifyList(default_legend_params, legend_params)
+      do.call(legend, current_legend_params)
+      
+    }
+    
+    
+    
+  }
+  
+  
+  default_mtext_params <- list(side = 3,
+                               font = 2,
+                               cex = 1.5,
+                               text = title,
+                               outer = TRUE,
+                               line = 1.3)
+  mtext_params <- modifyList(default_mtext_params, mtext_params)
+  do.call(mtext, mtext_params)
+  
+}
+
+alignPrediction <- function(prediction_list, reference_list) {
+  
+  # This accepts the list of predictions and the list of references,
+  # and returns the testing data with the prediction as a column
+  
+  # Extract list names
+  
+  pred_names <- names(prediction_list)
+  target_names <- names(reference_list)
+  
+  # Confirm match or exit function
+  if(!identical(pred_names, target_names)){
+    
+    stop("Prediction and reference lists have different names")
+    
+  }
+  
+  align_list <- lapply(pred_names, function(align_target) { 
+    
+    # Identify mis-match in courses between training and testing sets
+    missing <- setdiff(reference_list[[align_target]][["testing"]][["course"]],reference_list[[align_target]][["training"]][["course"]])
+    missingFilter <- !reference_list[[align_target]][["testing"]][["course"]] %in% missing
+    
+    # Add the prediction to the data set
+    reference_list[[align_target]][["testing"]]$pred[missingFilter] <- prediction_list[[align_target]]  
+    
+    return(reference_list[[align_target]][["testing"]])
+    
+  })
+  names(align_list) <- pred_names  
+  return(align_list) 
+}
+
+predictionMap <- function(data,
+                          plot_title = NA) {
+  
+  # This needs to be improved by accepting "grade_quad" instead of "GRADEGPA" as a column name
+  
+  
+  # where "data" is the output of "alignPrediction" where a "pred" column has been
+  # added to the reference "test" data
+  
+  # This creates two side-by-side hexbin plots.
+  # Both plots have "ACTMATH" on the y-axis, 
+  # and "HSGPA" on the x-axis.
+  # Plot on the left is colored by predicted grade,
+  # and plot on the right is colored by actual grade
+  
+  
+  # Check for required packages
+  if(!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package 'ggplot2' is required but not installed.")
+  }
+  if(!requireNamespace("patchwork", quietly = TRUE)) {
+    stop("Package 'patchwork' is required but not installed.")
+  }
+  
+  df <- data[,c("HSGPA","ACTMATH", "GRADEGPA", "pred")] 
+  
+  
+  # Create a simple dataframe
+  # df <- data.frame(HSGPA = HSGPA, 
+  #                 ACTMATH = ACTMATH, 
+  #                 GRADEGPA = GRADEGPA)
+  
+  # Establish title
+  
+  if(is.na(plot_title)){ 
+    plot_title <- "Add title"
+  }
+  
+  
+  # Plot 1: Predicted Median GRADEGPA
+  p1 <- ggplot(df, aes(x = HSGPA, y = ACTMATH, z = pred)) +
+    stat_summary_hex(fun = median, bins = 30) +
+    scale_fill_gradientn(colors = c("darkblue", "cyan", "yellow", "red"),
+                         name = "Median\nGRADEGPA") +
+    theme_minimal() +
+    labs(
+      x = "HSGPA", 
+      y = "ACTMATH") + 
+    ggtitle("Predicted")
+  
+  
+  # Plot 2: Actual Median GRADEGPA
+  p2 <- ggplot(df, aes(x = HSGPA, y = ACTMATH, z = GRADEGPA)) +
+    stat_summary_hex(fun = median, bins = 30) +
+    scale_fill_gradientn(colors = c("darkblue", "cyan", "yellow", "red"),
+                         name = "Median\nGRADEGPA") +
+    theme_minimal() +
+    labs(
+      x = "HSGPA", 
+      y = "ACTMATH") + 
+    ggtitle("Actual")
+  
+  # Display both plots side by side
+  (p1 + p2) + 
+    plot_annotation(title = plot_title,
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 14)))
+  
+  
+}
+
+
+createCM <- function(data, target = "GRADEGPA", cuts=NA, cap=TRUE){
+  
+  # This accepts the output of "alignPrediction" and returns a confusion matrix
+  # based on the specified cuts.
+  
+  # where data is the output of alignPrediction
+  # where "cap" determines if I cap the data between 0 and 4.0 or not
+  
+  if(any(is.na(cuts))){
+    cuts <- 0:4
+  }
+  
+  
+  # Possibly cap maximum prediction
+  if(cap){
+    data$pred <- pmin(pmax(data$pred, 0), max(cuts))
+  }
+  
+  # Expand to include the maximum prediction
+  if(max(data$pred, na.rm = TRUE) > max(cuts)){
+    
+    cuts <- c(cuts,max(data$pred, na.rm = TRUE))
+    
+  }
+  
+  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE)
+  data$ref_cut <- cut(data[,target], cuts, include.lowest = TRUE)
+  
+  cm <- confusionMatrix(data$pred_cut, data$ref_cut, mode = "everything")
+  
+  return(cm)
+  
+}

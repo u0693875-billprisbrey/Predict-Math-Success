@@ -519,7 +519,63 @@ predictionMap(data = aligned[["GRADEGPA"]],
 
 ```
 
-You know, what 
+
+```{r}
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE, 
+                    hist_params = list(freq = TRUE))
+)
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    hist_params = list(freq = TRUE))
+)
+
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE,
+                    cuts = c(0,1,2.7,4),
+                    hist_params = list(freq = TRUE))
+)
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    cuts = c(0,1,2.7,4),
+                    hist_params = list(freq = TRUE))
+)
+
+```  
+
+Examining the precision for predictions of grades <1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
+
+
+
+```{r}
+
+
+createCM(aligned[["GRADEGPA"]]) |> drawCM() # baseline Kappa of 0.2
+createCM(aligned[["GRADEGPA"]], cuts = c(0,2.7,4)) |> drawCM() # HIGHEST KAPPA!0.372
+createCM(aligned[["GRADEGPA"]], cuts = c(0,1,2.7,4)) |> drawCM() # Kapp of 0.268
+
+# createCM(aligned[["grade_quad"]], cuts = c(0,1,2,3), target = "grade_quad") |> drawCM() # why use ?
+
+
+```
+
+
 
 # Variable importance
 
