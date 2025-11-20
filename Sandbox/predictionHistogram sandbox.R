@@ -25,10 +25,20 @@
 # Label x-axis as "ACTUAL" or "PREDICTED" GPA
 # Figure out a legend for the reference rectangle
 
+# This is probably overkill for my purposes---
+# ...but given how much I'll be predicting grades, it's probably o.k. 
+
+# It's looking pretty good.
+
+# I will work with drawCM before I attempt putting precision or recall numbers on this plot.
+
+
+
 predictionHistogram <- function(data, 
                                 cuts = NA, 
                                 show = "prediction",
                                 title = NA,
+                                cap = TRUE,
                                 plot_params = list(),
                                 legend_params = list(),
                                 mtext_params = list(),
@@ -38,10 +48,12 @@ predictionHistogram <- function(data,
                                 ) {
   
   # where data is the output of alignPrediction
-  
+  # where "show" determines if I am showing precision or recall, actual values or predicted values
+  # where "cap" determines if I cap the data at 4.0 or not
+    
   # background colors: "ivory", "bisque",  "linen", "honeydew", "seashell" ,"lavenderblush" ,"mintcream", "ghostwhite"
 
-  incoming.par <- par(mar = c(0,3,3,7), oma = c(4,2,0,0))
+  incoming.par <- par(mar = c(4,3,3,5), oma = c(0,0,0,0), mfrow = c(1,1))
   on.exit(par(incoming.par))
   
   if(any(is.na(cuts))){
@@ -50,8 +62,20 @@ predictionHistogram <- function(data,
   }
   
   if(is.na(title)){ 
-    title <- tools::toTitleCase(show)
+    # title <- tools::toTitleCase(show)
+     if(grepl(show, "actual precision")) {
+       title <- "Range of actual grades compared to the prediction"
+     } else if (grepl(show, "predict predicted prediction recall")){
+      title <- "Range of predicted grades compared to actual"
+     } else {
+       title <- tools::toTitleCase(show)
     }
+        }
+  
+  # Possibly cap maximum prediction
+  if(cap){
+  data$pred <- pmin(data$pred, 4)
+  }
   
   # Expand to include the maximum prediction
   if(max(data$pred, na.rm = TRUE) > max(cuts)){
@@ -59,17 +83,19 @@ predictionHistogram <- function(data,
     cuts <- c(cuts,max(data$pred, na.rm = TRUE))
     
   }
+  
+  
     
   data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE)
   data$ref_cut <- cut(data$GRADEGPA, cuts, include.lowest = TRUE)
   
-  cm <- confusionMatrix(data$pred_cut, data$ref_cut)
+  cm <- confusionMatrix(data$pred_cut, data$ref_cut, mode = "everything")
 
   # Create color gradient
   color_gradient <- colorRampPalette(c("darkblue", "cyan", "yellow", "red"))
   
   # Create histogram breaks
-  hist_breaks <- c(0.0, 0.7, 1.0, 1.3, 1.7, 2.0, 2.3, 2.7, 3.0, 3.3, 3.7, 4.0, max(data$pred, na.rm = TRUE))
+  hist_breaks <- unique(c(0.0, 0.7, 1.0, 1.3, 1.7, 2.0, 2.3, 2.7, 3.0, 3.3, 3.7, 4.0, max(data$pred, na.rm = TRUE)))
   
   # Calculate bin midpoints
   bin_midpoints <- (hist_breaks[-length(hist_breaks)] + hist_breaks[-1]) / 2
@@ -78,19 +104,19 @@ predictionHistogram <- function(data,
   normalized_midpoints <- (bin_midpoints - 0) / (4 - 0)
   bin_colors <- color_gradient(100)[pmax(1, pmin(100, round(normalized_midpoints * 99 + 1)))]
   
-  default_plot_params <- list(mfrow = c(length(levels(data$pred_cut)),1),
-                              mar = c(1,4,1,0),
-                              oma = c(2,0,4,1), 
-                              bg = "aliceblue", # "bisque",
-                              fg = "gray20")
-  plot_params <- modifyList(default_plot_params, plot_params)
-  do.call(par, plot_params)
-  
   
   # Plot
   
   if(grepl(show, "actual precision")) {
-    
+  
+    default_plot_params <- list(mfrow = c(length(levels(data$pred_cut)),1),
+                                mar = c(1,4,1,0),
+                                oma = c(2,0,4,1), 
+                                bg = "aliceblue", # "bisque",
+                                fg = "gray20")
+    plot_params <- modifyList(default_plot_params, plot_params)
+    do.call(par, plot_params)
+      
 
     
   counter <-0  
@@ -132,21 +158,6 @@ predictionHistogram <- function(data,
     current_hist_params <- modifyList(current_hist_params, list(add = TRUE))
     do.call(hist, current_hist_params)
     
-    
-  #  theHist <- hist(data[data$pred_cut == theCut,"GRADEGPA"],
-  #                  breaks = hist_breaks,
-  #                  freq = FALSE,
-  #                  col = bin_colors,
-  #                  # border = "white",
-  #                  las = 2,
-  #                  xaxt = "n",
-  #                  yaxt = "n",
-  #                  ylab = "",
-  #                  xlab = "",
-  #                  main = "")
-    
-   
-    
     axis(side = 2, at = axTicks(2), las = 2, font = 2)
     
     if(counter == 1  ) {
@@ -156,7 +167,6 @@ predictionHistogram <- function(data,
     if(counter == length(levels(data$pred_cut))  ) {
       axis(side = 1, at = 0:4, labels = TRUE, tick = TRUE, font = 2)
     }
-    
     
     
     xInterval <- theCut |>
@@ -175,7 +185,7 @@ predictionHistogram <- function(data,
     current_rect_params <- modifyList(default_rect_params, rect_params)
     do.call(rect, current_rect_params)
    
-    default_legend_params <- list(x = "topleft",
+    default_legend_params <- list(x = "topright",
                                   legend = paste(theCut, " Predicted"),
                                   bg = "ivory",
                                   pch = 22,
@@ -193,25 +203,75 @@ predictionHistogram <- function(data,
   }
   
   
-  if(grepl(show, "prediction recall")) {
+  if(grepl(show, "predict predicted prediction recall")) {
   
+    
+    if(sum(data$ref_cut == levels(data$ref_cut)[length(levels(data$ref_cut))]) == 0){
+    
+      default_plot_params <- list(mfrow = c(length(levels(data$ref_cut))-1,1),
+                                  mar = c(1,4,1,0),
+                                  oma = c(2,0,4,1), 
+                                  bg = "aliceblue", # "bisque",
+                                  fg = "gray20")
+      plot_params <- modifyList(default_plot_params, plot_params)
+      do.call(par, plot_params)
+    
+    } else {
+      
+      default_plot_params <- list(mfrow = c(length(levels(data$ref_cut)),1),
+                                  mar = c(1,4,1,0),
+                                  oma = c(2,0,4,1), 
+                                  bg = "aliceblue", # "bisque",
+                                  fg = "gray20")
+      plot_params <- modifyList(default_plot_params, plot_params)
+      do.call(par, plot_params)  
+      
+      
+    }
+    
     counter <-0  
     for(theCut in levels(data$ref_cut)){ 
+      
       counter <- counter + 1
-      theHist <- hist(data[data$ref_cut == theCut,"pred"],
-                      breaks = hist_breaks,
-                      freq = FALSE,
-                      col = bin_colors,
-                      border = "white",
-                      las = 2,
-                      xaxt = "n",
-                      main = "")
-      default_legend_params <- list(x = "topleft",
-                                    legend = paste("Actual values for predicted ", theCut),
-                                    bg = "ivory")
-      current_legend_params <- modifyList(default_legend_params, legend_params)
-      do.call(legend, current_legend_params)
-      # legend("topleft", legend = paste("Predicted values for actual ", theCut)  )
+      
+      if(nrow(data[data$ref_cut == theCut,]) == 0 ){next}
+      
+      # Plot histogram
+      default_hist_params <- list(
+        x = data[data$ref_cut == theCut,"pred"],
+        breaks = hist_breaks,
+        freq = FALSE,
+        col = bin_colors,
+        las = 2,
+        xaxt = "n",
+        yaxt = "n",
+        ylab = "",
+        xlab = "",
+        main = ""
+      )
+      
+      current_hist_params <- modifyList(default_hist_params, hist_params)
+      do.call(hist, current_hist_params)
+      
+      # Over-write histogram with a background rect of chosen color
+      default_background_params <- list(xleft = par("usr")[1],
+                                        ybottom = par("usr")[3],
+                                        xright = par("usr")[2],
+                                        ytop = par("usr")[4],
+                                        border = NA,
+                                        col = "gray80"
+      )
+      
+      current_background_params <- modifyList(default_background_params, background_params)
+      do.call(rect, current_background_params)
+      
+      # Re-write histogram
+      current_hist_params <- modifyList(current_hist_params, list(add = TRUE))
+      do.call(hist, current_hist_params)
+      
+      # Axis
+      
+      axis(side = 2, at = axTicks(2), las = 2, font = 2)
       
       if(counter == 1  ) {
         axis(side = 3, at = 0:4, labels = TRUE, tick = TRUE)
@@ -226,16 +286,30 @@ predictionHistogram <- function(data,
         (\(x){gsub("[^0-9.,]", "",x) })() |>
         (\(x){as.numeric(strsplit(x, ",")[[1]])})()
       
-      rect(xleft = xInterval[1],
-           ybottom = par("usr")[3],
-           xright = xInterval[2],
-           ytop = par("usr")[4]*0.618,
-           border = "red",
-           lty =2,
-           lwd = 3
-      )  
-      
-      
+      default_rect_params <- list(xleft = xInterval[1],
+                                  ybottom = par("usr")[3],
+                                  xright = xInterval[2],
+                                  ytop = par("usr")[4]*0.618,
+                                  border = bin_colors[max(which(bin_midpoints < max(xInterval) ))],
+                                  lty =2,
+                                  lwd = 3
+      )
+      current_rect_params <- modifyList(default_rect_params, rect_params)
+      do.call(rect, current_rect_params)
+
+      default_legend_params <- list(x = "topright",
+                                    legend = paste(theCut, " Actual"),
+                                    bg = "ivory",
+                                    pch = 22,
+                                    pt.cex = 3,
+                                    pt.lwd = 2,
+                                    pt.bg = NA,
+                                    lty = 0,
+                                    col = bin_colors[max(which(bin_midpoints < max(xInterval) ))]
+      )
+      current_legend_params <- modifyList(default_legend_params, legend_params)
+      do.call(legend, current_legend_params)
+    
     }
     
 
@@ -248,7 +322,7 @@ predictionHistogram <- function(data,
                                cex = 1.5,
                                text = title,
                                outer = TRUE,
-                               line = 0.31)
+                               line = 1.3)
   mtext_params <- modifyList(default_mtext_params, mtext_params)
   do.call(mtext, mtext_params)
   
