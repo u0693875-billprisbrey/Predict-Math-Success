@@ -1,7 +1,7 @@
 # Cumulative accuracy sandbox
 
 # PURPOSE: I'd like to explore calculating precision and recall on the basis of everything
-# less than or equal to my prediction.  If I am predicting a low grade, then I consider everyone
+# less than or equal to my prediction (vH2).  If I am predicting a low grade, then I consider everyone
 # who got even lower as correct/accurate
 
 # Or I can just do this -- 

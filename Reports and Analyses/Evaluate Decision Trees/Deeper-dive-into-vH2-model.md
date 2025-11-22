@@ -1,6 +1,6 @@
 ---
 title: "Deeper dive into vH2 model"
-date: "November 20, 2025"
+date: "November 22, 2025"
 params: 
   version: "vH2"
   target_classes: 
@@ -10,6 +10,84 @@ output:
   html_document:
     keep_md: true
 ---
+
+
+**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It performs with an r-squared value of 0.28.  Various aspects of the model prediction and actual performance are visualized and compared.  
+
+
+I have all these nice graphs but no words.  
+
+So here are some words.
+
+I need an outline that includes "METHOD"
+
+EXECUTIVE SUMMARY
+
+METHODOLOGY
+
+DISCUSSION
+
+NEXT STEPS
+
+RESULTS 
+
+What this report shows:
+
+- There are a handful of students who predictably failed (with high precision.)  This could suggest: 
+  - That these students shouldn't have been admitted and constitute an admissions mistake.  (If we knew they had a high chance of failure, should we have admitted them?)    
+  - That the very small number of students in this category suggests that we don't have a large admissions failure.   
+  
+- An R-squared model of 0.28 is a decently predictive model on very few variables.  It can predict the student's grade with a mean absolute error of 0.84.  So incoming math ability and study ability can explain about 28% of grade variation.    
+
+- However, it still leaves a lot un-explained.  It is not mechanically deterministic and doesn't suggest strong cut-offs.  The histograms compare the ranges of actual vs predicted values.  
+
+- Failure (<1.3) seems to be about a lot more than math ability and study ability (test scores and high school GPA) as students fail despite predicted grades as high as an A.  (What's my metric that says this?)
+
+- The optimum split is 2.7 (B-).  This is where the model performs at its best (least-random) ability to sort students into high and low grades. 
+
+- Unexpectedly, "course" disappears as an explanatory variable. 
+
+  - Maybe this means that the courses are roughly equivalent and course selection doesn't matter. 
+  - Maybe this means that some unknown sorting mechanism adequately places students into math courses appropriate to their ability, so that only their studiousness or "study ability" (as indicated by their high school GPA) separates academic performance.  
+
+- The top two predictors of grade are (overwhelmingly) the high school GPA and the ACT math test scores.  
+
+  - A heat map of expected values based on twenty years' of data is very reasonable, with lower grades expected upon moving diagonally to the lower left. 
+  
+  - Grade inflation?  A lot redder than expected; Way more 'A's than expected.  Looks a lot easier to top off on this scale.  Looking a lot more like a pass-fail.  (Like---what's the number here?  How many did I expect and how many did I get?  It's a simple question of precision I guess.)  
+  
+    Looking at this: createCM(aligned[["GRADEGPA"]], cuts = c(0,3.3,3.7,4)) |> drawCM()
+    
+ Look how it "leans" right towards the higher end.  Way more people get >3.7 who are predicted to get <3.7 .
+ 
+ Math looks very, very, very forgiving.  It is graded very generously.
+ 
+Look at how low the precision is for  
+createCM(aligned[["GRADEGPA"]], cuts = c(0,3.3,4)) |> drawCM().
+
+They are really pushing grades up here. 
+
+...or is that a correct interpretation?  Does it just mean my model is bad?  Can I manually adjust the prediction and improve the prediction?  If I can, why doesn't the model do it automatically?
+
+
+
+
+  
+  
+  
+
+
+
+
+
+And what makes these reports hard to complete 
+
+This report needs some TLC, changes to plot sizes, some words and write-up, and then it needs a comparison with the grade-only prediction (maybe a separate report?).
+
+Possibly develop a <= accuracy metric, a modification of recall, as I don't care how many people got better than a C+ but I care how many people got a C+ or less.
+
+I'll polish up this report a little more before adding that.  
+
 
 
 
@@ -25,15 +103,7 @@ output:
 
 ```
 ## [1] "GRADEGPA"
-## [1] "GRADEGPA"
-## missingFilter
-## FALSE  TRUE 
-##    11  2003 
 ## [1] "grade_quad"
-## [1] "grade_quad"
-## missingFilter
-## FALSE  TRUE 
-##    11  2003
 ```
 
 ### Models  
@@ -115,18 +185,6 @@ output:
 
 # Results
 
-
-```
-## [1] "GRADEGPA"
-## missingFilter
-## FALSE  TRUE 
-##    11  2003 
-## [1] "grade_quad"
-## missingFilter
-## FALSE  TRUE 
-##    11  2003
-```
-
 <table class=" lightable-classic" style="color: black; font-family: Calibri; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Normalized Regression Results Across Grading Buckets</caption>
  <thead>
@@ -184,8 +242,13 @@ Examining the precision for predictions of grades <1 looks like these few people
 
 
 
-![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-11-1.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-11-2.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-11-3.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-11-4.png)<!-- -->
 
+
+
+![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+
+![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-13-1.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
 
 
 # Variable importance
@@ -200,7 +263,7 @@ course, SEX, FIRST_GEN_STATUS_CD, ETHNICITY, RESSTAT, FA_PELL, APCREDIT, HSGPA, 
 The other variables are either self-explanatory or taken directly from OBIA tables.  
 
 
-![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-12-1.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
+![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
 
 
 
@@ -209,7 +272,7 @@ The other variables are either self-explanatory or taken directly from OBIA tabl
 
 
 
-![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 # Training data
 
