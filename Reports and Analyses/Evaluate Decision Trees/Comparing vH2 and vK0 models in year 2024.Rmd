@@ -1,0 +1,399 @@
+---
+title: "Comparing predictions with and without test scores"
+author: "Bill Prisbrey"
+date: "2025-11-22"
+output:
+  html_document:
+    keep_md: true
+    toc: true
+---
+
+***PURPOSE:*** This document compares vH2 and vK0[2024] (or the vK0 model that trained prior to 2024 and tested on 2024.) 
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+library(ggplot2)
+library(patchwork)
+library(kableExtra)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# Strikes me that I want one list per target class, with multiple years per
+
+# Build file paths
+testYears <- 2007:2025
+grid <- expand.grid("vK0", testYears,  list("GRADEGPA", "grade_quad"))
+
+model_files <- here::here("Models", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " model.rds"))
+
+# Read this into a list of lists by target class
+
+model_list <- setNames(
+  lapply(list("GRADEGPA", "grade_quad"), function(tClass){
+    files <- model_files[grep(tClass, model_files)]
+    
+    # Extract year from each filename
+    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
+    
+    setNames(
+      lapply(files, readRDS),
+      years  # Use extracted years
+    )
+  }),
+  list("GRADEGPA", "grade_quad")
+)
+
+
+
+# Build file paths
+data_files <- here::here("Data", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(list("GRADEGPA", "grade_quad"), function(tClass){
+    files <- data_files[grep(tClass, model_files)]
+    
+    # Extract year from each filename
+    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
+    
+    setNames(
+      lapply(files, readRDS),
+      years  # Use extracted years
+    )
+  }),
+  list("GRADEGPA", "grade_quad")
+)
+
+
+```
+
+```{r}
+
+# Re-name 
+
+vK0_data_list <- data_list    # no test
+vK0_model_list <- model_list  # no test
+
+``` 
+
+
+```{r}
+
+## PREDICTIONS ##
+
+predictions_over_time <- lapply(list("GRADEGPA", "grade_quad"), function(tClass){
+  perClass <- lapply(as.character(testYears), function(tYr){
+    
+#  courseColumn <- ifelse("course" %in% colnames(vK0_data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+    
+    # Identify discrepancies between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(vK0_data_list[[tClass]][[tYr]] [["testing"]][["course"]],vK0_data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(vK0_data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !vK0_data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingCourseFilter))
+}
+
+      missingEthnicity <- setdiff(vK0_data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],vK0_data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(vK0_data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !vK0_data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
+            
+      
+    # predict 
+    predict(vK0_model_list[[tClass]][[tYr]],
+            newdata = vK0_data_list[[tClass]][[tYr]][["testing"]][missing,]
+            )
+  })
+  names(perClass) <- testYears
+  return(perClass)
+})
+names(predictions_over_time) <- list("GRADEGPA", "grade_quad")
+
+# predictions_over_time[["GRADEGPA"]][["2024"]] |> hist() # looks o.k.
+
+
+
+```
+
+
+```{r}
+
+theResults_vK0 <- lapply(list("GRADEGPA", "grade_quad"), function(tClass){
+  
+  perClass <- lapply(as.character(testYears), function(tYr){
+
+    # Identify discrepancies between the testing and training sets and filter them out
+    
+      missingCourse <- setdiff(vK0_data_list[[tClass]][[tYr]] [["testing"]][["course"]],vK0_data_list[[tClass]][[tYr]] [["training"]][["course"]])
+    
+      if (length(missingCourse) == 0) {
+  # no missingCourse values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(vK0_data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingCourseFilter <- !vK0_data_list[[tClass]][[tYr]][["testing"]][["course"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingCourseFilter))
+}
+
+      missingEthnicity <- setdiff(vK0_data_list[[tClass]][[tYr]] [["testing"]][["ETHNICITY"]],vK0_data_list[[tClass]][[tYr]] [["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(vK0_data_list[[tClass]][[tYr]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !vK0_data_list[[tClass]][[tYr]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missing <- missingCourseFilter & missingEthnicityFilter  
+
+       postResample(pred = predictions_over_time[[tClass]][[tYr]],
+                  obs = vK0_data_list[[tClass]][[tYr]][["testing"]][[tClass]][missingCourseFilter]
+               ) 
+    
+        
+  })
+  names(perClass) <- testYears
+  return(perClass)
+})
+  
+names(theResults_vK0) <- list("GRADEGPA", "grade_quad")
+
+```
+
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH2", " ", list("GRADEGPA", "grade_quad"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  list("GRADEGPA", "grade_quad")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH2", " ", list("GRADEGPA", "grade_quad"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  list("GRADEGPA", "grade_quad")
+)
+
+```
+
+
+```{r}
+
+# Re-name 
+
+vH2_data_list <- data_list  # test score
+vH2_model_list <- model_list # test score
+
+``` 
+
+
+```{r}
+
+## VH2 ##
+## PREDICTIONS ##
+
+thePredictions_vH2 <- lapply(list("GRADEGPA", "grade_quad"), function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+  courseColumn <- ifelse("course" %in% colnames(vH2_data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(vH2_data_list[[x]][["testing"]][[courseColumn]],vH2_data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(vH2_data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !vH2_data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  # print(x)
+  # print(table(missingFilter))
+}
+  
+  predict(vH2_model_list[[x]],
+          newdata = vH2_data_list[[x]][["testing"]][missingFilter,])
+  
+} )
+names(thePredictions_vH2) <- list("GRADEGPA", "grade_quad")
+
+```
+
+```{r}
+
+
+theResults_vH2 <- lapply(list("GRADEGPA", "grade_quad"), function(x) {
+  
+  print(x)
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(vH2_data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(vH2_data_list[[x]][["testing"]][[courseColumn]],vH2_data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(vH2_data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !vH2_data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  postResample(pred = thePredictions_vH2[[x]],
+                  obs = vH2_data_list[[x]][["testing"]][[x]][missingFilter]
+  
+               )
+})
+names(theResults_vH2) <- list("GRADEGPA", "grade_quad")
+
+
+
+```
+
+```{r}
+
+# Align vH2 prediction
+
+aligned_vH2 <- alignPrediction(prediction_list = thePredictions_vH2, reference_list = vH2_data_list)
+
+
+```
+
+
+```{r}
+
+# Align vK0
+
+aligned_vK0 <- alignPrediction(prediction_list = predictions_over_time[["GRADEGPA"]], reference_list = vK0_data_list[["GRADEGPA"]])
+
+``` 
+
+
+```{r}
+
+
+
+#predictionMap(data = aligned_vK0[["2024"]] |>
+#                (\(x){x$ACTMATH <- 21; return(x)})(), 
+#              plot_title = "Title goes here")
+
+
+predictionHistogram(data = aligned_vK0[["2024"]],
+                    show = "actual",
+                    cap = FALSE,
+                    hist_params = list(freq = TRUE)
+              )
+
+# maybe I make a heatmap of predicted GPA vs actual GPA?
+
+# not a clue what Claude is telling me:
+
+ggplot(aligned_vK0[["2024"]], aes(x = HSGPA, y = GRADEGPA, color = GRADEGPA)) +
+    geom_line(linewidth = 2) +
+    scale_color_gradient2(low = "firebrick", mid = "goldenrod", high = "dodgerblue",
+                          midpoint = 2.0)
+
+
+``` 
+
+
+```{r}
+
+# man, now what do I do
+
+# I guess I can calculate a diff between predictions
+
+merge_columns <- colnames(aligned_vK0[["2024"]]) |>
+  (\(x){x[-which(x %in% c("pred", "ACT_submit", "SAT_submit"))]})()
+
+aligned_bauble <- merge(aligned_vK0[["2024"]],
+                        aligned_vH2[["GRADEGPA"]],
+                        by = merge_columns,
+                        all.x = TRUE
+                        ) 
+
+hist(aligned_bauble$pred.x - aligned_bauble$pred.y)
+# thats pretty neatly balanced around zero
+# I like that.
+
+# 
+
+
+``` 
+
+
+
+
