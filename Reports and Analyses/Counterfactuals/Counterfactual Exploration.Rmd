@@ -1,26 +1,13 @@
 ---
-title: "Comparing predictions with and without test scores"
+title: "Counterfactual Exploration"
 author: "Bill Prisbrey"
-date: "2025-11-22"
-output:
-  html_document:
-    keep_md: true
-    toc: true
+date: "2025-11-24"
+output: html_document
 ---
 
-***PURPOSE:*** This document compares vH2 and vK0 for the year 2024. 
+## PURPOSE: 
 
-# EXECUTIVE SUMMARY
-
-In order to minimize errors, the models tend to select the middle ground. 
-
-Because actual performance data is heavily skewed towards the top, the models' tendency to populate the center results in under-prediction. 
-
-Adding test scores improves the prediction.  Test score submitters also perform better, pushing their curve to the right.
-
-Neither model really predicts failures, or admissions standards are aligned with grading standards.  (There aren't easily predicted failuress.) Something else is driving the failures. 
-
-I'd like to see the density curves for score-submitters and non-score submitters.  
+The purpose of this report is to experiment with counter-factuals by examining the predictions for grades of all courses using a couple of models (vH2 (test scores) and vK0 (no test scores).)
 
 
 ```{r include=FALSE}
@@ -353,40 +340,12 @@ aligned_vK0 <- alignPrediction(prediction_list = predictions_over_time[["GRADEGP
 
 ``` 
 
-
-```{r eval=FALSE}
-
-
-
-#predictionMap(data = aligned_vK0[["2024"]] |>
-#                (\(x){x$ACTMATH <- 21; return(x)})(), 
-#              plot_title = "Title goes here")
-
-
-predictionHistogram(data = aligned_vK0[["2024"]],
-                    show = "actual",
-                    cap = FALSE,
-                    hist_params = list(freq = TRUE)
-              )
-
-# maybe I make a heatmap of predicted GPA vs actual GPA?
-
-# not a clue what Claude is telling me:
-
-# ggplot(aligned_vK0[["2024"]], aes(x = HSGPA, y = GRADEGPA, color = GRADEGPA)) +
-#    geom_line(linewidth = 2) +
-#    scale_color_gradient2(low = "firebrick", mid = "goldenrod", high = "dodgerblue",
-#                          midpoint = 2.0)
-
-
-``` 
+# Combine predictions
 
 
 ```{r}
 
-# man, now what do I do
-
-# I guess I can calculate a diff between predictions
+# Combine predictions
 
 merge_columns <- colnames(aligned_vK0[["2024"]]) |>
   (\(x){x[-which(x %in% c("pred", "ACT_submit", "SAT_submit"))]})()
@@ -401,146 +360,149 @@ colnames(aligned_comb)[colnames(aligned_comb) %in% c("pred.y")] <- "pred.vH2"
 
 ```
 
-# Histograms
-
-```{r fig.height=7, fig.width=7}
-
-# Don't spend too much time on this!
-# Use the density plots instead
-
-par(mfrow=c(3,1), mar = c(2,4,4,1), oma = c(0,0,2,0), bg = "ivory")
-hist(aligned_comb$GRADEGPA, 
-     main = "Actual math grades",
-     xlab = "GPA",
-     col = "lavender")
-hist(aligned_comb$pred.vK0,
-     main = "Predicted math grades without using test scores",
-     xlab = "Predicted GPA",
-     col = "aliceblue")
-hist(aligned_comb$pred.vH2,
-     main = "Predicted math grades using test scores",
-     xlab = "Predicted GPA",
-     col = "mistyrose")
-mtext(side= 3,"Comparing actual and predictions", line = 0.59, cex = 1.5, font =2, outer = TRUE)
-
-```
 
 
-# Density plots
+# Develop predictions for all courses
 
 ```{r}
 
-# Create density objects
-dens_actual <- density(aligned_comb$GRADEGPA, na.rm = TRUE)
-dens_no_test <- density(aligned_comb$pred.vK0, na.rm = TRUE)
-dens_with_test <- density(aligned_comb$pred.vH2, na.rm = TRUE)
+############################################
+## CREATE 'TESTING GROUND' COUNTERFACTUAL ##
+############################################
 
-# Plot
-plot(dens_actual, 
-     col = "purple4", #  "mediumpurple", 
-     lwd = 2,
-     main = "Comparing actual and predictions",
-     xlab = "GPA",
-     ylab = "Density",
-     xlim = range(c(dens_actual$x, dens_no_test$x, dens_with_test$x)))
+testingGround <- aligned_comb[,-which(colnames(aligned_comb) %in% c("pred.vK0","pred.vH2"))]
+testingGround$unid <- 10001:(10000+nrow(testingGround))
 
-lines(dens_no_test, 
-      col =  "dodgerblue3", #"steelblue", 
-      lwd = 2)
+courseGrid <- expand.grid(testingGround$unid, unique(testingGround$course))
 
-lines(dens_with_test, 
-      col = "indianred3",# "coral", 
-      lwd = 2)
+testingGround <- merge(testingGround, courseGrid, by.x = "unid", by.y="Var1", all = TRUE)
+names(testingGround)[names(testingGround) == "course"] <- "course_orig"
+names(testingGround)[names(testingGround) == "Var2"] <- "course"
 
-legend("topleft", 
-       legend = c("Actual grades", 
-                  "Predicted (no test scores)", 
-                  "Predicted (with test scores)"),
-       col = c("purple4", "dodgerblue3", "indianred3"),
-       #col = c("mediumpurple", "steelblue", "coral"),
-       lwd = 2.3,
-       bty = "n")
+## PREDICTIONS ##
+
+testingGround$pred.vH2[!is.na(testingGround$ACTMATH)] <- predict(vH2_model_list[["GRADEGPA"]], testingGround[!is.na(testingGround$ACTMATH) ,-which(colnames(testingGround) %in% c("unid","course_orig"))])
+
+testingGround$pred.vK0 <- predict(vK0_model_list[["GRADEGPA"]][["2024"]],                                  testingGround[,-which(colnames(testingGround) %in% c("unid","course_orig"))])
+
+
+testingGround$course <- factor(testingGround$course)
 
 ```
 
 
-# Comparison heatmap
+Looking at the counterfactuals---
+like, should I focus on the counterfactuals for the lowest grades?  See if there was a course that would have put them over the line?
+
+Should I look at lowest actual grades? Largest differences between predictions?  
+
+Lowest predictions?  Best grades despite lowest predictions?  
 
 ```{r}
 
+# Lowest actual
 
-ggplot(aligned_comb, aes(x = pred.vH2, y = pred.vK0)) +
-    geom_hex(bins = 30) +
-    scale_fill_gradientn(colors = c("lightblue", "yellow", "orange", "red"),
-                         name = "Count") +
-    theme_minimal() +
-    labs(
-      title = "Prediction alignment",
-      x = "with test scores", 
-      y = "w/o test scores")
+bottomQuarter <-   testingGround$unid[testingGround$GRADEGPA < quantile(testingGround$GRADEGPA, 0.25)]
 
+lowSample <- sample(bottomQuarter, 1)
 
-```
+displayCourseAlternatives(data = testingGround,
+                          unid = lowSample)
 
-# Differences
+# This is fun, but, like, also not that interesting.
 
-```{r fig.height=7, fig.width=7}
+lowPrediction <- testingGround$unid[testingGround$pred.vH2 <= 1.3 & !is.na(testingGround$pred.vH2)] |> unique()
 
+displaySample <- sample(lowPrediction,1)
+displayCourseAlternatives(data = testingGround,
+                          unid = displaySample)
 
-par(mfrow = c(3,1), bg = "ivory")
+# so, like ---
+# maybe it's the ranking not the absolute (?)
+# maybe it's just -not- about the course selection
 
-hist(aligned_comb$pred.vK0 - aligned_comb$GRADEGPA,
-     col = "lavender",
-     main = "Prediction and actual difference\n(without test scores minus grade)")
+# and let's look at the linear model
 
-hist(aligned_comb$pred.vH2 - aligned_comb$GRADEGPA,
-     col = "aliceblue",
-     main = "Prediction and actual difference difference\n(with test scores minus grade)")
-
-hist(aligned_comb$pred.vK0 - aligned_comb$pred.vH2,
-     col = "goldenrod1",
-     main = "Prediction difference\n(without test scores minus with test scores)")
-
-```
+# is the ranking the same for everyone?
 
 
-# Box plots
+aggregate(pred.vH2 ~ unid + course, 
+          data = testingGround,
+          rank
+          ) |> 
+  (\(x){ 
+  aggregate(pred.vH2 ~ course, data = x, mean)
+})()
 
-```{r}
 
-par(mfrow=c(2,1), mar = c(2,4,2,1), oma = c(0,0,2,0), bg = "ivory")
+testingGround$pred_rank <- ave(testingGround$pred.vH2,                          testingGround$unid, 
+    FUN = rank)
 
-boxplot(pred.vK0 ~ GRADEGPA, 
-        data = aligned_comb, 
-        col = "aliceblue",
-        main = "Predicted math grades without using test scores")
+courseRank <- aggregate(pred_rank ~ course, data = testingGround, mean)
 
-boxplot(pred.vH2 ~ GRADEGPA, 
-        data = aligned_comb, 
-        col = "mistyrose",
-        main = "Predicted math grades using test scores")
+courseRankStDev <- aggregate(pred_rank ~ course, data = testingGround, sd)
 
-mtext(side= 3,"Comparing actual and predictions", line = 0.59, cex = 1.5, font =2, outer = TRUE)
+# Merge them
+plot_data <- merge(courseRank, courseRankStDev, by = "course", suffixes = c("_mean", "_sd"))
+
+# Create the plot
+n_courses <- nrow(plot_data)
+
+par(mar = c(3,6,2,1), bg = "bisque")
+plot(x = plot_data$pred_rank_mean,
+     y = 1:n_courses,
+     xlim = range(c(plot_data$pred_rank_mean - plot_data$pred_rank_sd,
+                    plot_data$pred_rank_mean + plot_data$pred_rank_sd)),
+     ylim = c(1, n_courses),
+     pch = 19,
+     col = "dodgerblue2",
+     xlab = "Average Rank",
+     ylab = "",
+     yaxt = "n")
+
+# Add y-axis labels
+axis(2, at = 1:n_courses, labels = plot_data$course, las = 1)
+
+# Add error bars (mean ± 1 SD)
+arrows(x0 = plot_data$pred_rank_mean - plot_data$pred_rank_sd,
+       y0 = 1:n_courses,
+       x1 = plot_data$pred_rank_mean + plot_data$pred_rank_sd,
+       y1 = 1:n_courses,
+       angle = 90,
+       code = 3,  # arrows on both ends
+       length = 0.05,
+       col = "dodgerblue2")
+
+segments(x0 = plot_data$pred_rank_mean - plot_data$pred_rank_sd,
+         y0 = 1:n_courses,
+         x1 = plot_data$pred_rank_mean + plot_data$pred_rank_sd,
+         y1 = 1:n_courses,
+         col = "gray60",
+         lwd = 2)
+
+points(x = plot_data$pred_rank_mean,
+       y = 1:n_courses,
+       pch = 19,
+       col = "dodgerblue2",
+       cex = 1.5)
 
 ``` 
 
+Wow, so these really are mixed up according to the individual.   That makes me feel better, that the model is actually doing something.  
+
+And, like --- how much of a difference is it?  How big of a difference would it have made? How much should I read into 0.05 GPA prediction difference?
+
+Math 1210, Math 1050 -- why does it swing so much? 
+
+For whom is 1210 high, and for whom is 1210 low?  What differentiates them?
+
+Is that an invitation to do another ML model to differentiate them?  Would it give me new information?
+
+Or should I just start using SHAP values? 
 
 
-# Confusion matrix
 
-```{r}
 
-# let's do the CM thing
-
-createCM(aligned_vH2[["GRADEGPA"]], cuts = c(0,2.4,4)) |> drawCM(title = "With test scores")
-
-createCM(aligned_vK0[["2024"]], cuts = c(0,2.4,4)) |> drawCM(title = "Without test scores")
-
-createCM(aligned_vH2[["GRADEGPA"]], cuts = c(0,2.4,3.7,4)) |> drawCM(title = "With test scores")
-
-createCM(aligned_vK0[["2024"]], cuts = c(0,2.4,3.7,4)) |> drawCM(title = "Without test scores")
-
-```
 
 
 

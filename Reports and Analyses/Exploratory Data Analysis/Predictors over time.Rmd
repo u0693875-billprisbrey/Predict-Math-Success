@@ -1004,8 +1004,16 @@ overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", a
 
 Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
+```{r}
 
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
+         variable = "GRADEGPA",
+         agg = median,
+         by = "course")
 
+```
+
+Grade inflation isn't discovered. 
 
 ```{r eval = FALSE}
 
@@ -1121,13 +1129,15 @@ mtext(side = 3,
       font = 3,
       cex = subCex)
 mtext(side = 2,
-      text = "ACT Math",
+      text = "GPA",
       line = 2,
       cex = yCex
       )
 
 
 ```
+
+
 
 
 

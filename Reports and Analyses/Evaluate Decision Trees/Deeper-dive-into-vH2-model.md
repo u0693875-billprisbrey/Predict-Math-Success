@@ -1,6 +1,6 @@
 ---
 title: "Deeper dive into vH2 model"
-date: "November 22, 2025"
+date: "November 24, 2025"
 params: 
   version: "vH2"
   target_classes: 
