@@ -3,16 +3,29 @@
 # PURPOSE:  Develop a simple line plot that shows the values of various predictors over time.
 # Taken from "Predictors over time" report. 
 
-overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",], 
+overTime <- function(data, 
                      title = NA,
                      variable = "ACTMATH",
                      by = "course",
                      agg = median, 
                      featureMap = NA,
                      showOther = TRUE,
+                     par_list = list(),
                      plot_params_list = list(),
                      legend_params_list = list(),
                      ...){
+  
+  # This accepts data, a variable to aggregate, a variable to aggregate by,
+  # and an aggregation method.
+  
+  # Then it produces a line plot, one point per year.
+  
+  # I'd like to make a plotly version.  
+  
+  # I'd like to expand it to accept a vector of multiple "by" arguments
+  
+  # where data is suggested as cleanData[cleanData$vol_cluster == "hi_vol",]
+  
   
   if(is.na(title)){
     
@@ -52,15 +65,15 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",],
                                         "plum3",           
                                         "darkseagreen4",   
                                         "burlywood3")[1:length(unique(data[,by]))],
-                              by = unique(data[,by]),
-                              lty = rep(1, length(unique(data[,by]))) ,
-                              lwd = rep(3, length(unique(data[,by])))
+                             by = unique(data[,by]),
+                             lty = rep(1, length(unique(data[,by]))) ,
+                             lwd = rep(3, length(unique(data[,by])))
                              
-                             )
+    )
     
   }
-
-
+  
+  
   
   
   if(by == "course" & showOther){
@@ -72,13 +85,17 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",],
                                                lty = 6,
                                                course = "other",
                                                lwd = 4
-                                               ))
+    ))
   }
   
   
-  plot_params_default <- list(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))  
-  plot_params_list <- modifyList(plot_params_default, plot_params_list)
-  do.call(par, plot_params_list)
+  incoming.par <- par(mar = c(0,3,3,7), oma = c(4,2,0,0))
+  on.exit(par(incoming.par))
+  
+  par_default <- list(mfrow=c(1,1), mar = c(0,3,3,7), oma = c(4,2,0,0))  
+  par_list <- modifyList(par_default, par_list)
+  do.call(par, par_list)
+  
   
   # Build formula dynamically
   by_vars <- paste(by, collapse = " + ")
@@ -90,7 +107,7 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",],
   
   # merge 
   if(by == "course") {
-  theAgg <- merge(theAgg, featureMap, by = "course", all.x = TRUE)
+    theAgg <- merge(theAgg, featureMap, by = "course", all.x = TRUE)
   } else {
     theAgg <- merge(theAgg, featureMap, by.x = by, by.y = "by", all.x = TRUE)
   }
@@ -102,31 +119,47 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",],
   # Erase features not specified in the featureMap
   theAgg <- theAgg[complete.cases(theAgg),]
   
-  plot(median(theAgg[,3]),
-       xlim = range(theAgg[,2]),
-       ylim = range(theAgg[,3]), 
-       xlab = "",
-       ylab = "",
-       xaxt = "n",
-       # yaxt = "n",
-       type = "n",
-       las = 2,
-       main = title
+  plot_params_default <- list(
+    x = median(theAgg[,3]),
+    xlim = range(theAgg[,2]),
+    ylim = range(theAgg[,3]), 
+    xlab = "",
+    ylab = "",
+    xaxt = "n",
+    # yaxt = "n",
+    type = "n",
+    las = 2,
+    main = title
   )
+ 
+  plot_params_list <- modifyList(plot_params_default, plot_params_list)
+  do.call(plot, plot_params_list)
+   
+#  plot(median(theAgg[,3]),
+#       xlim = range(theAgg[,2]),
+#       ylim = range(theAgg[,3]), 
+#       xlab = "",
+#       ylab = "",
+#       xaxt = "n",
+#       # yaxt = "n",
+#       type = "n",
+#       las = 2,
+#       main = title
+#  )
   
   if(by == "course") {
-  lapply(unique(theAgg$course), function(crse){
-    
-    filter <- theAgg[,1] == crse
-    
-    lines(y = theAgg[,3][filter],
-          x = theAgg[,2][filter],
-          col = theAgg[filter,"color"],
-          lwd = theAgg[filter,"lwd"],
-          lty = theAgg[filter,"lty"],
-    )
-    
-  })
+    lapply(unique(theAgg$course), function(crse){
+      
+      filter <- theAgg[,1] == crse
+      
+      lines(y = theAgg[,3][filter],
+            x = theAgg[,2][filter],
+            col = theAgg[filter,"color"],
+            lwd = theAgg[filter,"lwd"],
+            lty = theAgg[filter,"lty"],
+      )
+      
+    })
   } else {
     lapply(unique(theAgg[,by]), function(by_value){
       
@@ -150,16 +183,16 @@ overTime <- function(data = cleanData[cleanData$vol_cluster == "hi_vol",],
   )
   
   if(by == "course") {
-  
-  forLegend <- unique(theAgg[,c("course", "color", "lwd", "lty")])
-  legend_params_default <- list(x = "topright",
-                                legend = gsub("MATH_","",forLegend[,"course"]),
-                                lty = forLegend[,"lty"],
-                                lwd = forLegend[,"lwd"],
-                                col = forLegend[,"color"],
-                                xpd = TRUE,
-                                inset = c(-0.15,0)
-  )
+    
+    forLegend <- unique(theAgg[,c("course", "color", "lwd", "lty")])
+    legend_params_default <- list(x = "topright",
+                                  legend = gsub("MATH_","",forLegend[,"course"]),
+                                  lty = forLegend[,"lty"],
+                                  lwd = forLegend[,"lwd"],
+                                  col = forLegend[,"color"],
+                                  xpd = TRUE,
+                                  inset = c(-0.15,0)
+    )
   } else {
     forLegend <- unique(theAgg[,c(by, "color", "lwd", "lty")])
     legend_params_default <- list(x = "topright",

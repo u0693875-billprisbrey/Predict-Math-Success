@@ -1004,6 +1004,44 @@ overTime(data=cleanData[remove2025,], variable = "GRADEGPA", by = "submitted", a
 
 Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
+### *The median math grade fluctuates over time without a clear trend, while above-median grades shift higher:  the 70th percentile shifts from a B+ to an A in 2015.*  
+
+
+```{r}
+
+
+overTime(data = cleanData[remove2025,],
+         variable = "GRADEGPA",
+         agg = function(x) {quantile(x,0.5)},
+         by = "all",
+         title = "Median math grade for all math courses")
+
+overTime(data = cleanData[remove2025,],
+         variable = "GRADEGPA",
+         agg = function(x) {quantile(x,0.7)},
+         by = "all",
+         title = "70th percentile math grade for all math courses")
+```
+
+
+```{r}
+
+overTime(data = cleanData[remove2025,],
+         variable = "GRADEGPA",
+         agg = function(x) {quantile(x,0.5)},
+         by = "vol_cluster",
+         title = "Median math grade by volume cluster")
+
+overTime(data = cleanData[remove2025,],
+         variable = "GRADEGPA",
+         agg = function(x) {quantile(x,0.6)},
+         by = "vol_cluster",
+         title = "60th percentile math grade by volume cluster")
+
+```
+
+Low-volume classes have maintained a higher median GPA than high-volume classes, and seem to have recently stabilized at their twenty-year high.  
+
 ```{r}
 
 overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
@@ -1011,9 +1049,15 @@ overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
          agg = median,
          by = "course")
 
+
+overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,],
+         variable = "GRADEGPA",
+         agg = median,
+         by = "course")
+
 ```
 
-Grade inflation isn't discovered. 
+Math 1090 peaked with a median grade of 4.0 in 2020. 
 
 ```{r eval = FALSE}
 
@@ -1062,11 +1106,11 @@ mtext(side = 3,
       font = 2,
       cex = mainCex
       )
-mtext(side = 3, 
-      text = "Courses are distinguished by ACT math scores with heavy overlap.", 
-      line = 1.2, 
-      font = 3,
-      cex = subCex)
+# mtext(side = 3, 
+#      text = "Courses are distinguished by ACT math scores with heavy overlap.", 
+#      line = 1.2, 
+#      font = 3,
+#      cex = subCex)
 mtext(side = 2,
       text = "ACT Math",
       line = 2,
