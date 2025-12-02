@@ -1089,9 +1089,12 @@ overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
 
 ```
 
+
+```{r fig.height=9, eval=FALSE}
+
 ### ACT math scores per course over time
 
-```{r fig.height=9}
+# This graphic is simply wrong
 
 par(mfrow=c(5,1), mar = c(0,3,3,1), oma = c(4,2,0,0))
 
@@ -1118,7 +1121,36 @@ mtext(text = "ACT math score", side = 2, line = 0.25, outer = TRUE)
 
 ```
 
+# High school GPA
+### *Interpret the graphics* 
 
+```{r}
+
+overTime(data = cleanData[remove2025,],
+         variable = "HSGPA",
+         agg = median,
+         by = "all",
+         title = "Median high school GPA for all math courses")
+
+overTime(data = cleanData[remove2025,],
+         variable = "HSGPA",
+         agg = median,
+         by = "vol_cluster",
+         title = "Median high school GPA by volume cluster")
+
+overTime(data = cleanData[cleanData$vol_cluster == "hi_vol" & remove2025,],
+         variable = "HSGPA",
+         agg = median,
+         by = "course",
+         title = "Median high school GPA by course")
+
+overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,],
+         variable = "HSGPA",
+         agg = median,
+         by = "course",
+         title = "Median high school GPA by course")
+
+```
 
 # Math grades 
 ### *The median math grade fluctuates over time without a clear trend, while above-median grades shift higher:  the 70th percentile shifts from a B+ to an A in 2015.*  
@@ -1137,8 +1169,10 @@ overTime(data = cleanData[remove2025,],
          agg = function(x) {quantile(x,0.7)},
          by = "all",
          title = "70th percentile math grade for all math courses")
+
 ```
 
+### *Low-volume classes have maintained a higher median GPA than high-volume classes, and seem to have recently stabilized at their twenty-year high.* 
 
 ```{r}
 
@@ -1148,15 +1182,14 @@ overTime(data = cleanData[remove2025,],
          by = "vol_cluster",
          title = "Median math grade by volume cluster")
 
-overTime(data = cleanData[remove2025,],
-         variable = "GRADEGPA",
-         agg = function(x) {quantile(x,0.6)},
-         by = "vol_cluster",
-         title = "60th percentile math grade by volume cluster")
+# overTime(data = cleanData[remove2025,],
+#         variable = "GRADEGPA",
+#         agg = function(x) {quantile(x,0.6)},
+#         by = "vol_cluster",
+#         title = "60th percentile math grade by volume cluster")
 
 ```
 
-Low-volume classes have maintained a higher median GPA than high-volume classes, and seem to have recently stabilized at their twenty-year high.  
 
 ```{r}
 
@@ -1173,8 +1206,9 @@ overTime(data = cleanData[cleanData$vol_cluster == "low_vol" & remove2025,],
 
 ```
 
-Math 1090 peaked with a median grade of 4.0 in 2020. 
-
+Math 1090 peaked with a median grade of 4.0 in 2020.
+ 
+### *Courses are not distinguished by grade distribution.*   
 
 
 ```{r}
@@ -1200,11 +1234,11 @@ mtext(side = 3,
       font = 2,
       cex = mainCex
       )
-mtext(side = 3, 
-      text = "Courses are not distinguished by grade distribution.", 
-      line = 1.2, 
-      font = 3,
-      cex = subCex)
+# mtext(side = 3, 
+#      text = "Courses are not distinguished by grade distribution.", 
+#      line = 1.2, 
+#      font = 3,
+#      cex = subCex)
 mtext(side = 2,
       text = "GPA",
       line = 2,
