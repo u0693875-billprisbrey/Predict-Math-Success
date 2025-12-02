@@ -90,21 +90,31 @@ Test score submitters' median AP credit was three credits higher than non-test s
 
 Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+### *The median math grade fluctuates over time without a clear trend, while above-median grades shift higher:  the 70th percentile shifts from a B+ to an A in 2015.*  
 
-Grade inflation isn't discovered. 
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
+
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-2.png)<!-- -->
+
+Low-volume classes have maintained a higher median GPA than high-volume classes, and seem to have recently stabilized at their twenty-year high.  
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-2.png)<!-- -->
+
+Math 1090 peaked with a median grade of 4.0 in 2020. 
 
 
 
 ###  *Courses are distinguished by ACT math scores with heavy overlap.*
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
-
-![](Predictors-over-time_files/figure-html/unnamed-chunk-21-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-21-2.png)<!-- -->
-
-
-
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-23-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-23-2.png)<!-- -->
+
+
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
 
 
 
@@ -164,7 +174,7 @@ STARTING DESCRIPTIVES
 
 ### ACT math scores per course over time
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
 
 
 
