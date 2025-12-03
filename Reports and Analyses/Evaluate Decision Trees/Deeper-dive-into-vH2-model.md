@@ -1,6 +1,6 @@
 ---
 title: "Deeper dive into vH2 model"
-date: "November 24, 2025"
+date: "December 02, 2025"
 params: 
   version: "vH2"
   target_classes: 
@@ -12,20 +12,38 @@ output:
 ---
 
 
-**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It performs with an r-squared value of 0.28.  Various aspects of the model prediction and actual performance are visualized and compared.  
-
-
-I have all these nice graphs but no words.  
-
-So here are some words.
-
-I need an outline that includes "METHOD"
+**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It performs with an r-squared value of 0.26.  Various aspects of the model prediction and actual performance are visualized and compared.  
 
 EXECUTIVE SUMMARY
 
 METHODOLOGY
 
-DISCUSSION
+To be copied from elsewhere.  
+Importantly, 'W' or "withdraw" is removed from this analysis. 
+
+DISCUSSION  
+
+*ACCURACY*  
+
+Predicting GPA directly performs with an R-squared value of 0.26.  Lumping the grades together into four bins, and predicting these bins, results in an R-squared value of 0.28.  Due to the similarity in performance, and a preference for the increased detail, this report focuses on the model that predicted grades directly.  
+
+As far as distinguishing a binary grouping between "high" and "low", the model had an optimum Kappa of 0.39 at a cut-off value of predicting a GPA of 2.4 or less.  This draws a dividing line between a C+ and a B-, and identified "low" performers with 0.47 precision and 0.67 recall.  These "low" performers [[find out how they actually did, and shouldn't your histogram show that?]]
+
+*PREDICTABLY FAILED*  
+
+The model can identify a few students who were not expected to pass their first math class, and indeed did fail it, with good precision.  Due to their predictable failure, these students might be considered admissions mistakes, or are candidates for having their admissions determination reviewed.  
+
+However, very few students are in this category.  The model predicted only 17 students would score 1.1 or less, and 11 of the students (65% precision) did indeed score 1.1 or less.  (Of the remaining six, one student scored 1.7, one student achieved a 4.0, and the remaining scored between a 2.0 and a 3.0.)  This very low number of students represented a recall metric of only 0.054.
+
+A few conclusions can be drawn from this good-precision/low-recall result:  
+
+  * That math grading practices are not mis-aligned with admissions standards.  (If they were mis-aligned, there would be more students expected to fail and the recall metric would be higher.)  
+  * That practically every student admitted in 2024 was reasonably expected to pass a math class.   
+  * That variables outside of information available upon admission is predicting or determining or causing math class failures.  This could include things like the number of credits taken, or a "poisonous" combination of difficult classes, or a mid-semester move.  It would be interesting to open up the class information to determine how quickly eventual failures can be identified. For example, to see if the first week's homework results or the first test's grade is highly predictive. 
+
+
+
+  
 
 NEXT STEPS
 
@@ -33,7 +51,7 @@ RESULTS
 
 What this report shows:
 
-- There are a handful of students who predictably failed (with high precision.)  This could suggest: 
+- There are a handful of students who predictably failed (with good precision.)  This could suggest: 
   - That these students shouldn't have been admitted and constitute an admissions mistake.  (If we knew they had a high chance of failure, should we have admitted them?)    
   - That the very small number of students in this category suggests that we don't have a large admissions failure.   
   
@@ -101,10 +119,6 @@ I'll polish up this report a little more before adding that.
 
 
 
-```
-## [1] "GRADEGPA"
-## [1] "grade_quad"
-```
 
 ### Models  
 
@@ -238,7 +252,7 @@ I'll polish up this report a little more before adding that.
 
 ![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-10-1.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-10-2.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-10-3.png)<!-- -->![](Deeper-dive-into-vH2-model_files/figure-html/unnamed-chunk-10-4.png)<!-- -->
 
-Examining the precision for predictions of grades <1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
+Examining the precision for predictions of grades <1.1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
 
 
 
