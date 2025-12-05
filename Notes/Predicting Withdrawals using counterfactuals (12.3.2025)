@@ -1,0 +1,111 @@
+Examining Withdrawals
+Using counterfactual rankings in a predictive model
+
+How I would do this:
+- I already have an iteratively trained annual model.
+- Use it to predict the next year's grades, including the "W"
+- Train a new model with that predicted grade, focusing on the "W"
+- Of course, train a model without the expected grade.
+
+- More ideas:  
+  - For all of the W's, examine the counterfactuals and see if there was an easier course
+  - Maybe there's some clever matching I can do with this, to see if there is a course recommendation
+  - It looks like the course level is a rough approximation for course difficulty.  
+     I could create my own "difficulty" ranking based on median incoming ACT, HSGPA, and outgoing grade
+     I guess that would be my recommendation, or rough guideline
+     I'd just cluster at this point I think
+     There's probably some 'matching' to use as well
+  - 
+
+
+
+Conversation with Claude, 12.3.2025:
+
+PREDICTING WITHDRAWALS USING COURSE DIFFICULTY RANKING: 
+
+This will probably be quicker to attempt than to ask you, but hey I'll ask you.
+
+So I am predicting math grades based on the previous 20 years of data.
+
+I clean out the grade of "W" or "withdraw."  Or, I filter these out or remove them.
+
+I create a model using xgboost.
+
+"Course" is a variable (Math 1050 or Math 1210, etc.)
+
+So I create the counterfactual of the expected grade for all of the classes, and then I rank them.
+
+Next -- this is the new step --
+
+I'd like to use that ranking and go back and create a new model.  
+
+This new model is meant to detect the "W" or "withdraw" (no grade assigned.)  
+
+It has the "W" grade restored.  
+
+It has all of the information used to train the first model.  
+
+AND it has the course ranking from the counterfactual.
+
+Is this a valid approach?  Could you comment on it?
+
+==============
+== THINKING ==
+==============
+
+Weighed validity of two-stage modeling approach against selection bias concerns.
+
+Bill is asking about a two-stage modeling approach for predicting student outcomes in math courses. 
+
+Let me break down what he's proposing: 
+
+Stage 1:
+
+Remove students who withdrew (grade "W")
+Build an XGBoost model to predict grades for students who completed courses
+Use this model to generate counterfactual predictions: "what grade would each student get in each possible course?"
+Rank courses for each student based on these predictions
+
+Stage 2:
+
+Build a second model to predict withdrawal (W vs. not-W)
+Include the same features as the first model
+PLUS add the course ranking from the counterfactual predictions
+
+He's asking if this is valid. Let me think through the issues:
+Potential concerns:
+
+Data leakage - The course ranking is derived from a model trained on completion data. When you use it to predict withdrawal, you're essentially using information about "how well students who didn't withdraw did in these courses" to predict withdrawal. This could be problematic if the ranking captures information that wouldn't be available at the time of prediction.
+Causal reasoning - Is he trying to say "students are more likely to withdraw from courses where they would have gotten lower grades"? That seems reasonable, but there's circularity here. The ranking is based on predicted grades, which are based on students who completed. Students who withdraw might have very different characteristics.
+Selection bias - The first model is trained only on completers. The counterfactual predictions for withdrawers might be systematically biased because withdrawers are a selected sample (they chose to withdraw, likely for reasons correlated with expected performance).
+Temporal validity - In a real prediction scenario, would you have access to these rankings at the time you need to predict withdrawal? If you're trying to predict whether a student will withdraw early in the semester, you wouldn't yet know their counterfactual grade rankings.
+
+Potential benefits:
+
+The ranking might capture useful information about "course difficulty" or "student-course fit" that isn't captured by other features
+It could help identify students at risk in challenging courses
+The approach offers a creative way to incorporate predictive insights across models
+
+The key considerations involve understanding the model's purpose, temporal constraints, and potential predictive biases. Careful validation and cross-checking would be crucial to ensure the approach provides meaningful insights without introducing statistical artifacts.
+
+==============
+== RESPONSE ==
+==============
+
+This is a clever two-stage approach, but whether it's valid depends on what you're trying to accomplish. Let me walk through the concerns:
+The main conceptual issue: Target leakage
+Your course rankings come from a model trained on completers only. When you use these rankings to predict withdrawal, you're essentially saying: "I'll predict withdrawal based on how well students who didn't withdraw performed in these courses."
+This creates a subtle circularity: withdrawers are likely systematically different from completers (that's why they withdrew), so the counterfactual grades you're predicting for them might be systematically biased.
+When this might still be reasonable:
+
+Descriptive analysis: If you're trying to understand "Do students tend to withdraw from courses where they would have performed poorly?", this is a valid exploratory approach. You're testing a hypothesis about selection.
+Course difficulty proxy: If you think the ranking captures something about student-course fit that your other features don't (like "this student would struggle in proof-based courses"), it could add predictive value despite the leakage concern.
+Late-semester prediction: If you're predicting withdrawal late in the semester when you have midterm grades or other performance indicators, the leakage is less problematic because you have contemporaneous performance data.
+
+Alternative approaches to consider:
+
+Instead of individual counterfactual rankings, use course-level difficulty measures (average grade, withdrawal rate, etc.)
+Include "distance from typical successful student profile" for each course
+Use the first model's predicted grade directly as a feature (rather than just the ranking)
+
+What's your use case - is this for recommending courses to reduce withdrawals, or for understanding withdrawal patterns?

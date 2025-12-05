@@ -1,0 +1,274 @@
+---
+title: "Withdraw models and notes"
+author: "Bill Prisbrey"
+date: "2025-12-04"
+output: html_document
+---
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(kableExtra)
+library(patchwork)
+library(ggplot2)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+vA0_data <- readRDS(here::here("Data", "Decision Tree vA0 wdraw_binary Data.rds"))
+
+vH2_model <- readRDS(here::here("Models", "Decision Tree vH2 GRADEGPA model.rds"))
+
+vD0_data <- readRDS(here::here("Data", "Decision Tree vD0 wdraw_binary Data.rds"))
+
+```
+
+
+**PURPOSE:** *The purpose of this report is to track the different withdrawal models.*
+
+```{r}
+
+wDraw_frame <- data.frame(version = c("vA0", "vB0", "vC0", "vD0" ),
+                          description = c("Admissions data","Adds credit load","Adds GPA prediction", "Rolling GPA prediction" ),
+                          Kappa = c(0.025, 0.037, 0.029, 0.016),
+                          notes = c("'propensity to withdraw' is not in admit data", "suggests concurrent information is more important", "'pred' is new top variable; suggests data leak", "rolling prediction eliminates leak; still no accuracy" )
+                          ) 
+
+
+``` 
+
+# 
+
+```{r}
+
+library(kableExtra)
+
+wDraw_frame |>
+  kbl(align = c("c", "l", "c", "l"),  # center short cols, left-align text
+      col.names = c("", "Description", "Kappa", "Notes")) |>  # adjust as needed
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE) |>
+  column_spec(2, bold = TRUE) |>  # make phrase column bold
+  column_spec(4, width = "40em")  # control sentence column width
+
+```
+
+# Discussion  
+
+Kappa values of <0.05 suggest that the propensity to withdraw is simply not found in data available at the time of admission.  In other words, the ACT test doesn't have a 'propensity to withdraw' section.
+
+Adding the concurrent credit load improved the Kappa.  It's so low it might just be random noise.  Or, it might be a suggestion that concurrent, contemporaneous, or situational information might be more predictive of a withdraw than admit-level data.  
+
+Adding the GPA prediction resulted in that prediction becoming the new top variable, but the accuracy dropped.  Again, the values are so low it could just be noise.  Or, it could be a data leak in that I applied the prediction to the same data that I trained on.  
+
+Substituting a rolling GPA prediction to eliminate a data leak resulted in an even lower Kappa.  (However, a closer investigation revealed a discontinuity between prior years and year 2024.  This was significant at the p<.1 level per a logistic regression model.  This is a whisper that there might be a detectable relationship between 'W' and predicted grades going forward, or it might be more noise.) 
+
+The fact that the admissions data was able to predict grades with some accuracy, but couldn't distinguish withdrawals, suggests that withdraws operate by an entirely different mechanism.  The addition of predicted grades without improving the model adds evidence to this conclusion.  
+
+It is worthy of its own investigation as a separate project to brainstorm drivers and seek new data sets. 
+
+Potential causes and underlying factors of withdrawals may include things like: 
+
+  - *Behavioral tendencies,* where some students have personality traits that might more accurately predict a 'W'.  
+  - *Difficulty adjusting* to university-level studies.  
+  - *Personal preference* for an instructional style or a personality match between instructor and student.  
+  - *Completely external* to the academic experience, such as a medical, family, or financial difficulty.   
+  - *Schedule difficulties* unrelated to academic abilities may precipitate a withdrawal.  
+
+
+New data sets could include:  
+
+  - *Early grades* for homework, quizzes, and tests.  
+  - *Schedule* to determine potential conflicts.  
+  
+
+With the 'admit-level' information used in these models, and the predicted grade in vD0, it does not seem that 'withdraw' students are adjacent to flunking students, or related to the expected grade at all, otherwise the models would be more accurate.   
+
+A few avenues I would like to investigate includes: 
+
+  - *Match:*  Is a student more likely to withdraw from a math course not appropriate to their abilities?  
+    - Use the model to predict an expected grade, and incorporate that as a prediction variable.  Lower expected grades should have higher withdraw rates.  
+    - Develop counterfactuals and rank the courses.  The lower rankings (lower expected GPA) should have higher withdraw rates.  
+    - Develop a 'difficulty' ranking of the courses and use as a predictive variable. 
+    - Use the catalog number itself as a difficulty ranking   
+  - ***Result of investigating match (vD0):*** Version D0 used a rolling prediction of grade based on prior years to avoid a data leak.  Kappa was still very low.  This suggests that withdrawals are unrelated to academic ability and that the alternative approaches described above should be pursued.    
+    - However, it is worth noting that the year 2024 saw an improvement in the relationship to predicted grades to a significance of p < .1.  An investigation of the distribution saw that higher grades were actually more likely to withdraw.   A possible explanation is that in 2024, students who submitted ACT math scores are more elite and therefore more cautious of their grades.  If these students were anticipating a "B" instead of an "A" then they might withdraw.   Or in other words, the behavior of the subset of students used in this model for 2024 actually do have a relationship to predicted grades and are different than the behavior of the general population from years prior.
+  
+Because vD0 failed to improve Kappa, a separate project is suggested.  
+
+# Next steps  
+
+* Abandon using the current approach of admit-level data and pursue a separate project as described above.  
+
+Possible steps if continuing the current approach of using admit- and course- level data:  
+
+  * Create a rolling prediction of GPA values from models trained on the prior data.  ***DONE*** 
+
+  * Rank the counterfactual GPA's per student and use as a variable.   
+
+  * Approximate course difficulty 
+    - With the catalog number 
+    - With a novel approach (by developing the 'gentle guidelines' suggested by the predictive models) 
+  
+# APPENDIX  
+
+### Withdraw is rare or highly imbalanced
+
+```{r}
+
+par(bg = "ivory", mar = c(3,3,2,1))
+do.call(rbind, vA0_data) |>
+  (\(x){table(x[,"wdraw_binary"])})() |>
+  proportions() |>
+  (\(x){
+  thePlot <- barplot(x,
+          col = "aliceblue",
+          las = 1,
+          main = "All years")
+  
+  text(x = thePlot,
+       y = x*c(1.03,1.30),
+       label = paste(round(x,2)*100, "%", sep = ""),
+       xpd = TRUE
+       )
+  })()
+
+```
+
+### Withdraw does not appear related to expected grades
+
+```{r}
+
+vA0_data[["testing"]][["pred"]] <- predict(vH2_model, vA0_data[["testing"]])
+
+vA0_data[["testing"]][["GRADEGPA"]] <- vA0_data[["testing"]][["pred"]]
+
+theData <- vA0_data[["testing"]][,c("HSGPA", "ACTMATH", "pred", "wdraw_binary")]
+
+theData$wdraw_numeric <- ifelse(theData$wdraw_binary == "not_withdraw",0,1)
+
+
+title <- "All courses in year 2024"
+
+  # Plot 1: Median GRADEGPA
+  p1 <- ggplot(theData, aes(x = HSGPA, y = ACTMATH, z = pred)) +
+    stat_summary_hex(fun = median, bins = 30) +
+    scale_fill_gradientn(colors = c("darkblue", "cyan", "yellow", "red"),
+                         name = "Median\nGRADEGPA") +
+    theme_minimal() +
+    labs(
+      x = "HSGPA", 
+      y = "ACTMATH",
+      title = "Predicted Grade")
+  
+  # Plot 2: Withdraw rate per cell
+  p2 <- ggplot(theData, aes(x = HSGPA, y = ACTMATH, z=wdraw_numeric)) +
+    stat_summary_hex(fun = mean, bins = 30) +
+    # geom_hex(bins = 30) +
+    scale_fill_gradientn(colors = c("lightblue", "yellow", "orange", "red"),
+                         name = "W rate") +
+    theme_minimal() +
+    labs(
+      x = "HSGPA", 
+      y = "ACTMATH",
+      title = "Withdraw rate")
+
+  
+    # Plot 3: Withdraw counts per cell
+  p3 <- ggplot(theData, aes(x = HSGPA, y = ACTMATH, z=wdraw_numeric)) +
+    stat_summary_hex(fun = sum, bins = 30) +
+    # geom_hex(bins = 30) +
+    scale_fill_gradientn(colors = c("lightblue", "yellow", "orange", "red"),
+                         name = "W count") +
+    theme_minimal() +
+    labs(
+      x = "HSGPA", 
+      y = "ACTMATH",
+      title = "Withdraw count")
+    
+  # Display both plots side by side
+  (p1 + p3) + 
+    plot_annotation(title = title,
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 14)))
+
+  
+  
+
+```
+
+### Withdraw may be slightly related to expected grades   
+
+```{r}
+
+# data_list[[params$target]][["testing"]]
+
+# Identical distributions means pred is not helpful
+p2 <- ggplot(vD0_data[["testing"]], aes(x = pred, fill = wdraw_binary)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "2024",
+       x = "predicted grade")
+
+p1 <- ggplot(vD0_data[["training"]], aes(x = pred, fill = wdraw_binary)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "<2024",
+       x = "predicted grade")
+
+# Identical distributions means \nwithdrawal is unrelated \nto predicted grade
+
+  # Display both plots side by side
+  (p1 + p2) + 
+    plot_annotation(title = "Possible distribution shift in 2024",
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 14)))
+
+
+```
+
+
+### vA0 predictors
+
+```{r}
+
+colnames(vA0_data[["training"]]) |>
+  (\(x){x[-which("wdraw_binary" %in% x)]})() |>
+  kbl()
+
+```
+
+### vB0 predictors
+
+Add "load" as the number of credits taken 
+
+### vC0 predictors  
+
+Add "pred" as the predicted GPA from a model trained on years less than or equal to 2023, and applied to all years.  
+
+### vD0 predictors  
+
+Substitute "pred" as the predicted GPA from rolling models trained on years prior to the year predicted.  
+

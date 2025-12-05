@@ -1,0 +1,169 @@
+---
+title: "Evaluate Withdraw Decision Trees using `r params$version` models"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params: 
+  version: "vD0"
+  target: 
+    - wdraw_binary
+output:
+  html_document:
+    keep_md: true
+---
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", params$target, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  params$target
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", params$target, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  params$target
+)
+
+```
+
+```{r eval=FALSE}
+
+#################
+## PREDICTIONS ##
+#################
+
+thePredictions <- predict(model_list[[params$target]], data_list[[params$target]][["testing"]])
+
+##############
+## EVALUATE ##
+##############
+
+confusionMatrix(factor(thePredictions), reference = factor(data_list[[params$target]][["testing"]][[params$target]] )) |> drawCM()
+
+```
+
+```{r}
+
+predict(model_list[[params$target]], data_list[[params$target]][["testing"]]) |>
+  (\(x){
+  confusionMatrix(factor(x), 
+                  reference = factor(data_list[[params$target]][["testing"]][[params$target]]),
+                  positive = "withdraw"
+                  )
+})() |>
+  drawCM()
+
+
+```
+
+```{r}
+
+plot(varImp(model_list[[params$target]]),20)
+
+``` 
+
+
+```{r eval=params$version == "vD0"}
+
+# This should only evaluate for the vD0
+# Also see "Decision Tree Withdrawals vD0" for another copy of this.
+
+# data_list[[params$target]][["testing"]]
+
+# Identical distributions means pred is not helpful
+p2 <- ggplot(data_list[[params$target]][["testing"]], aes(x = pred, fill = wdraw_binary)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "2024",
+       x = "predicted grade")
+
+p1 <- ggplot(data_list[[params$target]][["training"]], aes(x = pred, fill = wdraw_binary)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "<2024",
+       x = "predicted grade")
+
+# Identical distributions means \nwithdrawal is unrelated \nto predicted grade
+
+  # Display both plots side by side
+  (p1 + p2) + 
+    plot_annotation(title = "Possible distribution shift in 2024",
+                    theme = theme(plot.title = element_text(hjust = 0.5, size = 14)))
+
+
+
+# Simple logistic regression
+
+print("Logistic regression for years <2024 finds no connection between predicted grade and withdrawal", font=2)
+pData <- data_list[[params$target]][["training"]]
+
+pData$wdraw_numeric <- ifelse(pData$wdraw_binary == "not_withdraw", 0,1)
+simple_model <- glm(wdraw_numeric ~ pred, data = pData, family = "binomial")
+summary(simple_model)
+
+print("Logistic regression for 2024 finds predicted grade significant at p<.1", font=2)
+pData <- data_list[[params$target]][["testing"]]
+
+pData$wdraw_numeric <- ifelse(pData$wdraw_binary == "not_withdraw", 0,1)
+simple_model <- glm(wdraw_numeric ~ pred, data = pData, family = "binomial")
+summary(simple_model)
+
+
+
+# pData <- do.call(rbind, data_list[[params$target]])
+# pData$wdraw_numeric <- ifelse(pData$wdraw_binary == "not_withdraw", 0,1)
+# simple_model <- glm(wdraw_numeric ~ pred + class_year, data = pData, family = "binomial")
+# summary(simple_model)
+
+```
+
+
+```{r}
+
+drawGuide()
+
+``` 
+
+
