@@ -1,0 +1,42 @@
+---
+title: "Withdraw, zero, and low grade models and notes"
+author: "Bill Prisbrey"
+date: "2025-12-05"
+output: html_document
+---
+
+Getting some thoughts down quickly:
+
+"W" has a Kappa of <0.05
+"Zero" has a Kappa of <0.2
+"Low" (filtering out zero and W) has a Kappa of  0.39
+
+What I think this is telling me is that:
+ - "W" has nothing to do with academics, academic ability, or predicted grades.  It's not a grade and should never be treated as one. It's probably about scheduling and personal problems.  
+ - "Zero" is at least a little bit like a grade--- academic predictors can predict zero with some ability.  So there are some people out there who are trying, and get a zero.  That actually doesn't make as much sense to me, because a "W" means "abandon" and a zero typically means "abandon" as well ----- did --NOTHING-- .  So I am surprised a zero is even moderately predictable.
+ - Filter out the W's and the Zeroes, though, and you can differentiate between "Hi" and "Low" (where the dividing line is between a C+ and a B-.)
+    - But didn't I already know that? 
+    - And isn't this Kappa just as good as the one that included the zero's ? 
+    - How is "pred" -not- the most important variable?  
+
+- So what I am saying is that there is a difference between "failed" (D- to C+) and "abandoned" (W or zero.)  And these sh/could get their own models and treatments. 
+
+I think this is a big deal.
+
+What would be nice is to dress up this report a little better. 
+
+Also, shouldn't there be a better way to determine the dividing line between "hi" and "low" other than what I did? 
+I should probably isolate "D" for a fair comparison.  
+
+All this is very nice and I should write it up, but I think I want a change of pace, and then I'll re-visit this.
+
+
+D_binary had a Kappa of 0.211 --- so better than zero but not that great. So maybe "zero" is an accurate grade, which kinda throws out the theory.
+
+I'd do a "C_binary" ... but why?
+
+
+Here's another way to think about this.... ....
+I could look at the <2.4 binary from my regression, and if zero is really not a grade, then I should have low recall for grades of zero in this prediction.  If it is a grade, then I should have decent recall. 
+
+
