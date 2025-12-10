@@ -255,6 +255,8 @@ cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
 cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 cleanData$course <- factor(cleanData$course)
 
+stop("Prep complete")
+
 #################################
 ## DETAILS PER COURSE AND YEAR ##
 #################################
@@ -490,6 +492,10 @@ for(yr in unique(gofer$class_year)){
 }
 
 
+######################
+## RESUME FROM HERE ##
+######################
+
 #### After I made the "courseScatter" function
 
 hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
@@ -549,6 +555,7 @@ standardized_distance <- sqrt(
 
 # o.k., I'm going to want to plot this to check
 
+library(DescTools)
 courseScatter(data = hiGrades[hiGrades$class_year == 2023,],
               ellipse_params =list(plot = FALSE),
               plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
@@ -565,5 +572,277 @@ testProximity[pointsFilter,] |> (\(x){x[order(x$dist, decreasing = FALSE),]})()
 # well, seems reasonable.  
 
 # Still needs a thorough double-check 
+
+# let's see a filter to their top 3 classes
+
+closeCourses <- testProximity[pointsFilter,] |>
+  (\(x){x[order(x$dist, decreasing = FALSE),]})() |>
+  (\(x){x[1:6,"course"]})()
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023 & hiGrades$course %in% closeCourses,],
+              # ellipse_params =list(plot = FALSE),
+              showCourse = TRUE,
+              plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
+
+points(x=unique(testProximity$HSGPA[pointsFilter]),
+       y= unique(testProximity$ACTMATH[pointsFilter]),
+       pch = 10
+)
+
+# So the dynamic clustering is actually kind of annoying, as I want to see the prior clustering
+# The six closest eliminated some courses that looked closer
+# How do I plot these?
+
+# Actually the five closest get nabbed
+# Theres a few that look closer than the sixth
+
+# let's do another one
+
+pointsFilter <- testProximity$EMPLID == theUnids[2]
+
+closeCourses <- testProximity[pointsFilter,] |>
+  (\(x){x[order(x$dist, decreasing = FALSE),]})() |>
+  (\(x){x[1:6,"course"]})()
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023 & hiGrades$course %in% closeCourses,],
+              # ellipse_params =list(plot = FALSE),
+              showCourse = TRUE,
+              plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
+
+points(x=unique(testProximity$HSGPA[pointsFilter]),
+       y= unique(testProximity$ACTMATH[pointsFilter]),
+       pch = 10
+)
+
+## I should show the heatmap of attendance next to this
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023,],
+              ellipse_params =list(plot = FALSE),
+              showCourse = TRUE,
+              plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
+
+unique(testProximity[,c("EMPLID", "ACTMATH", "HSGPA")]) |>
+  (\(x){ 
+points(x = x$HSGPA,
+       y = x$ACTMATH,
+       pch = 4:14,
+       cex = 1.2,
+       col = "black"
+       )
+  })()
+
+library(ggplot2)
+library(patchwork)
+
+plotHex(cleanData[cleanData$class_year == 2024,])
+
+# let's examine by descending ACT test scores
+
+theUnids <- unique(testProximity[,c("EMPLID", "ACTMATH", "HSGPA")]) |>
+  (\(x){x[order(x$ACTMATH, decreasing = TRUE),] })() |>
+  (\(x){as.character(x$EMPLID)})()
+
+# > theUnids
+# [1] "01494739" "01491184" "01397815" "01487198" "01493073" "01492872" "01355957"
+# [8] "01435292" "01244273" "01436829"
+
+pointsFilter <- testProximity$EMPLID == theUnids[2]
+
+closeCourses <- testProximity[pointsFilter,] |>
+  (\(x){x[order(x$dist, decreasing = FALSE),]})() |>
+  (\(x){x[1:6,"course"]})()
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023 & hiGrades$course %in% closeCourses,],
+              # ellipse_params =list(plot = FALSE),
+              showCourse = TRUE,
+              plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
+
+points(x=unique(testProximity$HSGPA[pointsFilter]),
+       y= unique(testProximity$ACTMATH[pointsFilter]),
+       pch = 10
+)
+
+# Seems to always recommend a move "upwards"
+# Let's take a closer look at 7 ... this could be a nice example of exploring why some courses are closer than others 
+# A reasonable double-check in any case
+
+
+# Now, I want to see -all- the courses, but signify the selected ones somewhow (larger?)
+
+# I probably want to create a clustering that persists, pass this in as a column, and include a featuremap that manages it
+
+# I def want plotly
+
+
+# This would make a nice little report; I should create and spit out a simple one 
+
+# Next I want to compare the distance with the predicted grade  
+# And I could probably calculate/identify which courses it is in IQR range (but that's probably redundant)  
+
+# And I c/should compare the distance to <C+ grades 
+
+# But first, let's -- why not -- calculate the distance for all 2024 students, and compare with their actual grades 
+
+
+##############################################################################
+## COURSE DISTANCE FOR ALL 2024 STUDENTS WHO SUBMITTED ACT MATH TEST SCORES ##
+##############################################################################
+
+fullUnidFilter <- cleanData$class_year == 2024 & !is.na(cleanData$ACTMATH) 
+fullUnids <- unique(cleanData$EMPLID[fullUnidFilter])
+
+cleanExtract <- cleanData[cleanData$EMPLID %in% fullUnids,] # same as cleanData[fullUnidFilter,] 
+
+
+testGrid <- expand.grid(fullUnids, unique(hiGrades$course[hiGrades$class_year == 2024]  ))
+colnames(testGrid) <- c("EMPLID", "course")
+
+courseProximity <- merge(testGrid, cleanExtract[,c("EMPLID","ACTMATH","HSGPA","GRADE","GRADEGPA" , "class_year", "course")], by = c("EMPLID"))
+colnames(courseProximity)[colnames(courseProximity) %in% c("course.x","course.y")] <- c("course","course_actual")
+
+# Inner join of 2024 students onto 2023 class results
+# This drops some rows, and that deserves some investigation  
+
+# courseProximity <- merge(courseProximity, hiGrades, by = c("course","class_year")) # old, leak  
+courseProximity <- merge(courseProximity, hiGrades[hiGrades$class_year == 2023,], by = "course")
+
+# Calcualte the distance  
+courseProximity$dist <- sqrt(
+  ((courseProximity$ACTMATH - courseProximity$ACTMATH.median)/courseProximity$ACTMATH.stdev)^2 +
+    ((courseProximity$HSGPA - courseProximity$HSGPA.median)/courseProximity$HSGPA.stdev)^2
+)
+
+hist(courseProximity$dist)
+hist(courseProximity$dist[courseProximity$dist < 10]) # probably plenty of courses per student <2 distance
+
+# closest course by student
+
+minDist <- aggregate(dist ~ EMPLID, data = courseProximity, min)
+hist(minDist$dist) # lot of closest courses > 3  Wow!
+
+# This might actually be predictive, I dunno
+# I could do another column for lowGrades, extract the diff,  then train a predictive model with these three columns  
+
+actualFilter <- courseProximity$course == courseProximity$course_actual
+cor(courseProximity$GRADEGPA[actualFilter], courseProximity$dist[actualFilter], use = "complete.obs")
+# -0.25 
+
+plot(y=courseProximity$GRADEGPA[actualFilter], x=courseProximity$dist[actualFilter])
+
+boxplot(dist ~ GRADEGPA, data = courseProximity[actualFilter,], outline = FALSE)  
+
+
+
+# wow!  That's a high correlation!
+# I'm thinking this really does suggest an alternative course ... isn't that interesting?
+
+# Next is a what-if --- can I find a closer course than what they took?
+# how much closer is the closer course? 
+
+############################# 
+##         WHAT IF         ##
+## FINDING A CLOSER COURSE ##
+#############################
+
+# ugh, I gotta rest before taking this on
+minDist <- aggregate(dist ~ EMPLID, data = courseProximity, min)
+minDist <- merge(minDist, courseProximity, by = c("EMPLID", "dist"))
+# This is backwards thinking.
+
+# Rather, I need to find all the courses with a distance less than their current
+courseProximity$dist_actual_intermed <- NA
+courseProximity$dist_actual_intermed[actualFilter] <- courseProximity$dist[actualFilter]
+
+# There's gonna be some aggregates here, I can't find any other way
+
+# or ave
+courseProximity$dist_actual <- ave(courseProximity$dist_actual_intermed, courseProximity$EMPLID, FUN = function(x) {max(x, na.rm=TRUE)})
+
+# closer alternatives
+
+courseProximity$closer_alternative <- courseProximity$dist <= round(courseProximity$dist_actual,2)
+
+closerCourses <- aggregate(closer_alternative ~ EMPLID, data = courseProximity, sum)
+
+##################################  
+## ESTIMATING ALTERNATIVE GRADE ##  
+##################################  
+
+closerCourses <- aggregate(closer_alternative ~ EMPLID, data = courseProximity, sum)
+
+hist(closerCourses$closer_alternative) # isn't that interesting
+
+# let's merge the grade back into there, and see the number of closer alternatives by grade
+
+closerCourses <- merge(closerCourses, cleanData[,c("EMPLID","GRADE","GRADEGPA")], by = "EMPLID"  )
+
+
+boxplot(closer_alternative ~ GRADEGPA, data = closerCourses) #
+# you can see that 2.4 GPA dividing line  
+
+# it's interesting that all of these people have closer courses
+
+hist(closerCourses$closer_alternative[closerCourses$GRADEGPA < 2.4], right = FALSE)
+
+library(ggplot2)
+ggplot(data = closerCourses[closerCourses$GRADEGPA < 2.4,] , aes(x = closer_alternative)) +
+  geom_histogram(bins = 30, color = "black", fill = "gray80") +
+  theme_classic()
+
+# well this is interesting  
+
+# in order to estimate an alternative grade, I need a predictive model
+
+# sure, let's do a minimal one
+
+library(xgboost)
+library(caret)
+
+xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
+
+ctrl <- trainControl(
+  method = "cv",
+  number = 5,
+  summaryFunction = defaultSummary
+)
+
+startTime <- Sys.time()
+fit <- 
+    train(
+      GRADEGPA ~ ., 
+      data = courseProximity[actualFilter, c("GRADEGPA","dist", "ACTMATH", "HSGPA", "course" )] |> (\(x){x[complete.cases(x),]})() ,
+      method = "xgbTree",
+      trControl = ctrl,
+      preProcess = c("zv", "nzv", "center", "scale", "knnImpute")
+    #  tuneGrid = xgb_grid,
+    #  weights = weights            
+    )
+
+endTime <- Sys.time()
+
+endTime-startTime
+
+courseProximity$pred <- NA
+courseProximity$pred[complete.cases(courseProximity[,c("dist", "ACTMATH", "HSGPA", "course")])] <- predict(fit, newdata = courseProximity[,c("dist", "ACTMATH", "HSGPA", "course")])
+
+# I should use this as a predictor, I think
+
+# and, like, what's my next move?  
+
+# Can I put this onto my other graphic of counterfactuals?
+
+# No.  Should I bother plotting?
+# What am I looking for?  What am I trying to accomplish?
+
+# I guess I want to focus on students who actually got a C+ or less
+# And I want to see if there is a course where 
+
+# I guess I could look at monstrously bad fits and their alternatives ... that might be interesting
+
+# And I could look into running a new prediction, a new vH2 (vH3?) that includes course proximity
+# in the calculations.  
+
+# I could also just write up what I have, which is probably what I should do very rapidly ahead of tomorrow's 1x1
+
 
 

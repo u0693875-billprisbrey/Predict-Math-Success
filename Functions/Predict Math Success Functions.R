@@ -1047,7 +1047,8 @@ courseScatter <- function(
   # hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
   #                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
   #                        c(median = median(x),
-  #                          IQR = IQR(x)
+  #                          IQR = IQR(x),
+  #                          stdev = sd(x)
   #                        ) 
   #                      }) |>
   #  (\(x){
@@ -1108,16 +1109,18 @@ courseScatter <- function(
     
     if(is.na(featureMaps[["courseMap"]])){
       
-      mainCourses <- data.frame(color = c( c("lightsteelblue", "powderblue", "beige", "moccasin", "rosybrown"), c( 
-        "darkseagreen3",   
-        "lightgoldenrod3", 
-        "tan3",            
-        "thistle3",        
-        "lightskyblue3",   
-        "paleturquoise3", #"wheat3",          
-        "plum3",           
+      # darker versions of the default color maps used elsewhere
+      
+      mainCourses <- data.frame(color = c( c("steelblue4", "skyblue", "tan4", "goldenrod4", "rosybrown4"), c( 
         "darkseagreen4",   
-        "burlywood3"
+        "lightgoldenrod4", 
+        "tan4",            
+        "thistle4",        
+        "lightskyblue4",   
+        "paleturquoise4", #"wheat3",          
+        "plum4",           
+        "darkseagreen",   
+        "burlywood4"
       )),
       course = c(
         "MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090", "MATH_1070", "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310",
