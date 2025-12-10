@@ -491,3 +491,79 @@ for(yr in unique(gofer$class_year)){
 
 
 #### After I made the "courseScatter" function
+
+hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+lowGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                       data = cleanData[cleanData$GRADEGPA <= 2.4,], function(x){
+                         c(median = median(x),
+                           IQR = IQR(x),
+                           stdev = sd(x)
+                         ) 
+                       }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+# Ok, now I need to calculate the distance to the courses
+# Man this gets a little tricky 
+
+# I guess I need, like, an "expand.grid"
+
+# but let's do just one
+
+set.seed(123)
+theUnids <- sample(cleanData$EMPLID[cleanData$class_year == 2024 & !is.na(cleanData$ACTMATH)],10, replace = FALSE)
+
+testSample <- cleanData[cleanData$EMPLID %in% theUnids,]
+
+testGrid <- expand.grid(theUnids, unique(hiGrades$course[hiGrades$class_year == 2024]  ))
+colnames(testGrid) <- c("EMPLID", "course")
+
+testProximity <- merge(testGrid, testSample[,c("EMPLID","ACTMATH","HSGPA","GRADE","GRADEGPA" , "class_year")], by = c("EMPLID"))
+
+# I need to merge 2024 students onto 2023 results
+
+testProximity <- merge(testProximity, hiGrades, by = c("course","class_year"))
+
+testProximity$dist <- sqrt(
+  ((testProximity$ACTMATH - testProximity$ACTMATH.median)/testProximity$ACTMATH.stdev)^2 +
+  ((testProximity$HSGPA - testProximity$HSGPA.median)/testProximity$HSGPA.stdev)^2
+)
+
+standardized_distance <- sqrt(
+  ((student_actmath - median_actmath_in_course) / sd_actmath_in_course)^2 +
+    ((student_gpa - median_gpa_in_course) / sd_gpa_in_course)^2
+)
+
+# o.k., I'm going to want to plot this to check
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023,],
+              ellipse_params =list(plot = FALSE),
+              plot_params = list(ylim = c(10,36), xlim = c(2.5,4)))
+
+pointsFilter <- testProximity$EMPLID == theUnids[1]
+
+points(x=unique(testProximity$HSGPA[pointsFilter]),
+       y= unique(testProximity$ACTMATH[pointsFilter]),
+       pch = 10
+       )
+
+testProximity[pointsFilter,] |> (\(x){x[order(x$dist, decreasing = FALSE),]})()
+
+# well, seems reasonable.  
+
+# Still needs a thorough double-check 
+
+
