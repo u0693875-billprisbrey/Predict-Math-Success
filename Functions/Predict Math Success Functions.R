@@ -1,5 +1,9 @@
 # Functions for Predict Math Success
 
+library(ggplot2)
+library(patchwork)
+library(DescTools)
+
 plotHex <- function(data, title = NA){
   
   # This creates two side-by-side hexbin plots.
@@ -1036,6 +1040,7 @@ courseScatter <- function(
     plot_params = list(),
     point_params = list(),
     ellipse_params = list(),
+    qrect_params = list(),
     axis_params_x = list(),
     axis_params_y = list(),
     mtext_params = list(),
@@ -1064,6 +1069,7 @@ courseScatter <- function(
   # courseScatter(hiGrades[hiGrades$class_year == 2023,], ellipseFilter = hiGrades[hiGrades$class_year == 2023,]$course %in% c("MATH_1050", "MATH_1010"), cutree_params = list(k=4), plot_params=list(xlim = c(3.5,4)))
   
   # You must be sure to correctly align the clusterFilter and ellipseFilter, or plot is in error
+  # ellipseFilter isn't very intuitive and is difficult to make this work; needs some more thinking 
   
   # Modifications:
   
@@ -1154,7 +1160,7 @@ courseScatter <- function(
     
     if(is.na(featureMaps[["clusterMap"]])){
       
-      colors <- c("tomato", "dodgerblue", "forestgreen", "purple3", "orange2", "brown", "pink", "cyan", "sienna","magenta" )
+      colors <- c("tomato", "forestgreen",   "purple3", "orange2", "cyan",   "brown", "pink", "dodgerblue",  "sienna","magenta" )
       
       featureMaps[["clusterMap"]] <- data.frame(color = colors[unique(clusters)],
                                                 clust = unique(clusters)
@@ -1171,6 +1177,8 @@ courseScatter <- function(
   } else {
     data <- merge(data, featureMaps[["clusterMap"]], by = "clust")  
   }
+  
+  returnData <- data
   
   # Filter to cluster if specified
   
@@ -1290,14 +1298,42 @@ courseScatter <- function(
   default_ellipse_params <- list(
     x= data$HSGPA.median[ellipseFilter],
     y = data$ACTMATH.median[ellipseFilter],
-    radius.x = data$HSGPA.IQR[ellipseFilter],
-    radius.y = data$ACTMATH.IQR[ellipseFilter],
+    radius.x = 0.5*data$HSGPA.IQR[ellipseFilter],
+    radius.y = 0.5*data$ACTMATH.IQR[ellipseFilter],
     col = NA,
     border = data$color[ellipseFilter] 
     
   )
   ellipse_params <- modifyList(default_ellipse_params, ellipse_params)
   do.call(DrawEllipse, ellipse_params)
+  
+  #########################
+  ## QUARTILE RECTANGLES ##
+  #########################
+ 
+  # Instead of an ellipse around each point, this would plot a box 
+  # I'd need to pass the quartiles in
+  # An interesting alternative to the ellipse, but improved accuracy means loss of interpretability
+  
+  default_qrect_params <- list(
+    xleft = data$HSGPA.Q.25[ellipseFilter],
+    xright = data$HSGPA.Q.75[ellipseFilter],
+    ybottom = data$ACTMATH.Q.25[ellipseFilter],
+    ytop = data$ACTMATH.Q.75[ellipseFilter],
+    col = NA,
+    border = data$color[ellipseFilter]
+  )
+  
+  qrect_params <- modifyList(default_qrect_params, qrect_params)
+  do.call(rect, qrect_params)
+  
+ #  rect(xleft = data$HSGPA.Q1[i],
+ #       xright = data$HSGPA.Q3[i],
+ #       ybottom = data$ACTMATH.Q1[i],
+ #       ytop = data$ACTMATH.Q3[i],
+ #       border = data$color[i],
+ #       col = NA)
+  
   
   ############
   ## LEGEND ##
@@ -1319,6 +1355,7 @@ courseScatter <- function(
   legend_params <- modifyList(default_legend_params, legend_params)
   do.call(legend, legend_params)
   
+  invisible(returnData)
   
 }
 

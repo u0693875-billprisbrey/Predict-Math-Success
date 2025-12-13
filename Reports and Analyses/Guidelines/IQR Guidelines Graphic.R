@@ -845,4 +845,235 @@ courseProximity$pred[complete.cases(courseProximity[,c("dist", "ACTMATH", "HSGPA
 # I could also just write up what I have, which is probably what I should do very rapidly ahead of tomorrow's 1x1
 
 
+################
+## 12.12.2025 ##
+################
+
+# The ellipses might be too big -- I might have doubled them accidentally by setting the radius as the IQR
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], clusterFilter = 1, plot_params = list(xlim = c(2,4), ylim = c(10,36)))
+
+yearFilter <- hiGrades$class_year == 2023
+
+inspectionCourses <- c("MATH_1010", "MATH_1215", "MATH_2200", "MATH_2250")
+courseFilter <- hiGrades$course %in% inspectionCourses
+
+courseScatter(hiGrades[yearFilter & courseFilter,], cutree_params = list(k=4), plot_params = list(xlim = c(2,4), ylim = c(10,36)))
+
+lapply(inspectionCourses, data = cleanData[,c("course","HSGPA","ACTMATH")], function(x) 
+  summary(x[]) 
+  
+  )
+
+aggregate(ACTMATH~ course, data = cleanData[cleanData$class_year == 2023,], summary)
+
+courseSummary <- aggregate(cbind(HSGPA, ACTMATH)~ course, data = cleanData[cleanData$class_year == 2023,], summary)
+
+hiGrades[yearFilter & courseFilter,]
+
+> hiGrades[yearFilter & courseFilter,]
+course class_year HSGPA.median HSGPA.IQR HSGPA.stdev ACTMATH.median ACTMATH.IQR
+356 MATH_1010       2023       3.7390    0.3015   0.2077039             20         5.0
+367 MATH_1215       2023       3.9065    0.2905   0.2666776             26         3.5
+372 MATH_2200       2023       3.9780    0.0000          NA             31         0.0
+374 MATH_2250       2023       3.9970    0.0300   0.1622708             34         5.0
+ACTMATH.stdev
+356      3.492478
+367      3.507568
+372            NA
+374      5.019960
+
+courseSummary[courseSummary$course %in% inspectionCourses,]
+
+> courseSummary[courseSummary$course %in% inspectionCourses,]
+course HSGPA.Min. HSGPA.1st Qu. HSGPA.Median HSGPA.Mean HSGPA.3rd Qu. HSGPA.Max.
+1  MATH_1010   3.041000      3.457000     3.661000   3.623419      3.788000   3.996000
+13 MATH_1215   3.031000      3.534500     3.877500   3.748184      3.974000   4.000000
+19 MATH_2200   3.978000      3.978000     3.978000   3.978000      3.978000   3.978000
+21 MATH_2250   3.630000      3.970000     3.997000   3.919400      4.000000   4.000000
+ACTMATH.Min. ACTMATH.1st Qu. ACTMATH.Median ACTMATH.Mean ACTMATH.3rd Qu. ACTMATH.Max.
+1      12.00000        16.00000       18.00000     18.58095        20.00000     29.00000
+13     18.00000        24.00000       26.00000     25.39474        27.00000     35.00000
+19     31.00000        31.00000       31.00000     31.00000        31.00000     31.00000
+21     24.00000        31.00000       34.00000     32.20000        36.00000     36.00000
+
+# ok, so ...
+# why are these different?
+
+boxplot(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$course %in% inspectionCourses,])
+
+# So there's a couple of questions --
+# Like using the IQR is o.k, because it's an estimate --
+
+# What happened with hiGrade aggregation that it's different?
+# Is the IQR as a radius too generous?  Should I use 0.5 IQR?  Should I use the actual 25th and 7th percentiles?
+# What would it looks like if I drew an ellipse with the actual min and max?
+# what kind of polygons would these look like?
+# What if I drew my ellipses based on standard deviations, like 2 standard deviations away?
+
+# I might need to filter out courses based on a min enrollment of, say, 10 (?)  
+
+# O.k. I like the reduction of the IQR
+
+# Next I gotta figure out the hiGrades difference.
+# well duh.  I filtered hi grades to the successful students (!)  
+
+
+
+courseSummary <- aggregate(cbind(HSGPA, ACTMATH)~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4,], summary)
+
+# yeah now they match
+
+# onto the guide --- here's an easy one:
+
+
+aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE),count = length(x))})
+aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE )})
+
+# try adding a last column with "n" as the number of students
+# try a rolling 2 or 3 yr basis 
+
+aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE )}) |>
+  (\(x){row.names(x) <- x$course; x$course <- NULL; return(as.matrix(x))})() |>
+  heatmap(Rowv = NA, Colv = NA)
+
+aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE )}) |>
+  (\(x){row.names(x) <- x$course; x$course <- NULL; return(as.matrix(x))})() |>
+  heatmap(Rowv = NA, Colv = NA)
+
+# These both just look dumb
+# Really dumb
+
+# maybe I can plot this with a stronger grid?
+# Why not?
+
+# it's a lot easier to think of this as a widget, and not as a brochure
+# I guess it's a three-pager and let's stick with that
+
+courseScatter(hiGrades[yearFilter,], showCourse = TRUE, cutree_params = list(k=4), plot_params = list(xlim = c(3.5,4), ylim = c(10,36)))
+
+# maybe break this into three clusters? ...except there's a lot of overlap
+
+# I can think of hovering pop-ups, but hard to do without.  
+# For example, having the three closest courses increase in size for every hover  
+
+# Not seeing as much benefit to this ---
+# if you are low, it's obvious. If you are high, it's obvious.  If you are in-between, it doesn't matter. 
+
+# That's not a bad way to think about it, actually -- as three groups of courses,
+# and then a lot of fine-print if you want to drill down farther. 
+
+courseScatter(hiGrades[yearFilter,], showCourse = FALSE, cutree_params = list(k=3), plot_params = list(xlim = c(3.5,4), ylim = c(10,36)))
+
+# it just never clusters the way you want it to
+
+dist_methods <- c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
+clust_methods <- c("ward.D", "ward.D2", "single","complete","average","mcquitty","median","centroid")
+clust_combos <- expand.grid(dist = dist_methods, clust = clust_methods)
+
+row_id <- 1
+courseScatter(hiGrades[yearFilter,], showCourse = FALSE, 
+              dist_params = list(method = clust_combos[ row_id,"dist"]),
+              hclust_params = list(method = clust_combos[ row_id,"clust"]),
+              cutree_params = list(k=3), 
+              ellipse_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+              )
+
+# clust_combos[1,] # very nice.  Nice lower section, but mid section is very small. # not bad though
+# 6 has potential -- same as 1 ?
+# 7 is best so far, but I'd like a larger middle section 
+# 20 is a kind of standard split-- lots of combos are giving me this
+# 32 is an honorable mention -- it's all low with a handful in the middle 
+# 36 is all low and middle  
+# 38 is REALLY close to what I want. . . NEW BEST !
+# 44 is really interesting 
+
+# 38, 44, and 7.  NO to 44 (largest cluster is too large; all outliers)
+# 38 vs 7 
+# Looks like 7, as that heavily emphasizes the ACT math score and down-plays GPA
+
+# Maybe I take the principal component and then cluster it?
+# I mean, that's what it looks like to me.
+
+library(HCPC)
+
+# before I do that, let's look at the top 5 courses by enrollment
+
+row_id <- 38
+courseScatter(hiGrades[yearFilter & hiGrades$course %in% c("MATH_1210", "MATH_1050","MATH_1090","MATH_1030", "MATH_1220"),], 
+              showCourse = TRUE, 
+              dist_params = list(method = clust_combos[ row_id,"dist"]),
+              hclust_params = list(method = clust_combos[ row_id,"clust"]),
+              cutree_params = list(k=3), 
+              ellipse_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+)
+
+# ugh
+# losing track of what and why I'm doing this
+
+
+row_id <- 7
+garbo <- courseScatter(hiGrades[yearFilter,], 
+              showCourse = FALSE, 
+              dist_params = list(method = clust_combos[ row_id,"dist"]),
+              hclust_params = list(method = clust_combos[ row_id,"clust"]),
+              cutree_params = list(k=3), 
+              ellipse_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+)
+
+# what in the world is getting returned? (!!!)
+
+row_id <- 7
+courseScatter(hiGrades[yearFilter,], 
+                       showCourse = FALSE,
+                       clusterFilter = c(1,2),
+                       ellipseFilter = hiGrades$course == "MATH_1090" & yearFilter,
+                       dist_params = list(method = clust_combos[ row_id,"dist"]),
+                       hclust_params = list(method = clust_combos[ row_id,"clust"]),
+                       cutree_params = list(k=3), 
+                     # ellipse_params = list(plot = FALSE),
+                       plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+                       mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+)
+
+# I'd like this to return the data entered with the cluster assignments.
+# Not sure why this is so hard # DONE
+
+row_id <- 7
+garbo <- courseScatter(hiGrades[yearFilter,], 
+              showCourse = FALSE,
+              clusterFilter = c(1,2),
+              ellipseFilter = hiGrades$course == "MATH_1090" & yearFilter,
+              dist_params = list(method = clust_combos[ row_id,"dist"]),
+              hclust_params = list(method = clust_combos[ row_id,"clust"]),
+              cutree_params = list(k=3), 
+              # ellipse_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+)
+
+# ok, now what am I supposed to do?
+
+# I do like the three clusters in ascending order
+# No ACT means the lowest course in the cluster of your grade 
+
+# Should I merge and aggregate against these clusters?
+
+# Well, let's write a flow chart
+
+# I guess I could manually map it out
+
+# The problem is that I don't like the hard boundary between clusters.
+# I almost want bands, and each course is in a couple of different bands
+
+# Let's just make a report with what I've got
+
+
+
 

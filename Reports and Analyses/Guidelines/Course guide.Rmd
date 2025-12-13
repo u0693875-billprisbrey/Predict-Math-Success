@@ -1,0 +1,418 @@
+---
+title: "Course guide"
+author: "Bill Prisbrey"
+date: "2025-12-12"
+output: html_document
+---
+
+**PURPOSE:**  This report is a guide to recommended math courses for first time freshmen.  It is based on the incoming qualifications of the median successful student per course in the prior year. 
+
+Add a "year" parameter
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+```
+
+
+```{r}
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+## IDENTIFY FIRST TERM OF MATH CLASSES ##
+
+# Identify minimum term per student
+minTerm <- aggregate(TERM ~ EMPLID, data = mathCourses, min, na.rm = TRUE)
+minTerm$reference <- paste(minTerm$EMPLID, minTerm$TERM, sep = "_") # combine for reference
+mathCourses$minTerm <- paste(mathCourses$EMPLID, mathCourses$TERM, sep = "_") %in% minTerm$reference # identify courses in minimum terms 
+
+firstTermFilter <- mathCourses$minTerm == TRUE
+
+## identify popular, high volume courses
+# mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+#                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+# mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+# popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+firstCourses <- mathCourses[firstTermFilter & !mathLabFilter,]
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+)
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+  #  SATMATH, # leaving out SAT because it's a smaller proportion
+  #  SATVERBAL,
+  #  SATWRTG        
+)
+
+firstCourses <- merge(firstCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+firstCourses <- merge(firstCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+# Freshman year
+firstCourses$cohort_year <- year(firstCourses$COHORT_DT)
+
+# Class year
+firstCourses$class_year <- year(firstCourses$EOTDATE)
+
+# Year to class
+firstCourses$yr_diff <- time_length(interval(firstCourses$COHORT_DT, firstCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+firstCourses$season <- season_map[substr(firstCourses$TERM, 4, 4)]
+
+# Course levels column
+firstCourses$course_level <- firstCourses$CATNBR %/% 1000
+
+# filter out courses at 3000+ level
+course_levelFilter <- firstCourses$course_level < 3
+
+# filter out courses that aren't recent
+course_by_year <- table(firstCourses[course_levelFilter, c("course","class_year")  ]) |> as.data.frame()
+recentCourses <- unique(course_by_year$course[course_by_year$class_year %in% c(2021:2025) & course_by_year$Freq > 0])
+recent_filter <- firstCourses$course %in% recentCourses
+
+# Course clusters by volume
+courseClusters <- table(firstCourses$course[recent_filter]) |>
+  (\(x){x[order(x, decreasing = TRUE)]})() |>
+  dist() |>
+  hclust() |>
+  cutree(k=2)
+
+firstCourses$vol_cluster <- ifelse(firstCourses$course %in% names(courseClusters)[courseClusters == 1], "hi_vol","low_vol")
+
+# Course filter
+higherVolCourses <- table(firstCourses$course[recent_filter]) |> 
+  (\(x){x[order(x, decreasing = TRUE)]})() |> 
+  proportions() |> 
+  cumsum() |>
+  (\(x){names(x[x<0.9]) })()
+
+courseFilter <- firstCourses$course %in% higherVolCourses
+
+# > higherVolCourses
+# [1] "MATH_1010" "MATH_1050" "MATH_1210" "MATH_1030" "MATH_1090" "MATH_1060"
+# [7] "MATH_1070" "MATH_1220" "MATH_1080"
+
+# Age buckets
+firstCourses$age_cut <- cut(firstCourses$AGE, breaks = c(0,17,18,19,21,100))
+
+# Age filter
+ageFilter <- firstCourses$AGE > 11
+
+```
+
+
+```{r}
+
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+firstCourses$cleanGrade <- clean_grade(firstCourses$GRADE) 
+
+firstCourses$cleanGrade <- factor(firstCourses$cleanGrade,
+                                  levels = c(
+                                    "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                    "C", "C_minus", "D_plus", "D", "D_minus",   
+                                    "E", "EU", "W", "I", "CR",  "NC", "V", 
+                                    "missing", NA
+                                  )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- firstCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") # , "EU" convert EU to 0
+
+# WITHDRAW
+firstCourses$wdraw_binary <- NA
+firstCourses$wdraw_binary <- ifelse(firstCourses$GRADE == "W","withdraw","not_withdraw")
+
+# zeroBinary
+firstCourses$zero_binary <- NA
+firstCourses$zero_binary <- ifelse(firstCourses$GRADE %in% c("E","EU"),"zero","not_zero")
+
+# Combine grades
+# ADJUSTED BINARY
+firstCourses$D_binary <- NA
+hiFilter <- firstCourses$GRADE %in% c("A", "A-", "B+", "B", "B-",  "C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-") 
+firstCourses$D_binary[hiFilter] <- "hi"
+firstCourses$D_binary[loFilter] <- "low"
+
+#popCourses$grade_binary <- factor(popCourses$grade_binary,
+#                                  levels = c("hi_grade", "low_grade"))
+
+
+# TRINARY
+firstCourses$grade_trinary <- NA
+hiFilter <- firstCourses$GRADE %in% c("A", "A-", "B+", "B", "B-")
+medFilter <- firstCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+firstCourses$grade_trinary[hiFilter] <-  2 #"hi_grade"
+firstCourses$grade_trinary[medFilter] <- 1 # "med_grade"
+firstCourses$grade_trinary[loFilter] <-  0 #"low_grade"
+
+
+# popCourses$grade_trinary <- factor(popCourses$grade_trinary,
+#                                  levels = c("hi_grade", "med_grade", "low_grade"))
+
+# QUAD
+firstCourses$grade_quad <- NA
+hiFilter <- firstCourses$GRADE %in% c("A")
+medPlusFilter <- firstCourses$GRADE %in% c("A-", "B+", "B", "B-")
+medMinusFilter <- firstCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- firstCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+firstCourses$grade_quad[hiFilter] <- 3 # "hi_grade"
+firstCourses$grade_quad[medPlusFilter] <- 2 # "medPlus_grade"
+firstCourses$grade_quad[medMinusFilter] <- 1 #"medMinus_grade"
+firstCourses$grade_quad[loFilter] <-0 # "low_grade"
+
+# popCourses$grade_quad <- factor(popCourses$grade_quad,
+#                                  levels = c("hi_grade", 
+#                                             "medPlus_grade",
+#                                             "medMinus_grade",
+#                                             "low_grade"))
+
+# popCourses$cleanGrade[popCourses$cleanGrade %in% c("D_plus", "D", "D_minus") ] <- "D"
+
+## CONVERT APCREDIT NA VALUES to ZERO ##  
+
+firstCourses$APCREDIT[is.na(firstCourses$APCREDIT)] <- 0
+
+# print("Transformations complete")
+
+
+```  
+
+
+
+```{r}
+
+###########
+## CLEAN ##
+###########
+
+cleanFilters <- !is.na(firstCourses$cleanGrade) & 
+  !rareGrades
+#!popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") 
+
+# Outlier filters
+zeroHSGPA_filter <- firstCourses$HSGPA == 0
+highLoad_filter <- firstCourses$load > quantile(firstCourses$load, 0.99)
+preMath_filter <- firstCourses$yr_diff < -0.5 # since all cohort dates start in September, I wanted to includ the summer before the cohort date
+outlierFilters <- !zeroHSGPA_filter & !highLoad_filter & !preMath_filter
+
+# withdrawFilter
+withdrawFilter <- firstCourses$cleanGrade != "W"
+
+# zeroFilter
+zeroFilter <- firstCourses$zero_binary != "zero"
+
+# Combined filters
+cleanData <- firstCourses[cleanFilters & outlierFilters & course_levelFilter & recent_filter & ageFilter & withdrawFilter,]
+cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
+cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
+cleanData$course <- factor(cleanData$course)
+
+# stop("Prep complete")
+
+``` 
+
+
+```{r}
+
+############################################
+## STATISTICS AND MEDIANS PER COURSE/YEAR ##
+############################################
+
+
+hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x),
+                          Q = quantile(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+lowGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                       data = cleanData[cleanData$GRADEGPA <= 2.4,], function(x){
+                         c(median = median(x),
+                           IQR = IQR(x),
+                           stdev = sd(x),
+                           Q = quantile(x)
+                         ) 
+                       }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+```
+
+
+What I am thinking is that I develop a flow chart--
+
+By drawing the rectangles, I am seeing that:  
+
+ACTMATH <= 26 is Cluster 1 course
+24 < ACTMATH <= 31 is Cluster 2 courses (note the overlap)
+ACTMATH > 30 is Cluster 3 courses
+
+And I could probably do a second column of HSGPA to the right of that, with the overlaps as well.
+
+Now that my scatter is perfectly designed to handle courses . . . 
+ . . . I want to plot nice smooth artistic ellipses on my scatterplot using the clusters!
+ 
+...but I like this use of clusters.
+
+And I wonder what the population is per cluster?  Is it 90% in Cluster 2?
+
+```{r}
+
+#####################
+## ASSIGN CLUSTERS ##
+#####################
+
+yearFilter <- hiGrades$class_year == 2023
+
+dist_methods <- c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
+clust_methods <- c("ward.D", "ward.D2", "single","complete","average","mcquitty","median","centroid")
+clust_combos <- expand.grid(dist = dist_methods, clust = clust_methods)
+
+row_id <- 7 # euclidean, ward.D2
+garbo <- courseScatter(hiGrades[yearFilter,], 
+              showCourse = FALSE,
+              # clusterFilter = c(1,2),
+              # ellipseFilter = hiGrades$course == "MATH_1090" & yearFilter,
+              dist_params = list(method = clust_combos[ row_id,"dist"]),
+              hclust_params = list(method = clust_combos[ row_id,"clust"]),
+              cutree_params = list(k=3), 
+              # ellipse_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
+              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
+)
+
+# what happened to my rectangles?
+
+
+```
+
+
+```{r}
+
+############################# 
+## PER COURSE DETAIL TABLE ## 
+############################# 
+
+aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE),count = length(x))}) |>
+  (\(x){
+    do.call(data.frame,x)
+  })() |>
+  kbl()
+
+aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE ), count = length(x))}) |>
+    (\(x){
+    do.call(data.frame,x)
+  })() |>
+  kbl()
+
+``` 
+
+
+
+
