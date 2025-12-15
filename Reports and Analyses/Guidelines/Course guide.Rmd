@@ -388,9 +388,154 @@ garbo <- courseScatter(hiGrades[yearFilter,],
 )
 
 # what happened to my rectangles?
+# I need to merge to get there
 
 
 ```
+
+
+```{r}
+
+# experiment with clustering the detail
+
+actDetail$clust1 <- actDetail |>
+  (\(x){row.names(x) <- x$course; 
+  x$course <- NULL; 
+  return(x[,-which(colnames(x) %in% "ACTMATH.count" )])  })() |>
+  dist(method ="euclidean") |>
+  hclust(method = "ward.D2")  |>
+  #vplot()
+ cutree(k=4) #|> table()
+
+  
+courseScatter(data = hiGrades[yearFilter & hiGrades$course %in% actDetail$course[actDetail$clust1 ==2],],
+  cutree_params=list(k=1),
+  plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
+  )
+
+# I think I like these four groupings
+
+# To Do:
+#   Figure out how to plot the courses colored by these clusters
+#   Get me a plotly
+#   Do I bother adding HSGPA to the clustering criteria? --> No
+#   Figure out how to plot the four clusters by themselves in a very visually appealing way
+#   Make the table defining the cut-offs per cluster  
+#      - including ACT and GPA  
+
+hiGrades |>
+  (\(x){merge(hiGrades[yearFilter,], actDetail[,c("course","clust1")], by = "course")})() |>
+  courseScatter(
+    
+    cutree_params = list(k=1)
+  )
+
+cluster1_maps <- list(clusterMap = data.frame(color = c("skyblue", "tan4","maroon4", "forestgreen" ), clust = 1:4 ))
+
+
+hiGrades |>
+  (\(x){merge(hiGrades[yearFilter,], actDetail[,c("course","clust1")], by = "course")})() |>
+  courseScatter(
+    featureMap = cluster1_maps,  
+    cutree_params = list(k=1)
+  )
+
+# ugh
+
+
+  
+courseScatter(data = hiGrades[yearFilter,],
+    ellipse_params = list(plot = FALSE),
+    point_params = list(pch = NA_integer_),  
+    cutree_params = list(k=1),
+    legend_params = list(plot = FALSE),
+    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
+
+  )
+
+hiGrades |>
+  (\(x){merge(hiGrades[yearFilter,], actDetail, by = "course")})() |>
+  
+aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
+  (\(plot){
+  points(x=c(3.6,3.7,3.8,3.9),
+         y =  c(15,20,25,30),
+           # plot$ACTMATH.50.,
+         col = c("skyblue", "tan4","maroon4", "forestgreen" ),
+         pch = 0:3,
+         )
+})()
+
+
+aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
+  (\(plot){
+
+courseScatter(
+    data = plot,
+    ellipse_params = list(plot = "n"),
+    point_params = list(
+      x = c(3.6,3.6,3.6,3.6),
+      y = plot$ACTMATH.50.,
+      pch = 0:3,
+      col = c("skyblue", "tan4","maroon4", "forestgreen" )
+      ),  
+    cutree_params = list(k=1),
+    # legend_params = list(plot = FALSE),
+    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
+  )
+})()
+
+
+## WHAT IS GOING ON HERE? ##
+## FIxED! ##
+
+courseScatter(data = hiGrades[yearFilter,],
+    ellipse_params = list(plot = FALSE),
+    point_params = list(pch = NA_integer_),  
+    cutree_params = list(k=1),
+    legend_params = list(plot = FALSE),
+    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
+
+  )
+
+
+points(x=3.75,
+       y = 25,
+       pch = 7,
+       col = "green",
+       cex = 1
+       )
+
+courseScatter(data = hiGrades[yearFilter,],
+    ellipse_params = list(plot = FALSE),
+    #point_params = list(pch = NA_integer_),  
+    cutree_params = list(k=1),
+    legend_params = list(plot = FALSE),
+    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
+  )
+
+merge(actDetail, hsDetail, by = "course") |>
+(\(x){aggregate(cbind(ACTMATH.50., HSGPA.50.) ~ clust1,  data = x, mean) })()|>
+
+# aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
+  
+  (\(plot){
+  points(x=plot$HSGPA.50.,
+         y = plot$ACTMATH.50.,
+         col = c("skyblue", "tan4","maroon4", "forestgreen" ),
+         pch = 0:3,
+         cex = 3
+         )
+})()
+  
+# Man.... almost there but still oddly off !
+# My cluster mean-of-the-medians looks too high
+# Is it the wrong year ?
+  
+```
+
+
+
 
 
 ```{r}
@@ -399,16 +544,23 @@ garbo <- courseScatter(hiGrades[yearFilter,],
 ## PER COURSE DETAIL TABLE ## 
 ############################# 
 
-aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE),count = length(x))}) |>
+actDetail <- aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE),count = length(x))}) |>
   (\(x){
     do.call(data.frame,x)
-  })() |>
+  })() 
+
+
+cockney <- merge(actDetail, garbo[,c("course","clust")], by = "course")
+
+actDetail |>
   kbl()
 
-aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE ), count = length(x))}) |>
+hsDetail <- aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE ), count = length(x))}) |>
     (\(x){
     do.call(data.frame,x)
-  })() |>
+  })()
+
+hsDetail |>
   kbl()
 
 ``` 

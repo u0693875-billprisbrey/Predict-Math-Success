@@ -1024,6 +1024,7 @@ displayCourseAlternatives <- function(data,
 
 courseScatter <- function(
     data,
+    clusterColumn = NA,
     showCourse = FALSE,
     ellipseFilter = NA,
     clusterFilter = NA,
@@ -1088,19 +1089,28 @@ courseScatter <- function(
   
   data$clust <- NA
   
-  for(yr in unique(data$class_year)){
+  if(is.na(clusterColumn)) {
     
-    yearFilter <- data$class_year == yr
+    for(yr in unique(data$class_year)){
+      
+      yearFilter <- data$class_year == yr
+      
+      features <- data[yearFilter , c("HSGPA.median","HSGPA.IQR","ACTMATH.median","ACTMATH.IQR") ]
+      
+      theDistance <- do.call(dist, modifyList(list(x=features, method="euclidean"), dist_params))
+      theHclust <- do.call(hclust, modifyList(list(d=theDistance, method = "complete"), hclust_params))
+      clusters <- do.call(cutree, modifyList(list(tree=theHclust, k=3), cutree_params))
+      
+      data$clust[yearFilter] <- clusters
+      
+    }
+  } else {
     
-    features <- data[yearFilter , c("HSGPA.median","HSGPA.IQR","ACTMATH.median","ACTMATH.IQR") ]
-    
-    theDistance <- do.call(dist, modifyList(list(x=features, method="euclidean"), dist_params))
-    theHclust <- do.call(hclust, modifyList(list(d=theDistance, method = "complete"), hclust_params))
-    clusters <- do.call(cutree, modifyList(list(tree=theHclust, k=3), cutree_params))
-    
-    data$clust[yearFilter] <- clusters
+    data$clust <- data[,clusterColumn]
+    clusters <- unique(data[,clusterColumn])
     
   }
+  
   
   ##################
   ## FEAUTURE MAP ##
@@ -1190,10 +1200,10 @@ courseScatter <- function(
   ## PLOT ##
   ##########  
   
-  incoming.par <- par(mar = c(0,3,3,7), oma = c(4,2,0,0))
+  incoming.par <- par(mar = c(5.1,4.1,4.1,2.1))
   on.exit(par(incoming.par))
   
-  par_params_default <- list(mfrow=c(1,1), mar = c(0,2.5,3,7), oma = c(4,2,0,0), fg = "gray20", bg = "ivory")  
+  par_params_default <- list(mfrow=c(1,1), mar = c(0,2.5,3,7), oma = c(4,2,0,0), fg = "gray20", bg = "ivory", xpd=TRUE)  
   par_params <- modifyList(par_params_default, par_params)
   do.call(par, par_params)
   
@@ -1310,7 +1320,7 @@ courseScatter <- function(
   #########################
   ## QUARTILE RECTANGLES ##
   #########################
- 
+  
   # Instead of an ellipse around each point, this would plot a box 
   # I'd need to pass the quartiles in
   # An interesting alternative to the ellipse, but improved accuracy means loss of interpretability
@@ -1327,12 +1337,12 @@ courseScatter <- function(
   qrect_params <- modifyList(default_qrect_params, qrect_params)
   do.call(rect, qrect_params)
   
- #  rect(xleft = data$HSGPA.Q1[i],
- #       xright = data$HSGPA.Q3[i],
- #       ybottom = data$ACTMATH.Q1[i],
- #       ytop = data$ACTMATH.Q3[i],
- #       border = data$color[i],
- #       col = NA)
+  #  rect(xleft = data$HSGPA.Q1[i],
+  #       xright = data$HSGPA.Q3[i],
+  #       ybottom = data$ACTMATH.Q1[i],
+  #       ytop = data$ACTMATH.Q3[i],
+  #       border = data$color[i],
+  #       col = NA)
   
   
   ############
