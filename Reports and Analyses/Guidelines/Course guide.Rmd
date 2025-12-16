@@ -30,6 +30,7 @@ library(caret)
 library(xgboost)
 library(lubridate)
 library(plotly)
+library(kableExtra)
 
 source(here::here("Functions", "Predict Math Success Functions.R"))
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
@@ -309,42 +310,6 @@ cleanData$course <- factor(cleanData$course)
 ``` 
 
 
-```{r}
-
-############################################
-## STATISTICS AND MEDIANS PER COURSE/YEAR ##
-############################################
-
-
-hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
-                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
-                        c(median = median(x),
-                          IQR = IQR(x),
-                          stdev = sd(x),
-                          Q = quantile(x)
-                        ) 
-                      }) |>
-  (\(x){
-    do.call(data.frame,x)
-  })()
-
-
-lowGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
-                       data = cleanData[cleanData$GRADEGPA <= 2.4,], function(x){
-                         c(median = median(x),
-                           IQR = IQR(x),
-                           stdev = sd(x),
-                           Q = quantile(x)
-                         ) 
-                       }) |>
-  (\(x){
-    do.call(data.frame,x)
-  })()
-
-
-```
-
-
 What I am thinking is that I develop a flow chart--
 
 By drawing the rectangles, I am seeing that:  
@@ -362,7 +327,7 @@ Now that my scatter is perfectly designed to handle courses . . .
 
 And I wonder what the population is per cluster?  Is it 90% in Cluster 2?
 
-```{r}
+```{r eval=FALSE}
 
 #####################
 ## ASSIGN CLUSTERS ##
@@ -375,43 +340,7 @@ clust_methods <- c("ward.D", "ward.D2", "single","complete","average","mcquitty"
 clust_combos <- expand.grid(dist = dist_methods, clust = clust_methods)
 
 row_id <- 7 # euclidean, ward.D2
-garbo <- courseScatter(hiGrades[yearFilter,], 
-              showCourse = FALSE,
-              # clusterFilter = c(1,2),
-              # ellipseFilter = hiGrades$course == "MATH_1090" & yearFilter,
-              dist_params = list(method = clust_combos[ row_id,"dist"]),
-              hclust_params = list(method = clust_combos[ row_id,"clust"]),
-              cutree_params = list(k=3), 
-              # ellipse_params = list(plot = FALSE),
-              plot_params = list(xlim = c(3.5,4), ylim = c(10,36)),
-              mtext_params = list(side = 3, font = 2, cex = 1.3, line = 0.25, text = paste(row_id, unlist(clust_combos[row_id,]), collapse = ", "))
-)
 
-# what happened to my rectangles?
-# I need to merge to get there
-
-
-```
-
-
-```{r}
-
-# experiment with clustering the detail
-
-actDetail$clust1 <- actDetail |>
-  (\(x){row.names(x) <- x$course; 
-  x$course <- NULL; 
-  return(x[,-which(colnames(x) %in% "ACTMATH.count" )])  })() |>
-  dist(method ="euclidean") |>
-  hclust(method = "ward.D2")  |>
-  #vplot()
- cutree(k=4) #|> table()
-
-  
-courseScatter(data = hiGrades[yearFilter & hiGrades$course %in% actDetail$course[actDetail$clust1 ==2],],
-  cutree_params=list(k=1),
-  plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
-  )
 
 # I think I like these four groupings
 
@@ -423,174 +352,8 @@ courseScatter(data = hiGrades[yearFilter & hiGrades$course %in% actDetail$course
 #   Make the table defining the cut-offs per cluster  
 #      - including ACT and GPA  
 
-hiGrades |>
-  (\(x){merge(hiGrades[yearFilter,], actDetail[,c("course","clust1")], by = "course")})() |>
-  courseScatter(
-    
-    cutree_params = list(k=1)
-  )
-
-cluster1_maps <- list(clusterMap = data.frame(color = c("skyblue", "tan4","maroon4", "forestgreen" ), clust = 1:4 ))
-
-
-hiGrades |>
-  (\(x){merge(hiGrades[yearFilter,], actDetail[,c("course","clust1")], by = "course")})() |>
-  courseScatter(
-    featureMap = cluster1_maps,  
-    cutree_params = list(k=1)
-  )
-
-# ugh
-
-
-  
-courseScatter(data = hiGrades[yearFilter,],
-    ellipse_params = list(plot = FALSE),
-    point_params = list(pch = NA_integer_),  
-    cutree_params = list(k=1),
-    legend_params = list(plot = FALSE),
-    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
-
-  )
-
-hiGrades |>
-  (\(x){merge(hiGrades[yearFilter,], actDetail, by = "course")})() |>
-  
-aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
-  (\(plot){
-  points(x=c(3.6,3.7,3.8,3.9),
-         y =  c(15,20,25,30),
-           # plot$ACTMATH.50.,
-         col = c("skyblue", "tan4","maroon4", "forestgreen" ),
-         pch = 0:3,
-         )
-})()
-
-
-aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
-  (\(plot){
-
-courseScatter(
-    data = plot,
-    ellipse_params = list(plot = "n"),
-    point_params = list(
-      x = c(3.6,3.6,3.6,3.6),
-      y = plot$ACTMATH.50.,
-      pch = 0:3,
-      col = c("skyblue", "tan4","maroon4", "forestgreen" )
-      ),  
-    cutree_params = list(k=1),
-    # legend_params = list(plot = FALSE),
-    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
-  )
-})()
-
-
-## WHAT IS GOING ON HERE? ##
-## FIxED! ##
-
-courseScatter(data = hiGrades[yearFilter,],
-    ellipse_params = list(plot = FALSE),
-    point_params = list(pch = NA_integer_),  
-    cutree_params = list(k=1),
-    legend_params = list(plot = FALSE),
-    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
-
-  )
-
-
-points(x=3.75,
-       y = 25,
-       pch = 7,
-       col = "green",
-       cex = 1
-       )
-
-courseScatter(data = hiGrades[yearFilter,],
-    ellipse_params = list(plot = FALSE),
-    #point_params = list(pch = NA_integer_),  
-    cutree_params = list(k=1),
-    legend_params = list(plot = FALSE),
-    plot_params = list(ylim = c(15,36), xlim = c(3.5,4.0))
-  )
-
-merge(actDetail, hsDetail, by = "course") |>
-(\(x){aggregate(cbind(ACTMATH.50., HSGPA.50.) ~ clust1,  data = x, mean) })()|>
-
-# aggregate(ACTMATH.50. ~ clust1,  data = actDetail, mean) |>
-  
-  (\(plot){
-  points(x=plot$HSGPA.50.,
-         y = plot$ACTMATH.50.,
-         col = c("skyblue", "tan4","maroon4", "forestgreen" ),
-         pch = 0:3,
-         cex = 3
-         )
-})()
-  
-# Man.... almost there but still oddly off !
-# My cluster mean-of-the-medians looks too high
-# Is it the wrong year ?
-  
 ```
 
-
-
-```{r}
-
-############################# 
-## PER COURSE DETAIL TABLE ## 
-############################# 
-
-actDetail <- aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE),count = length(x))}) |>
-  (\(x){
-    do.call(data.frame,x)
-  })() 
-
-
-# cockney <- merge(actDetail, garbo[,c("course","clust")], by = "course")
-
-# actDetail |>
-#  kbl()
-
-hsDetail <- aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE ), count = length(x))}) |>
-    (\(x){
-    do.call(data.frame,x)
-  })()
-
-# hsDetail |>
-#  kbl()
-
-``` 
-
-
-
-
-```{r}
-
-# ABANDON
-# Let's get this from start to stop 
-
-actDetail$clust1 <- actDetail |>
-  (\(x){row.names(x) <- x$course; 
-  x$course <- NULL; 
-  return(x[,-which(colnames(x) %in% "ACTMATH.count" )])  })() |>
-  dist(method ="euclidean") |>
-  hclust(method = "ward.D2")  |>
-  #vplot()
- cutree(k=4)
-
-# check
-
-all(actDetail$course %in% hsDetail$course) # TRUE
-all(hiGrades$course %in% actDetail$course) # FALSE # oh
-all(hiGrades$course[hiGrades$class_year == 2023] %in% actDetail$course) # TRUE
-
-theDetail <- merge(actDetail, hsDetail, by = "course")
-
-hiGrades_2023 <- merge(hiGrades[hiGrades$class_year == 2023,], theDetail, by = "course")
-
-```
 
 # START HERE 
 
@@ -697,6 +460,40 @@ legend("topright",
        )
 
 ```
+
+
+```{r}
+
+#####################
+## GUIDELINE TABLE ##
+#####################
+
+clusterTable <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], function(x) {c(min = min(x), max=max(x))} ) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+# o.k. this will be fun
+# first column is name
+# second column is ACT range (as text)
+# third column is HSGPA range (as text)
+
+data.frame(
+  name = c("Basic", "Intermediate", "Advanced", "Elite"),
+  min.ACT = floor(clusterTable$ACTMATH.Q.25..min),
+  max.ACT = ceiling(clusterTable$ACTMATH.Q.75..max),
+  min.HSGPA = round(clusterTable$HSGPA.Q.25..min, 2),
+  max.HSGPA = round(clusterTable$HSGPA.Q.75..max, 2)
+) |>
+  kbl(col.names = c("Level", "Min", "Max", "Min", "Max"),
+      align = c("l", "c", "c", "c", "c")) |>
+  add_header_above(c(" " = 1, "ACT Math" = 2, "High School GPA" = 2)) |>
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                position = "left")
+
+```
+
 
 
 # Now I put in a table, I guess?
@@ -810,37 +607,4 @@ mtext(side = 3,
       line = -1.5)
 
 ```
-
-```{r}
-
-#####################
-## GUIDELINE TABLE ##
-#####################
-
-clusterTable <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], function(x) {c(min = min(x), max=max(x))} ) |>
-  (\(x){
-    do.call(data.frame,x)
-  })()
-
-# o.k. this will be fun
-# first column is name
-# second column is ACT range (as text)
-# third column is HSGPA range (as text)
-
-data.frame(
-  name = c("Basic", "Intermediate", "Advanced", "Elite"),
-  min.ACT = floor(clusterTable$ACTMATH.Q.25..min),
-  max.ACT = ceiling(clusterTable$ACTMATH.Q.75..max),
-  min.HSGPA = round(clusterTable$HSGPA.Q.25..min, 2),
-  max.HSGPA = round(clusterTable$HSGPA.Q.75..max, 2)
-) |>
-  kbl(col.names = c("Level", "Min", "Max", "Min", "Max"),
-      align = c("l", "c", "c", "c", "c")) |>
-  add_header_above(c(" " = 1, "ACT Math" = 2, "High School GPA" = 2)) |>
-  kable_styling(bootstrap_options = c("striped", "hover"), 
-                full_width = FALSE,
-                position = "left")
-
-```
-
 
