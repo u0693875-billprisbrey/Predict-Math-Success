@@ -5,9 +5,25 @@ date: "2025-12-12"
 output: html_document
 ---
 
-**PURPOSE:**  This report is a guide to recommended math courses for first time freshmen.  It is based on the incoming qualifications of the median successful student per course in the prior year. 
+**PURPOSE:**  This report is a guide to recommended math courses for first time freshmen.  It is based on the incoming qualifications of successful students (who achieve a minimum grade of B-) in the prior year. 
 
-Add a "year" parameter
+*Report improvements* 
+
+  - Add explanatory text    
+  - Turn "year" into a parameter  
+  - Turn plots into interactive "plotly" plots (allowing mouse-over and hover)  
+  - Add number lines next to the table for ACT math test scores and high school GPA with the percentile markers 
+  - Add descriptive information like the count or % of population per cluster or course
+  - Add sections: 
+      - Distance to course / top three closest courses (interactive)  
+      - Grade prediction per course / top three grades (interactive)    
+      - Explanation of grade prediction (SHAP values) 
+      
+*Additional work* 
+
+  - Investigate median unsuccessful student and compare distances 
+  - Investigate whether higher HSGPA and ACTMATH than course median predicts lower grades (suggesting that students should be bumped up if they are >75th or >90th percentiles for a course)   
+  - Train a new predictive model that incorporates z-score distance.  
 
 ```{r include=FALSE}
 
@@ -16,7 +32,7 @@ Add a "year" parameter
 ############
 
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
-                      fig.height=5, fig.width=7)
+                      fig.height=5, fig.width=11)
 
 oldPar <- par(cex.main = 3,
     cex.lab = 3,
@@ -310,22 +326,6 @@ cleanData$course <- factor(cleanData$course)
 ``` 
 
 
-What I am thinking is that I develop a flow chart--
-
-By drawing the rectangles, I am seeing that:  
-
-ACTMATH <= 26 is Cluster 1 course
-24 < ACTMATH <= 31 is Cluster 2 courses (note the overlap)
-ACTMATH > 30 is Cluster 3 courses
-
-And I could probably do a second column of HSGPA to the right of that, with the overlaps as well.
-
-Now that my scatter is perfectly designed to handle courses . . . 
- . . . I want to plot nice smooth artistic ellipses on my scatterplot using the clusters!
- 
-...but I like this use of clusters.
-
-And I wonder what the population is per cluster?  Is it 90% in Cluster 2?
 
 ```{r eval=FALSE}
 
@@ -355,7 +355,7 @@ row_id <- 7 # euclidean, ward.D2
 ```
 
 
-# START HERE 
+# Cluster placement
 
 ```{r} 
 
@@ -404,7 +404,6 @@ lowGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year,
 ``` 
 
 
-# Ok, this is FINALLY what I want
 
 ```{r}
 
@@ -424,8 +423,9 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               ellipse_params = list(plot = FALSE),
               qrect_params = list(border = NA),
               legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -434,7 +434,7 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
 
 clusterPoints <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], mean)
 
-par(xpd=NA)
+par(xpd=TRUE)
 DrawEllipse(x=clusterPoints$HSGPA.Q.50.[1:3],
        y = clusterPoints$ACTMATH.Q.50.[1:3],
        radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[1:3],
@@ -442,6 +442,7 @@ DrawEllipse(x=clusterPoints$HSGPA.Q.50.[1:3],
        border = clusterColors[1:3]
 )
 
+par(xpd=TRUE)
 DrawEllipse(x=clusterPoints$HSGPA.Q.50.[4],
        y = clusterPoints$ACTMATH.Q.50.[4],
        radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[4],
@@ -449,6 +450,7 @@ DrawEllipse(x=clusterPoints$HSGPA.Q.50.[4],
        border = clusterColors[4]
 )
 
+par(xpd=TRUE)
 legend("topright",
        bg = "snow",
        legend = c("basic", "intermediate","advanced","elite"),
@@ -460,6 +462,7 @@ legend("topright",
        )
 
 ```
+
 
 
 ```{r}
@@ -485,7 +488,7 @@ data.frame(
   min.HSGPA = round(clusterTable$HSGPA.Q.25..min, 2),
   max.HSGPA = round(clusterTable$HSGPA.Q.75..max, 2)
 ) |>
-  kbl(col.names = c("Level", "Min", "Max", "Min", "Max"),
+  kbl(col.names = c("Level", "Low", "High", "Low", "High"),
       align = c("l", "c", "c", "c", "c")) |>
   add_header_above(c(" " = 1, "ACT Math" = 2, "High School GPA" = 2)) |>
   kable_styling(bootstrap_options = c("striped", "hover"), 
@@ -495,10 +498,7 @@ data.frame(
 ```
 
 
-
-# Now I put in a table, I guess?
-
-Or do I show cluster-by-cluster the courses as a zoom-in, uinsg different pch?
+# Cluster by cluster
 
 ```{r}
 
@@ -511,7 +511,7 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               #legend_params = list(plot = FALSE),
               plot_params = list(xlim = c(3.5,4),ylim = c(15,30)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACT Math","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -535,9 +535,9 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               # ellipse_params = list(plot = FALSE),
               qrect_params = list(border = NA),
               #legend_params = list(plot = FALSE),
-              plot_params = list(xlim = c(3.6,4),ylim = c(20,30)),
+              plot_params = list(xlim = c(3.6,4),ylim = c(22,32)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACT Math","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -561,9 +561,9 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               par_params = list(xpd=FALSE),
               qrect_params = list(border = NA),
               #legend_params = list(plot = FALSE),
-              plot_params = list(xlim = c(3.75,4),ylim = c(20,36)),
+              plot_params = list(xlim = c(3.75,4),ylim = c(24,36)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACT Math","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -589,7 +589,7 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               #legend_params = list(plot = FALSE),
               plot_params = list(xlim = c(3.9,4),ylim = c(25,36)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACT Math","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -607,4 +607,112 @@ mtext(side = 3,
       line = -1.5)
 
 ```
+
+# Course detail 
+
+## Incoming ACT math test score percentiles of successful students by course  
+
+*where successful students achieved a grade of B-minus or better.*
+
+```{r}
+
+hiGrades[hiGrades$class_year == 2023, c("course", colnames(hiGrades)[grepl("ACTMATH\\.Q", colnames(hiGrades))])] |>
+  (\(x){x[order(x$ACTMATH.Q.25),] })() |>
+    kbl(caption = "Incoming ACT Math test score percentiles of students achieving B-minus or better by course", col.names = c("course", "10th", "25th", "50th", "75th","90th"),
+        row.names = FALSE,
+      align = c("l", "c", "c", "c", "c", "c")) |>
+#  add_header_above("Incoming qualifications of successful students by course") |>
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                position = "left")
+
+```
+
+
+## Incoming high school GPA percentiles of successful students by course
+
+*where successful students achieved a grade of B-minus or better.*
+
+```{r}
+
+hiGrades[hiGrades$class_year == 2023,c("course", colnames(hiGrades)[grepl("HSGPA\\.Q", colnames(hiGrades))])] |>
+  (\(x){x[order(x$HSGPA.Q.25),] })() |>
+  (\(x){x[,2:6] <- round(x[,2:6],2); return(x)})() |>
+    kbl(caption = "Incoming high school GPA percentiles of students achieving B-minus or better by course", col.names = c("course", "10th", "25th", "50th", "75th","90th"),
+        row.names = FALSE,
+      align = c("l", "c", "c", "c", "c", "c")) |>
+#  add_header_above("Incoming qualifications of successful students by course") |>
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                position = "left")
+
+```
+
+# Demonstration: Closest courses
+
+Given a student's identification number, the incoming qualifications can be retrieved and the three closest courses by z-score can be returned. 
+
+
+```{r}
+
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("High School GPA","ACT Math", "Plotting individual students against incoming qualifications", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              )
+              )
+
+set.seed(123)
+intermediateConditionFilter <-  cleanData$HSGPA > 3.8 & !is.na(cleanData$HSGPA) &
+                 cleanData$HSGPA < 3.9 & !is.na(cleanData$HSGPA) &
+                 cleanData$ACTMATH > 25 & !is.na(cleanData$ACTMATH) &
+                 cleanData$ACTMATH < 30 & !is.na(cleanData$ACTMATH) 
+interEmplid <- sample(cleanData$EMPLID[intermediateConditionFilter] , 10)
+
+intermediateEmplidFilter <- cleanData$EMPLID == interEmplid[1]
+
+points(x = cleanData$HSGPA[intermediateEmplidFilter] ,
+       y = cleanData$ACTMATH[intermediateEmplidFilter],
+       cex = 3,
+       pch = 13,
+       col = "gray10")
+
+text(x = cleanData$HSGPA[intermediateEmplidFilter] ,
+     y = cleanData$ACTMATH[intermediateEmplidFilter],
+     labels = interEmplid[1],
+     pos = 3
+     )
+
+
+```
+
+This could emphasize the three closest courses and identify them in the legend.
+
+A table unique to the student could also be produced with the distance to all courses.  
+
+# Demonstration:  Predicted grades  (To be added)
+
+Given a student's identification number, grades can be roughly predicted by course with a wide margin of error.   
+
+```{r eval = FALSE}
+
+Currently, these predictions: 
+
+  - Have a wide error (approximately plus or minus 0.85 grade points) 
+  - May be more useful as a rank order of classes (to be determined) 
+  - May decrease in accuracy with the distance to the class (needs to be investigated) 
+  - Many students who are predicted to have high grades achieve grades of zero 
+  - Maybe should just be used to predict high/low (B- or better vs C+ or less)
+
+```
+
+
 
