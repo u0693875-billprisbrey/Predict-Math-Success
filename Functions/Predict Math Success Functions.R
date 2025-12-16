@@ -1170,7 +1170,7 @@ courseScatter <- function(
     
     if(is.na(featureMaps[["clusterMap"]])){
       
-      colors <- c("tomato", "forestgreen",   "purple3", "orange2", "cyan",   "brown", "pink", "dodgerblue",  "sienna","magenta" )
+      colors <- c("darkorange", "steelblue",   "purple3", "turquoise3", "magenta", "forestgreen", "brown", "pink", "sienna")
       
       featureMaps[["clusterMap"]] <- data.frame(color = colors[unique(clusters)],
                                                 clust = unique(clusters)

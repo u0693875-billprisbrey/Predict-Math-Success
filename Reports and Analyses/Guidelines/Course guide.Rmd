@@ -536,8 +536,6 @@ merge(actDetail, hsDetail, by = "course") |>
 
 
 
-
-
 ```{r}
 
 ############################# 
@@ -550,21 +548,299 @@ actDetail <- aggregate(ACTMATH ~ course, data = cleanData[cleanData$class_year =
   })() 
 
 
-cockney <- merge(actDetail, garbo[,c("course","clust")], by = "course")
+# cockney <- merge(actDetail, garbo[,c("course","clust")], by = "course")
 
-actDetail |>
-  kbl()
+# actDetail |>
+#  kbl()
 
 hsDetail <- aggregate(HSGPA ~ course, data = cleanData[cleanData$class_year == 2023 & cleanData$GRADEGPA > 2.4, ], function(x){c(quantile(x,probs = c(0.1,0.25,0.5,0.75,0.9), na.rm=TRUE ), count = length(x))}) |>
     (\(x){
     do.call(data.frame,x)
   })()
 
-hsDetail |>
-  kbl()
+# hsDetail |>
+#  kbl()
 
 ``` 
 
 
+
+
+```{r}
+
+# ABANDON
+# Let's get this from start to stop 
+
+actDetail$clust1 <- actDetail |>
+  (\(x){row.names(x) <- x$course; 
+  x$course <- NULL; 
+  return(x[,-which(colnames(x) %in% "ACTMATH.count" )])  })() |>
+  dist(method ="euclidean") |>
+  hclust(method = "ward.D2")  |>
+  #vplot()
+ cutree(k=4)
+
+# check
+
+all(actDetail$course %in% hsDetail$course) # TRUE
+all(hiGrades$course %in% actDetail$course) # FALSE # oh
+all(hiGrades$course[hiGrades$class_year == 2023] %in% actDetail$course) # TRUE
+
+theDetail <- merge(actDetail, hsDetail, by = "course")
+
+hiGrades_2023 <- merge(hiGrades[hiGrades$class_year == 2023,], theDetail, by = "course")
+
+```
+
+# START HERE 
+
+```{r} 
+
+################  
+## START HERE ##  
+################  
+
+hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x),
+                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
+                          count = length(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+hiGrades$clust1 <- hiGrades |>
+  (\(x){ x[,colnames(x)[grepl("ACTMATH\\.Q\\.", colnames(x))]]  })() |>
+  dist(method ="euclidean") |>
+  hclust(method = "ward.D2")  |>
+  #vplot()
+  cutree(k=4)
+
+
+
+lowGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA <= 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x),
+                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
+                          count = length(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+
+
+``` 
+
+
+# Ok, this is FINALLY what I want
+
+```{r}
+
+###########################
+## SHOW CLUSTER ELLIPSES ##
+###########################
+
+clusterColors <- c("darkorange", "steelblue", "purple3", "turquoise3")
+# clusterColors <- c("tomato","forestgreen","purple3","orange2")
+
+# c("darkorange", "steelblue",   "turquoise4", "yellow2")
+
+  
+  
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              legend_params = list(plot = FALSE),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              )
+              )
+
+clusterPoints <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], mean)
+
+par(xpd=NA)
+DrawEllipse(x=clusterPoints$HSGPA.Q.50.[1:3],
+       y = clusterPoints$ACTMATH.Q.50.[1:3],
+       radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[1:3],
+       radius.y = 0.5*(clusterPoints$ACTMATH.Q.75.-clusterPoints$ACTMATH.Q.25.)[1:3], col = adjustcolor(clusterColors, alpha.f = 0.35)[1:3],
+       border = clusterColors[1:3]
+)
+
+DrawEllipse(x=clusterPoints$HSGPA.Q.50.[4],
+       y = clusterPoints$ACTMATH.Q.50.[4],
+       radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[4],
+       radius.y = 0.5*(clusterPoints$ACTMATH.Q.90.-clusterPoints$ACTMATH.Q.10.)[4], col = adjustcolor(clusterColors, alpha.f = 0.35)[4],
+       border = clusterColors[4]
+)
+
+legend("topright",
+       bg = "snow",
+       legend = c("basic", "intermediate","advanced","elite"),
+       pt.cex = 3,
+       col = clusterColors,
+       pch = 19,
+       xpd = TRUE,
+       inset = c(-0.155,0)
+       )
+
+```
+
+
+# Now I put in a table, I guess?
+
+Or do I show cluster-by-cluster the courses as a zoom-in, uinsg different pch?
+
+```{r}
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              clusterFilter = 1,
+              par_params = list(xpd=FALSE),
+              #ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              #legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.5,4),ylim = c(15,30)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              ),
+              point_params = list(pch = c(15:18,0,1)),
+              legend_params = list(inset = c(-0.155,0), title = "Basic", pch = c(15:18,0,1))
+              )
+
+mtext(side = 3,
+      font = 4,
+      cex = 3,
+      col = clusterColors[1],
+      text = "BASIC",
+      line = -1.5)
+
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              clusterFilter = 2,
+              par_params = list(xpd=FALSE),
+              # ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              #legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.6,4),ylim = c(20,30)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              ),
+              point_params = list(pch = c(0:5,1)),
+              legend_params = list(inset = c(-0.155,0), title = "Intermediate", pch = c(0:5,1))
+              )
+
+
+mtext(side = 3,
+      font = 4,
+      cex = 3,
+      col = clusterColors[2],
+      text = "INTERMEDIATE",
+      line = -1.5)
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              clusterFilter = 3,
+              #ellipse_params = list(plot = FALSE),
+              par_params = list(xpd=FALSE),
+              qrect_params = list(border = NA),
+              #legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.75,4),ylim = c(20,36)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              ),
+              point_params = list(pch = c(8,11,12,14,1)),
+              legend_params = list(inset = c(-0.155,0), title = "Advanced", pch = c(8,11,12,14,1))
+              )
+
+mtext(side = 3,
+      font = 4,
+      cex = 3,
+      col = clusterColors[3],
+      text = "ADVANCED",
+      line = -1.5)
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              # showCourse = TRUE,
+              clusterFilter = 4,
+              # ellipse_params = list(plot = FALSE),
+              par_params = list(xpd=FALSE),
+              qrect_params = list(border = NA),
+              #legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.9,4),ylim = c(25,36)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("HSGPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              ),
+              point_params = list(pch = c(8,11,12,14,2,3,1)),
+              legend_params = list(inset = c(-0.155,0), title = "Elite", pch = c(8,11,12,14,2,3,1))
+              )
+
+
+mtext(side = 3,
+      font = 4,
+      cex = 3,
+      col = clusterColors[4],
+      text = "ELITE",
+      line = -1.5)
+
+```
+
+```{r}
+
+#####################
+## GUIDELINE TABLE ##
+#####################
+
+clusterTable <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], function(x) {c(min = min(x), max=max(x))} ) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()
+
+# o.k. this will be fun
+# first column is name
+# second column is ACT range (as text)
+# third column is HSGPA range (as text)
+
+data.frame(
+  name = c("Basic", "Intermediate", "Advanced", "Elite"),
+  min.ACT = floor(clusterTable$ACTMATH.Q.25..min),
+  max.ACT = ceiling(clusterTable$ACTMATH.Q.75..max),
+  min.HSGPA = round(clusterTable$HSGPA.Q.25..min, 2),
+  max.HSGPA = round(clusterTable$HSGPA.Q.75..max, 2)
+) |>
+  kbl(col.names = c("Level", "Min", "Max", "Min", "Max"),
+      align = c("l", "c", "c", "c", "c")) |>
+  add_header_above(c(" " = 1, "ACT Math" = 2, "High School GPA" = 2)) |>
+  kable_styling(bootstrap_options = c("striped", "hover"), 
+                full_width = FALSE,
+                position = "left")
+
+```
 
 
