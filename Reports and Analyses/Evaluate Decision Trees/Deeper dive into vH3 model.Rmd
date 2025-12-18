@@ -12,7 +12,9 @@ output:
 
 # MODIFY THIS TEXT TO FIT vH3
 
-Spiffy up the boxplots
+Work on course predictions in the "Course Guide" and then come back to this.
+
+Spiffy up the boxplots DONE
 
 Now I need to use this model to make predictions in the "Course Guide" --
 
@@ -424,7 +426,9 @@ names(theResults) <- params$target_classes
 
 ```
 
-### Models  
+### Models 
+
+"Quad" model was not evaluated and is not covered in this report. 
 
 ```{r}
 
@@ -677,7 +681,7 @@ density_pred <- aligned[["GRADEGPA"]][["pred"]] |>
   density()
 lines(density_pred, col = "blue", lwd =2)
 
-aligned[["GRADEGPA"]][["cut"]] <- cut(aligned[["GRADEGPA"]][["pred"]], breaks = c(0,2.7,4))
+aligned[["GRADEGPA"]][["pred_cut_2.7"]] <- cut(aligned[["GRADEGPA"]][["pred"]], breaks = c(0,2.7,4), include.lowest = TRUE)
 
 
 lowCutFilter <-  aligned[["GRADEGPA"]][["cut"]] == "(0,2.7]" & !is.na(aligned[["GRADEGPA"]][["cut"]])
@@ -722,31 +726,82 @@ drawCM(cm_1.7)
 # not sure that's what I want at all
 # I need to include the <1.7 at the high prediction as well
 
+aligned[["GRADEGPA"]][["cut_1.7"]] <- cut(aligned[["GRADEGPA"]][["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+
+table(aligned[["GRADEGPA"]][,c("pred_cut_2.7", "cut_1.7")])
+
+#            cut_1.7
+# pred_cut_2.7 [0,1.7) [1.7,4]
+#     [0,2.7]     190     636
+#     (2.7,4]      34    1054
+
+#             cut_1.7
+# pred_cut_2.7 [0,1.7] (1.7,4]
+#     [0,2.7]     230     596
+#     (2.7,4]      38    1050
+
+# This is actually a different optimization problem than
+# my optimum Kappa, which currently requires the same cut on
+# both grade and pred.
+
+# Seems like I want to play around as a pred cut somewhere between 2.3 and 2.7 (inclusive) will probably be my optimum precision/recall for failures (<1.7, not inclusive)
+
+# Not sure it's worth spending an hour to figure this out.
+# In fact, eh I'll publish this graphic but not spend more time on this optimum value.
 
 
-```   
-
-I'd like to say what percentage of votes in this <2.7
-Basically recall and precision for <1.7 (the dividing line between D+ and C-)
-
-
-Examining the precision for predictions of grades <1.1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
-
-
-
-```{r eval=FALSE}
-
-
-createCM(aligned[["GRADEGPA"]]) |> drawCM() # baseline Kappa of 0.2
-createCM(aligned[["GRADEGPA"]], cuts = c(0,2.7,4)) |> drawCM() # HIGHEST KAPPA! 0.41
-# createCM(aligned[["GRADEGPA"]], cuts = c(0,1,2.7,4)) |> drawCM() # Kappa of 0.268
-
-
+table(aligned[["GRADEGPA"]][,c("pred_cut_2.7", "cut_1.7")]) |>
+  kbl()
 
 ```
 
-
 ```{r}
+
+
+aligned[["GRADEGPA"]][["pred_cut_2.4"]] <- cut(aligned[["GRADEGPA"]][["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE)
+
+aligned[["GRADEGPA"]][["cut_1.7"]] <- cut(aligned[["GRADEGPA"]][["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+
+
+# Create confusion matrix with proportions
+conf_table <- table(aligned[["GRADEGPA"]][,c("pred_cut_2.4", "cut_1.7")])
+
+# Convert to proportions and percentages
+prop_table <- prop.table(conf_table) * 100
+
+# Combine counts and percentages
+combined <- matrix(
+  paste0(conf_table, "\n(", round(prop_table, 1), "%)"),
+  nrow = nrow(conf_table)
+)
+
+dimnames(combined) <- dimnames(conf_table)
+
+combined |>
+  kbl(caption = "Predicted vs Actual Grade Categories",
+      col.names = c("Actual: Fail (<1.7)", "Actual: Pass (≥1.7)"),
+      align = "c",
+      escape = FALSE) |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                font_size = 18) |>
+  add_header_above(c("Predicted Grade" = 1, "Actual Grade" = 2),
+                   bold = TRUE, font_size = 20) |>
+  row_spec(0, bold = TRUE, font_size = 20, background = "#e6f2ff")
+
+recall <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[,1])})()) |> round(2) |> (\(x){x*100})()
+
+precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[1,])})()) |> round(2) |> (\(x){x*100})()
+
+```   
+
+Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
+
+
+
+
+
+```{r fig.height=5, fig.width=11}
 
 # Cumulative accuracy
 # Where I calculate a binary confusion matrix, and gradually increase the upper bound,
@@ -758,7 +813,7 @@ cumAcc <- lapply(round(seq(from = 0.1, to = 3.9, by = 0.1),1), function(x){
   
 })
 
-par(mar=c(5.1,4.1,4.1,7.1))
+par(mar=c(5.1,4.1,4.1,7.6), bg="ivory")
 
 plot(x = 0.5,
   ylim = c(0,1),
@@ -768,6 +823,14 @@ plot(x = 0.5,
      ylab = "",
      xlab = "",
   type = "n")
+
+rect(xleft = par("usr")[1] ,
+     ybottom = par("usr")[3] ,
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "grey95")
+
+grid(col="gray90", lwd = 2, lty = 1)
 
 sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> lines(col = "firebrick", lwd = 2)
 sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> lines(col = "dodgerblue", lwd = 2)
@@ -779,8 +842,9 @@ legend("topright",
        col = c("firebrick","dodgerblue","gold"),
        legend = c("Kappa","Precision","Recall"),
        lwd =4,
-       inset = c(-0.35,0),
-       xpd = TRUE
+       inset = c(-0.175,0),
+       xpd = TRUE,
+       bg = "snow"
        )
 
 mtext(side=3, font = 2, cex = 1.619, line = 1.619, text = "Confusion matrix metrics from binary discretization")
@@ -816,10 +880,12 @@ text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(
 
 ```
 
+Examining the precision for predictions of grades <0.9 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
+
 
 ```{r}
 
-createCM(aligned[["GRADEGPA"]], cuts = c(0,2.7,4)) |> drawCM(title = "Binary optimum")
+createCM(aligned[["GRADEGPA"]], cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
 createCM(aligned[["GRADEGPA"]], cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
 
 ```
@@ -839,24 +905,6 @@ REMOVE "load" EXPLANATION
 
 The other variables are either self-explanatory or taken directly from OBIA tables.  
 
-
-```{r}
-
-boxplot(ACTMATH.z ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
-
-boxplot(HSGPA.z ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
-
-boxplot(dist ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
-
-```
-
-not a bad series of boxplots.  Def something happening here
-
-Man I've done so many boxplots -- don't I have a custom function to manage this?  
-
-I should do the incoming plot hex.
-
-Also, the hist is great -- but maybe the density plot? Nah, what I got is fine. 
 
 
 
@@ -878,6 +926,149 @@ invisible(
 )
 
 ```
+
+
+# Relationship between distance to median successful students (as a z-score) and grade
+
+
+```{r}
+
+actDensity <- density(data_list[["GRADEGPA"]][["training"]][["ACTMATH.z"]])
+hsgpaDensity <- density(data_list[["GRADEGPA"]][["training"]][["HSGPA.z"]])
+distDensity <- density(data_list[["GRADEGPA"]][["training"]][["dist"]])
+
+hist(data_list[["GRADEGPA"]][["training"]][["ACTMATH.z"]],
+     col = "pink",
+     main = "Histogram of ACT math z-scores",
+     xlab = "Z-score (ACT Math)\n[bins include left endpoint]",
+     right = FALSE,
+     bg = "ivory")
+
+plot(hsgpaDensity,
+     bg = "ivory",
+     main = "Density distribution of high school grade z-scores"
+     )
+
+polygon(hsgpaDensity, 
+        col = "aliceblue", 
+        border = NA)  # No border around the fill
+
+lines(hsgpaDensity, lwd = 2)  # Redraw the line on top
+
+plot(distDensity,
+     bg = "ivory",
+     main = "Density of combined z-score distances"
+     )
+
+polygon(distDensity, 
+        col = "beige", 
+        border = NA)  # No border around the fill
+
+lines(distDensity, lwd = 2)  # Redraw the line on top
+
+```
+
+```{r}
+
+# Box plots of z-scores vs grades
+
+zBox <- function(data, column, 
+                 box_params = list(),
+                 axis_params = list(),
+                 title_params = list(),
+                 title = NA
+                 ){
+  
+  thePlot <- boxplot(get(column) ~ GRADEGPA,
+                     data = data,
+                     ylab = "",
+                     xlab = "",
+                     outline = FALSE
+                     )
+  
+  rect(xleft = par("usr")[1],
+       ybottom = par("usr")[3],
+       xright = par("usr")[2],
+       ytop = par("usr")[4],
+       col = "gray95")
+
+  grid(col = "gray90", lty =1, lwd = 2)
+  
+  default_box_params <- list( 
+    formula = as.formula(paste(column, " ~ GRADEGPA")),
+    data = data,
+    ylab = "",
+    xlab = "",
+    outline = FALSE,
+    col = "lavender",
+    add = TRUE
+    )
+  
+  box_params <- modifyList(default_box_params, box_params)
+  do.call(boxplot, box_params)
+  
+  default_axis_params <- list(
+    side = c(1,2),
+    font = c(1,1),
+    cex = c(1.2,1.2),
+    line = c(2.32,2.31),
+    text = c("High school grade", "Z-score")
+  )
+
+  axis_params <- modifyList(default_axis_params, axis_params)
+  do.call(mtext, axis_params)
+    
+  default_title_params <- list(
+        side = c(3,3),
+    font = c(2,3),
+    cex = c(2.05, 1.25),
+    line = c(1.69, 0.5),
+    text = c(title, "Z-score distance to median successful student")
+  )
+  
+  title_params <- modifyList(default_title_params, title_params)
+  do.call(mtext, title_params)
+
+  
+}
+
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "ACTMATH.z",
+     title = "ACT Math",
+     box_params = list(col="pink"))
+
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "HSGPA.z",
+     title = "High school GPA",
+     box_params = list(col="aliceblue"))
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "dist",
+     title = "Combined distance",
+     box_params = list(col="beige"))
+
+# boxplot(ACTMATH.z ~ GRADEGPA, 
+#        data = data_list[["GRADEGPA"]][["training"]], 
+#        outline=FALSE)
+
+# boxplot(HSGPA.z ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
+
+# boxplot(dist ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
+
+```
+
+not a bad series of boxplots.  Def something happening here
+
+Man I've done so many boxplots -- don't I have a custom function to manage this?  
+
+I should do the incoming plot hex.
+
+Also, the hist is great -- but maybe the density plot? Nah, what I got is fine. 
+
+
+
 
 ```{r eval=FALSE}
 

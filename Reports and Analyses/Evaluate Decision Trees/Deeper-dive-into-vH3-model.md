@@ -1,6 +1,6 @@
 ---
 title: "Deeper dive into vH3 model"
-date: "December 17, 2025"
+date: "December 18, 2025"
 params: 
   version: "vH3"
   target_classes: 
@@ -11,6 +11,20 @@ output:
 ---
 
 # MODIFY THIS TEXT TO FIT vH3
+
+Work on course predictions in the "Course Guide" and then come back to this.
+
+Spiffy up the boxplots DONE
+
+Now I need to use this model to make predictions in the "Course Guide" --
+
+  - It would be cool if I could reasonably demonstrate that the people predicted as "low" could have improved their grade by switching to a closer course.  That would be a little bit of an exercise, but probably worth it.
+  
+  - I need to find the report where I did all the work describing how I cleaned the data.  
+  
+  - I'd like to show the essentially precision/recall for all of the grades in my two categories  
+  
+
 
 **PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It includes the distance of the current  It performs with an r-squared value of 0.26.  Various aspects of the model prediction and actual performance are visualized and compared.  
 
@@ -120,7 +134,9 @@ I'll polish up this report a little more before adding that.
 
 
 
-### Models  
+### Models 
+
+"Quad" model was not evaluated and is not covered in this report. 
 
 <table class="table table-striped table-hover table-condensed" style="color: black; width: auto !important; ">
 <caption>Grade Mapping</caption>
@@ -245,21 +261,51 @@ I'll polish up this report a little more before adding that.
 
 ![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-11-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
 
-I'd like to say what percentage of votes in this <2.7
-Basically recall and precision for <1.7 (the dividing line between D+ and C-)
 
 
-Examining the precision for predictions of grades <1.1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
+<table class="table table-striped table-hover" style="font-size: 18px; color: black; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">Predicted vs Actual Grade Categories</caption>
+ <thead>
+<tr>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; font-weight: bold; font-size: 20px;" colspan="1"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Predicted Grade</div></th>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; font-weight: bold; font-size: 20px;" colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Actual Grade</div></th>
+</tr>
+  <tr>
+   <th style="text-align:left;font-weight: bold;background-color: rgba(230, 242, 255, 255) !important;font-size: 20px;">   </th>
+   <th style="text-align:center;font-weight: bold;background-color: rgba(230, 242, 255, 255) !important;font-size: 20px;"> Actual: Fail (&lt;1.7) </th>
+   <th style="text-align:center;font-weight: bold;background-color: rgba(230, 242, 255, 255) !important;font-size: 20px;"> Actual: Pass (≥1.7) </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> [0,2.4] </td>
+   <td style="text-align:center;"> 166
+(8.7%) </td>
+   <td style="text-align:center;"> 410
+(21.4%) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> (2.4,4] </td>
+   <td style="text-align:center;"> 58
+(3%) </td>
+   <td style="text-align:center;"> 1280
+(66.9%) </td>
+  </tr>
+</tbody>
+</table>
+
+Students predicted to have a grade less than 2.4 are a high-risk group of students. 29% of these 576 students actually did fail, or 74% of the total of students who failed.  (74% recall and 29% precision).
 
 
 
 
 
+![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
-![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+Examining the precision for predictions of grades <0.9 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
 
 
-![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
+![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
 
 
 # Variable importance
@@ -277,14 +323,31 @@ course, SEX, FIRST_GEN_STATUS_CD, ETHNICITY, RESSTAT, FA_PELL, APCREDIT, HSGPA, 
 The other variables are either self-explanatory or taken directly from OBIA tables.  
 
 
-![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-15-2.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-15-3.png)<!-- -->
 
-not a bad series of boxplots.  Def something happening here
 
 
 
 
 ![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
+
+# Relationship between distance to median successful students (as a z-score) and grade
+
+
+![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-17-2.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-17-3.png)<!-- -->
+
+![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-18-2.png)<!-- -->![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-18-3.png)<!-- -->
+
+not a bad series of boxplots.  Def something happening here
+
+Man I've done so many boxplots -- don't I have a custom function to manage this?  
+
+I should do the incoming plot hex.
+
+Also, the hist is great -- but maybe the density plot? Nah, what I got is fine. 
+
+
+
 
 
 
@@ -293,7 +356,7 @@ not a bad series of boxplots.  Def something happening here
 
 
 
-![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](Deeper-dive-into-vH3-model_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
 
 # 
