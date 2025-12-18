@@ -841,8 +841,8 @@ createCM <- function(data, target = "GRADEGPA", cuts=NA, cap=TRUE){
     
   }
   
-  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE)
-  data$ref_cut <- cut(data[,target], cuts, include.lowest = TRUE)
+  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE, right = FALSE)
+  data$ref_cut <- cut(data[,target], cuts, include.lowest = TRUE,right = FALSE)
   
   cm <- confusionMatrix(data$pred_cut, data$ref_cut, mode = "everything")
   
