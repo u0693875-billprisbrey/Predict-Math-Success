@@ -1,0 +1,1067 @@
+---
+title: "Deeper dive into vH3 model"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params: 
+  version: "vH3"
+  target_classes: 
+    - GRADEGPA
+output:
+  html_document:
+    keep_md: true
+---
+
+# MODIFY THIS TEXT TO FIT vH3
+
+Spiffy up the boxplots
+
+Now I need to use this model to make predictions in the "Course Guide" --
+
+  - It would be cool if I could reasonably demonstrate that the people predicted as "low" could have improved their grade by switching to a closer course.  That would be a little bit of an exercise, but probably worth it.
+  
+  - I need to find the report where I did all the work describing how I cleaned the data.  
+  
+  - I'd like to show the essentially precision/recall for all of the grades in my two categories  
+  
+
+
+**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It includes the distance of the current  It performs with an r-squared value of 0.26.  Various aspects of the model prediction and actual performance are visualized and compared.  
+
+EXECUTIVE SUMMARY
+
+METHODOLOGY
+
+To be copied from elsewhere.  
+Importantly, 'W' or "withdraw" is removed from this analysis. 
+
+DISCUSSION  
+
+*ACCURACY*  
+
+Predicting GPA directly performs with an R-squared value of 0.26.  Lumping the grades together into four bins, and predicting these bins, results in an R-squared value of 0.28.  Due to the similarity in performance, and a preference for the increased detail, this report focuses on the model that predicted grades directly.  
+
+As far as distinguishing a binary grouping between "high" and "low", the model had an optimum Kappa of 0.39 at a cut-off value of predicting a GPA of 2.4 or less.  This draws a dividing line between a C+ and a B-, and identified "low" performers with 0.47 precision and 0.67 recall.  These "low" performers [[find out how they actually did, and shouldn't your histogram show that?]]
+
+*PREDICTABLY FAILED*  
+
+The model can identify a few students who were not expected to pass their first math class, and indeed did fail it, with good precision.  Due to their predictable failure, these students might be considered admissions mistakes, or are candidates for having their admissions determination reviewed.  
+
+However, very few students are in this category.  The model predicted only 17 students would score 1.1 or less, and 11 of the students (65% precision) did indeed score 1.1 or less.  (Of the remaining six, one student scored 1.7, one student achieved a 4.0, and the remaining scored between a 2.0 and a 3.0.)  This very low number of students represented a recall metric of only 0.054.
+
+A few conclusions can be drawn from this good-precision/low-recall result:  
+
+  * That math grading practices are not mis-aligned with admissions standards.  (If they were mis-aligned, there would be more students expected to fail and the recall metric would be higher.)  
+  * That practically every student admitted in 2024 was reasonably expected to pass a math class.   
+  * That variables outside of information available upon admission is predicting or determining or causing math class failures.  This could include things like the number of credits taken, or a "poisonous" combination of difficult classes, or a mid-semester move.  It would be interesting to open up the class information to determine how quickly eventual failures can be identified. For example, to see if the first week's homework results or the first test's grade is highly predictive. 
+
+
+
+  
+
+NEXT STEPS
+
+RESULTS 
+
+What this report shows:
+
+- There are a handful of students who predictably failed (with good precision.)  This could suggest: 
+  - That these students shouldn't have been admitted and constitute an admissions mistake.  (If we knew they had a high chance of failure, should we have admitted them?)    
+  - That the very small number of students in this category suggests that we don't have a large admissions failure.   
+  
+- An R-squared model of 0.28 is a decently predictive model on very few variables.  It can predict the student's grade with a mean absolute error of 0.84.  So incoming math ability and study ability can explain about 28% of grade variation.    
+
+- However, it still leaves a lot un-explained.  It is not mechanically deterministic and doesn't suggest strong cut-offs.  The histograms compare the ranges of actual vs predicted values.  
+
+- Failure (<1.3) seems to be about a lot more than math ability and study ability (test scores and high school GPA) as students fail despite predicted grades as high as an A.  (What's my metric that says this?)
+
+- The optimum split is 2.7 (B-).  This is where the model performs at its best (least-random) ability to sort students into high and low grades. 
+
+- Unexpectedly, "course" disappears as an explanatory variable. 
+
+  - Maybe this means that the courses are roughly equivalent and course selection doesn't matter. 
+  - Maybe this means that some unknown sorting mechanism adequately places students into math courses appropriate to their ability, so that only their studiousness or "study ability" (as indicated by their high school GPA) separates academic performance.  
+
+- The top two predictors of grade are (overwhelmingly) the high school GPA and the ACT math test scores.  
+
+  - A heat map of expected values based on twenty years' of data is very reasonable, with lower grades expected upon moving diagonally to the lower left. 
+  
+  - Grade inflation?  A lot redder than expected; Way more 'A's than expected.  Looks a lot easier to top off on this scale.  Looking a lot more like a pass-fail.  (Like---what's the number here?  How many did I expect and how many did I get?  It's a simple question of precision I guess.)  
+  
+    Looking at this: createCM(aligned[["GRADEGPA"]], cuts = c(0,3.3,3.7,4)) |> drawCM()
+    
+ Look how it "leans" right towards the higher end.  Way more people get >3.7 who are predicted to get <3.7 .
+ 
+ Math looks very, very, very forgiving.  It is graded very generously.
+ 
+Look at how low the precision is for  
+createCM(aligned[["GRADEGPA"]], cuts = c(0,3.3,4)) |> drawCM().
+
+They are really pushing grades up here. 
+
+...or is that a correct interpretation?  Does it just mean my model is bad?  Can I manually adjust the prediction and improve the prediction?  If I can, why doesn't the model do it automatically?
+
+
+
+
+  
+  
+  
+
+
+
+
+
+And what makes these reports hard to complete 
+
+This report needs some TLC, changes to plot sizes, some words and write-up, and then it needs a comparison with the grade-only prediction (maybe a separate report?).
+
+Possibly develop a <= accuracy metric, a modification of recall, as I don't care how many people got better than a C+ but I care how many people got a C+ or less.
+
+I'll polish up this report a little more before adding that.  
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+library(kableExtra)
+
+# source("https://raw.githubusercontent.com/u0693875-billprisbrey/Draw-Confusion-Matrix/refs/heads/main/Draw%20Confusion%20Matrix.R?token=GHSAT0AAAAAADL3K4CPCVTG2DS7Y2JOIWDK2IAEEWQ") # great!
+
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", params$target_classes, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  params$target_classes
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", params$target_classes, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  params$target_classes
+)
+
+```
+
+
+```{r eval = FALSE}
+
+
+# This will change based on the model prep.
+# I might just want to delete this for a template "results"
+# report.
+
+## RAW DATA ##
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
+
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+#
+# identify popular, high volume courses
+# mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+#                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+                          )
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+#  SATMATH, # leaving out SAT because it's a smaller proportion
+#  SATVERBAL,
+#  SATWRTG        
+)
+
+popCourses <- merge(popCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+popCourses <- merge(popCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+# Freshman year
+popCourses$cohort_year <- year(popCourses$COHORT_DT)
+
+# Class year
+popCourses$class_year <- year(popCourses$EOTDATE)
+
+# Year to class
+popCourses$yr_diff <- time_length(interval(popCourses$COHORT_DT, popCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+popCourses$season <- season_map[substr(popCourses$TERM, 4, 4)]
+
+
+# print("Prep complete")
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+popCourses$cleanGrade <- clean_grade(popCourses$GRADE) 
+
+popCourses$cleanGrade <- factor(popCourses$cleanGrade,
+                                levels = c(
+                                  "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                  "C", "C_minus", "D",   
+                                  "E", "EU", "W", "I", "CR",  "NC", "V", 
+                                  "missing", NA
+                                )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") # , "EU" convert EU to 0
+
+# WITHDRAW
+# popCourses$wdraw_binary <- NA
+# popCourses$wdraw_binary <- ifelse(popCourses$GRADE == "W","withdraw","not_withdraw")
+
+
+# Combine grades
+# BINARY
+popCourses$grade_binary <- NA
+hiFilter <- popCourses$GRADE %in% c("A", "A-", "B+", "B", "B-", "C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU" ) 
+popCourses$grade_binary[hiFilter] <- 1
+popCourses$grade_binary[loFilter] <- 0
+
+#popCourses$grade_binary <- factor(popCourses$grade_binary,
+#                                  levels = c("hi_grade", "low_grade"))
+
+
+# TRINARY
+popCourses$grade_trinary <- NA
+hiFilter <- popCourses$GRADE %in% c("A", "A-", "B+", "B", "B-")
+medFilter <- popCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E" ) 
+popCourses$grade_trinary[hiFilter] <-  2 #"hi_grade"
+popCourses$grade_trinary[medFilter] <- 1 # "med_grade"
+popCourses$grade_trinary[loFilter] <-  0 #"low_grade"
+
+
+# popCourses$grade_trinary <- factor(popCourses$grade_trinary,
+#                                  levels = c("hi_grade", "med_grade", "low_grade"))
+
+# QUAD (EXPANDED FAILURE)
+popCourses$grade_quad <- NA
+hiFilter <- popCourses$GRADE %in% c("A")
+medPlusFilter <- popCourses$GRADE %in% c("A-", "B+", "B", "B-")
+medMinusFilter <- popCourses$GRADE %in% c("C+", "C", "C-")
+loFilter <- popCourses$GRADE %in% c( "D+", "D", "D-", "E", "EU", "W" ) 
+popCourses$grade_quad[hiFilter] <- 3 # "hi_grade"
+popCourses$grade_quad[medPlusFilter] <- 2 # "medPlus_grade"
+popCourses$grade_quad[medMinusFilter] <- 1 #"medMinus_grade"
+popCourses$grade_quad[loFilter] <-0 # "low_grade"
+
+# popCourses$grade_quad <- factor(popCourses$grade_quad,
+#                                  levels = c("hi_grade", 
+#                                             "medPlus_grade",
+#                                             "medMinus_grade",
+#                                             "low_grade"))
+
+# popCourses$cleanGrade[popCourses$cleanGrade %in% c("D_plus", "D", "D_minus") ] <- "D"
+
+# print("Transformations complete")
+
+
+```
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply(params$target_classes, function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  # print(x)
+  # print(table(missingFilter))
+}
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter,])
+  
+} )
+names(thePredictions) <- params$target_classes
+
+```
+
+```{r}
+
+
+theResults <- lapply(params$target_classes, function(x) {
+  
+  # print(x)
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  postResample(pred = thePredictions[[x]],
+                  obs = data_list[[x]][["testing"]][[x]][missingFilter]
+  
+               )
+})
+names(theResults) <- params$target_classes
+
+
+
+```
+
+### Models  
+
+```{r}
+
+data.frame(Letter = c("E, EU", "D-","D","D+", "C-","C","C+", "B-","B","B+","A-","A"),
+           GPA = c(0,0.7,1,1.3,1.7,2.0,2.3,2.7,3.0,3.3,3.7,4.0),
+           Quad =c(0,0,0,0,1,1,1,2,2,2,2,3)
+           ) |>
+  kbl(align = c("l", "c", "c"),
+      col.names = c("Letter Grade", "GPA", "Quad"),
+      caption = "Grade Mapping") |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") |>
+  column_spec(1, bold = TRUE) |>
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
+
+```
+
+
+
+# Results
+
+```{r}
+
+
+# I'd like to normalize the errors with the range and standard deviation
+
+# but it doesn't change that these aren't very good models
+
+# normalized errors
+
+normalized_metrics <- function(pred, obs) {
+  rmse <- sqrt(mean((pred - obs)^2))
+  mae  <- mean(abs(pred - obs))
+  r2   <- cor(pred, obs)^2
+  
+  range_y <- diff(range(obs, na.rm = TRUE))
+  sd_y    <- sd(obs, na.rm = TRUE)
+  
+  data.frame(
+    RMSE = rmse,
+    MAE  = mae,
+    R2   = r2,
+    NRMSE_range = rmse / range_y,
+    NMAE_range  = mae  / range_y,
+    NRMSE_sd    = rmse / sd_y,
+    NMAE_sd     = mae  / sd_y
+  )
+}  
+  
+normResults <- lapply(params$target_classes, function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  normalized_metrics(
+    pred = thePredictions[[x]],
+    obs = data_list[[x]][["testing"]][[x]][missingFilter]
+  )
+  
+})  
+names(normResults) <- params$target_classes
+
+library(kableExtra)
+
+normResults |>
+  (\(x){do.call(rbind,x)})() |>
+  (\(x){round(x,2)})()|>
+    kbl(
+    caption = "Normalized Regression Results Across Grading Buckets",
+    align = "c",
+    col.names = c("",
+      "RMSE", "MAE", "R-sq", 
+      "NRMSE (Range)", "NMAE (Range)", 
+      "NRMSE (SD)", "NMAE (SD)"
+    )
+  ) |>
+  kable_classic(full_width = FALSE, html_font = "Calibri") |>
+  row_spec(0, bold = TRUE, background = "#f0f0f0") |>  # header
+  row_spec(1:length(params$target_classes), background = c("#ffffff", "#f9f9f9")) |> # alternating rows
+  add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
+
+```
+
+
+```{r}
+
+regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs Actual") {
+  if (length(pred) != length(reference)) {
+    stop("`pred` and `reference` must be the same length.")
+  }
+  
+  incoming.par <- par(mfrow= c(2,1), mar = c(3,2.5,0,1), oma = c(1.5,1.5,2.25,0))
+  
+  on.exit(par(incoming.par))
+  
+  # Compute metrics
+  rmse <- sqrt(mean((pred - reference)^2))
+  mae  <- mean(abs(pred - reference))
+  r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2) 
+  
+  # Print metrics
+#  cat("Regression diagnostics:\n")
+#  cat(sprintf("RMSE: %.4f\n", rmse))
+#  cat(sprintf("MAE:  %.4f\n", mae))
+#  cat(sprintf("R-squared (variance decomposition): %.4f\n", r2))
+
+  
+  # Scatter plot
+  plot(reference, pred,
+      # xlab = "Actual",
+      # ylab = "Predicted",
+       # main = plot_title,
+       pch = 19, col = "steelblue",
+       las = 1)
+  abline(a = 0, b = 1, col = "red", lwd = 2)  # 45-degree reference line
+  grid()
+  
+  # boxplot
+  bp <- boxplot(pred ~ reference,
+        # xlab = "Actual",
+        # ylab = "Predicted",
+         # main = plot_title,
+         col = "lightblue",
+         border = "steelblue",
+         las=1)
+  
+    # Add a red reference line for each box
+        for (i in seq_along(bp$names)) {
+          actual_val <- as.numeric(bp$names[i])
+          segments(x0 = i - 0.4, y0 = actual_val,
+                   x1 = i + 0.4, y1 = actual_val,
+                   col = "red", lwd = 2)
+        }
+  
+mtext(side = 3, line =0.75, text = plot_title, cex = 1.5, font = 2, outer = TRUE)  
+  
+mtext(side = 2, line =0.25, text = "Predicted", cex = 1.25, font = 1, outer = TRUE)  
+
+mtext(side = 1, line =0.25, text = "Actual", cex = 1.25, font = 1, outer = TRUE)  
+
+  # Return metrics invisibly as a list
+  invisible(list(RMSE = rmse, MAE = mae, R2 = r2))
+}
+
+
+invisible(lapply(params$target_classes, function(x){
+  
+      # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  
+regression_diagnostics(pred = thePredictions[[x]],
+                       reference = data_list[[x]][["testing"]][[x]][missingFilter],
+                       plot_title = x)
+})
+)
+
+```
+
+
+
+```{r fig.height=4.5, fig.width=9}
+
+aligned <- alignPrediction(prediction_list = thePredictions, reference_list = data_list)
+
+# ACTUAL vs PREDICTED HEATMAP
+predictionMap(data = aligned[["GRADEGPA"]], 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+
+
+```
+
+
+```{r eval=FALSE}
+
+# I'm not seeing a real need to display this for each grade 
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE, 
+                    hist_params = list(freq = TRUE))
+)
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    hist_params = list(freq = TRUE))
+)
+
+```
+
+
+```{r}
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE,
+                    cuts = c(0,2.7,4),
+                    hist_params = list(freq = TRUE))
+)
+
+suppressWarnings(
+predictionHistogram(data = aligned[["GRADEGPA"]],
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    cuts = c(0,2.7,4),
+                    hist_params = list(freq = TRUE))
+)
+
+```  
+
+```{r eval=FALSE}
+
+# density plot sandbox
+
+# eh let's do the density plot  
+density_grade <- density(aligned[["GRADEGPA"]][["GRADEGPA"]])
+plot(density_grade)
+
+density_pred <- aligned[["GRADEGPA"]][["pred"]] |>
+  (\(x){x[!is.na(x)]})() |>
+  density()
+lines(density_pred, col = "blue", lwd =2)
+
+aligned[["GRADEGPA"]][["cut"]] <- cut(aligned[["GRADEGPA"]][["pred"]], breaks = c(0,2.7,4))
+
+
+lowCutFilter <-  aligned[["GRADEGPA"]][["cut"]] == "(0,2.7]" & !is.na(aligned[["GRADEGPA"]][["cut"]])
+density_grade_low <- aligned[["GRADEGPA"]][["GRADEGPA"]] |>
+  (\(x){x[lowCutFilter] })() |>
+  density()
+lines(density_grade_low, col = "red", lty = 3, lwd = 2)
+
+density_pred_low <- aligned[["GRADEGPA"]][["pred"]] |>
+  (\(x){x[lowCutFilter]})() |>
+  density()
+lines(density_pred_low, col = "blue", lty=3, lwd =2)
+
+
+hiCutFilter <-  aligned[["GRADEGPA"]][["cut"]] == "(2.7,4]" & !is.na(aligned[["GRADEGPA"]][["cut"]])
+density_grade_hi <- aligned[["GRADEGPA"]][["GRADEGPA"]] |>
+  (\(x){x[hiCutFilter] })() |>
+  density()
+lines(density_grade_hi, col = "red", lty = 3, lwd = 2)
+
+density_pred_hi <- aligned[["GRADEGPA"]][["pred"]] |>
+  (\(x){x[hiCutFilter]})() |>
+  density()
+lines(density_pred_hi, col = "blue", lty=3, lwd =2)
+
+# losing track on what I'm trying to show here
+
+# let's try and get me some confusion matrices
+# Not sure this is worth it, actually
+
+cm_1.7 <- confusionMatrix(data = aligned[["GRADEGPA"]][["GRADEGPA"]] |> 
+                          (\(x){x[lowCutFilter]})() |>
+                          (\(x){cut(x, c(0,1.7,4))})(),
+
+reference = aligned[["GRADEGPA"]][["pred"]] |> 
+                          (\(x){x[lowCutFilter]})() |>
+                          (\(x){cut(x, c(0,1.7,4))})()
+)
+
+drawCM(cm_1.7)
+
+# not sure that's what I want at all
+# I need to include the <1.7 at the high prediction as well
+
+
+
+```   
+
+I'd like to say what percentage of votes in this <2.7
+Basically recall and precision for <1.7 (the dividing line between D+ and C-)
+
+
+Examining the precision for predictions of grades <1.1 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
+
+
+
+```{r eval=FALSE}
+
+
+createCM(aligned[["GRADEGPA"]]) |> drawCM() # baseline Kappa of 0.2
+createCM(aligned[["GRADEGPA"]], cuts = c(0,2.7,4)) |> drawCM() # HIGHEST KAPPA! 0.41
+# createCM(aligned[["GRADEGPA"]], cuts = c(0,1,2.7,4)) |> drawCM() # Kappa of 0.268
+
+
+
+```
+
+
+```{r}
+
+# Cumulative accuracy
+# Where I calculate a binary confusion matrix, and gradually increase the upper bound,
+# so that everything equal-or-less-than is considered accurate
+
+cumAcc <- lapply(round(seq(from = 0.1, to = 3.9, by = 0.1),1), function(x){
+  
+  createCM(aligned[["GRADEGPA"]], cuts = c(0,x,4))
+  
+})
+
+par(mar=c(5.1,4.1,4.1,7.1))
+
+plot(x = 0.5,
+  ylim = c(0,1),
+     xlim = c(0,length(cumAcc)),
+  xaxt = "n",
+  las = 2,
+     ylab = "",
+     xlab = "",
+  type = "n")
+
+sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> lines(col = "firebrick", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> lines(col = "dodgerblue", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Recall"]]}) |> lines(col = "gold", lwd = 2)
+
+axis(side = 1, at = 1:(length(cumAcc)+1), labels = round(seq(from = 0.1, to = 4.0, by = 0.1),1))
+
+legend("topright",
+       col = c("firebrick","dodgerblue","gold"),
+       legend = c("Kappa","Precision","Recall"),
+       lwd =4,
+       inset = c(-0.35,0),
+       xpd = TRUE
+       )
+
+mtext(side=3, font = 2, cex = 1.619, line = 1.619, text = "Confusion matrix metrics from binary discretization")
+mtext(side=1, line = 3, "Upper GPA Bound")
+
+# Admission mistake point
+points(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+         col = "dodgerblue",
+       pch = 16,
+       cex = 1.1
+)
+
+text(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+  labels = "Admission 'mistake' candidates\n     (predictably failed)",
+  pos = 4)
+
+
+# Optimum (Kappa)
+points(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+       y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+       col = "firebrick",
+       pch = "|",
+       cex = 1.319
+)
+
+text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+     y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+     labels = "Model\noptimum",
+     pos = 1)
+
+
+```
+
+
+```{r}
+
+createCM(aligned[["GRADEGPA"]], cuts = c(0,2.7,4)) |> drawCM(title = "Binary optimum")
+createCM(aligned[["GRADEGPA"]], cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
+
+```
+
+
+# Variable importance
+
+### Predictors
+
+SPEND SOME MORE TIME TALKING ABOUT THIS.
+REMOVE "load" EXPLANATION
+
+`r colnames(data_list[[1]][["training"]])[-1]`. 
+
+"load" is the credit load per student per term. 
+"yr_diff" is the time (expressed as fractions of a year) between the cohort date and the end of term date for the course.  
+
+The other variables are either self-explanatory or taken directly from OBIA tables.  
+
+
+```{r}
+
+boxplot(ACTMATH.z ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
+
+boxplot(HSGPA.z ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
+
+boxplot(dist ~ GRADEGPA, data = data_list[["GRADEGPA"]][["training"]], outline=FALSE)
+
+```
+
+not a bad series of boxplots.  Def something happening here
+
+Man I've done so many boxplots -- don't I have a custom function to manage this?  
+
+I should do the incoming plot hex.
+
+Also, the hist is great -- but maybe the density plot? Nah, what I got is fine. 
+
+
+
+
+
+
+```{r fig.height=5}
+
+invisible(
+  lapply(params$target_classes, function(x){
+
+  print(plot(
+    varImp(model_list[[x]]),
+    15,
+    main = x
+       )  
+  )
+})
+)
+
+```
+
+```{r eval=FALSE}
+
+for(x in params$target_classes) {
+  
+    print(plot(
+    varImp(model_list[[x]]),
+    15,
+    main = x
+       )  
+    )
+}
+
+```
+
+# Confusion matrix
+
+```{r eval=FALSE}
+
+GPA_grade_levels <- unique(data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]]) |> 
+  (\(x){ x[order(x)]})()
+intermediate_steps <- GPA_grade_levels |> (\(x){ x[order(x)]})() |> diff() |> (\(x){x*0.5})()
+GRADEGPA_thresholds <- GPA_grade_levels |> 
+  (\(x){ x[order(x)]})() |>
+  (\(x){x+intermediate_steps})()
+GRADEGPA_thresholds[GRADEGPA_thresholds == max(GRADEGPA_thresholds)] <- 10 # upper limit is high so any high predictions are leveled back as "A"
+
+GRADEGPA_thresholds <- c(-10, GRADEGPA_thresholds) # lower limit is low so any low prediction is leveled back to "F"
+
+quad_grade_levels <- unique(data_list[["grade_quad"]][["testing"]][["grade_quad"]]) |> 
+  (\(x){ x[order(x)]})()
+intermediate_steps <- quad_grade_levels |> (\(x){ x[order(x)]})() |> diff() |> (\(x){x*0.5})()
+grade_quad_thresholds <- quad_grade_levels |> 
+  (\(x){ x[order(x)]})() |>
+  (\(x){x+intermediate_steps})()
+grade_quad_thresholds[grade_quad_thresholds == max(grade_quad_thresholds)] <- 10 # upper limit is high so any high predictions are leveled back as "A"
+
+grade_quad_thresholds <- c(-10, grade_quad_thresholds)
+
+missingInTraining <- function(target) {
+  
+  # Removing courses that are in testing but not in training 
+  
+    # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[target]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[target]][["testing"]][[courseColumn]],data_list[[target]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[target]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[target]][["testing"]][[courseColumn]] %in% missing
+}
+  return(missingFilter)
+  
+}
+
+  
+createConfusionMatrix <- function(pred, reference, thresholds = NA, ...){
+  
+  # set thresholds if not provided
+  if(any(is.na(thresholds))) {
+  grade_levels <- unique(reference)
+  pred_levels <- sapply(pred, function(x){
+    grade_levels[which.min(abs(x-grade_levels))]
+  })
+  
+  }
+  
+  # convert to discrete values
+  discrete_predictions <- cut(pred, thresholds, include.lowest = TRUE, right = FALSE)
+  discrete_references <- cut(reference, thresholds, include.lowest=TRUE, right = FALSE)
+  
+  # create uniform factor levels
+
+all_levels <- sort(unique(c(as.character(discrete_predictions), 
+                            as.character(discrete_references))))
+  
+discrete_predictions <- factor(discrete_predictions, levels = all_levels)
+discrete_references <- factor(discrete_references, levels = all_levels)
+
+  # create confusion matrix
+  
+  cm <- confusionMatrix(discrete_predictions, discrete_references, mode = "everything", ... )
+  
+  return(cm)
+  
+}
+
+gradeMissing <- missingInTraining("GRADEGPA")  
+GRADEGPA_cm <- createConfusionMatrix(pred = thePredictions[["GRADEGPA"]],
+                                      reference = data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]][gradeMissing],
+                                      thresholds = GRADEGPA_thresholds
+                                      )
+
+drawCM(GRADEGPA_cm) # fixed!
+
+quadMissing <- missingInTraining("grade_quad")  
+quad_cm <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = grade_quad_thresholds
+                                      )
+drawCM(quad_cm, nameMatrix = cbind(original = c("[-10,0.5]", "(0.5,1.5]", "(1.5,2.5]", "(2.5,10]"),
+                                display =  c("[-10,0.5]", "(0.5,1.5]", "(1.5,2.5]", "(2.5,10]"))
+)
+
+
+# let's turn that into a binary"
+# to make this work, you'll need to modify the "cut" to "right = TRUE"
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,2,10),
+                                     positive = "[-10,2]"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,2]", "(2,10]"),
+                                display =  c("[-10,2]", "(2,10]"))
+)
+
+# This one had an EXCELLENT kappa value-- like 0.6
+
+# starting to look a lot better
+# Maybe I use different thresholds for the prediction as the reference?
+# Why not?
+
+# and let's use better thresholds --- interested in flunking, here--
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,1,10),
+                                     positive = "[-10,1)"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,1)", "[1,10]"),
+                                display =  c("[-10,1)", "[1,10]"))
+)
+
+
+quad_cm_bin <- createConfusionMatrix(pred = thePredictions[["grade_quad"]],
+                                      reference = data_list[["grade_quad"]][["testing"]][["grade_quad"]][quadMissing],
+                                      thresholds = c(-10,2,10),
+                                     positive = "[-10,2)"
+                                      )
+drawCM(quad_cm_bin, nameMatrix = cbind(original = c("[-10,2)", "[2,10]"),
+                                display =  c("[-10,2)", "[2,10)"))
+)
+
+# ...and I need to update drawCM again, from vC6 to include "grepl(any....)"
+
+
+# I should cough up my best one, but unfortunately it's not the most useful.
+
+
+
+``` 
+
+
+```{r}
+
+drawGuide()
+
+```
+
+
+# 
+
+# Training data
+
+Presentation order: 
+
+```{r eval=FALSE}
+
+
+
+lapply(params$target_classes, function(x) {
+  
+  print(x)
+
+  skim(data_list[[x]][["training"]])
+  
+})
+
+
+```
+
