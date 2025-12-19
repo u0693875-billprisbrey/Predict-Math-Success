@@ -7,7 +7,9 @@ output: html_document
 
 ## PURPOSE: 
 
-The purpose of this report is to experiment with counter-factuals by examining the predictions for grades of all courses using a couple of models (vH2 (test scores) and vK0 (no test scores).)
+The purpose of this report is to experiment with counter-factuals by examining the predictions for grades of all courses using several models (vH2 and vH3 (test scores) and vK0 (no test scores).)
+
+It bugs me that the grade predictions by course are very uniform -- could "dist" separate "good" and "bad" predictions?
 
 
 ```{r include=FALSE}
@@ -332,6 +334,113 @@ aligned_vH2 <- alignPrediction(prediction_list = thePredictions_vH2, reference_l
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+##############
+## LOAD vH3 ##
+##############
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  list("GRADEGPA")
+)
+
+```
+
+
+```{r}
+
+# Re-name 
+
+vH3_data_list <- data_list  # test score
+vH3_model_list <- model_list # test score
+
+``` 
+
+```{r}
+
+###########################
+## ADD Z-SCORE DISTANCES ##
+########################### 
+
+# It's kinda weird it's not already there, honestly
+
+
+
+
+
+
+```
+
+
+```{r}
+
+#################
+##      vH3    ## 
+## PREDICTIONS ##
+################# 
+
+vH3_pred <- predict(vH3_model_list[["GRADEGPA"]], vH3_data_list[["GRADEGPA"]][["testing"]] ) 
+
+thePredictions_vH3 <- list("GRADEGPA" = vH3_pred)
+
+```
+
+```{r}
+
+vH3_results <- postResample(pred = vH3_pred,
+                            obs = vH3_data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]] )
+
+theResults_vH3 <- list("GRADEGPA" = vH3_results)
+
+```
+
+
+
+```{r}
+
+# Align vH3 prediction
+
+aligned_vH3 <- alignPrediction(prediction_list = thePredictions_vH3, reference_list = vH3_data_list)
+
+
+```
+
+
+
+
 ```{r}
 
 # Align vK0
@@ -502,7 +611,110 @@ Or should I just start using SHAP values?
 
 
 
+```{r}  
 
+# Recovering EMPLIDs
+
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+## IDENTIFY FIRST TERM OF MATH CLASSES ##
+
+# Identify minimum term per student
+minTerm <- aggregate(TERM ~ EMPLID, data = mathCourses, min, na.rm = TRUE)
+minTerm$reference <- paste(minTerm$EMPLID, minTerm$TERM, sep = "_") # combine for reference
+mathCourses$minTerm <- paste(mathCourses$EMPLID, mathCourses$TERM, sep = "_") %in% minTerm$reference # identify courses in minimum terms 
+
+firstTermFilter <- mathCourses$minTerm == TRUE
+
+## identify popular, high volume courses
+# mostPopCourses <- c("MATH_1050", "MATH_1210", "MATH_1010", "MATH_1220", "MATH_1030",
+#                    "MATH_1090", "MATH_1060", "MATH_2210", "MATH_1070", "MATH_2250") # identified via hierarchical clustering later in this report
+
+
+# mostPopFilter <- mathCourses$course %in% mostPopCourses
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+# popCourses <- mathCourses[mostPopFilter &  !mathLabFilter,] 
+
+firstCourses <- mathCourses[firstTermFilter & !mathLabFilter,]
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+)
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+  #  SATMATH, # leaving out SAT because it's a smaller proportion
+  #  SATVERBAL,
+  #  SATWRTG        
+)
+
+firstCourses <- merge(firstCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+# names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+# firstCourses <- merge(firstCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+
+
+# Freshman year
+firstCourses$cohort_year <- year(firstCourses$COHORT_DT)
+
+# Class year
+firstCourses$class_year <- year(firstCourses$EOTDATE)
+
+# Year to class
+firstCourses$yr_diff <- time_length(interval(firstCourses$COHORT_DT, firstCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+firstCourses$season <- season_map[substr(firstCourses$TERM, 4, 4)]
+
+# Course levels column
+firstCourses$course_level <- firstCourses$CATNBR %/% 1000
+
+#############################  
+### MERGE EMPLIDs BACK IN ### 
+#############################  
+
+merge_columns <- intersect(colnames(firstCourses), colnames(aligned_vH3[["GRADEGPA"]]))
+
+
+aligned <- merge(aligned_vH3[["GRADEGPA"]], firstCourses[,c(merge_columns, "EMPLID")], by = merge_columns, all.x = TRUE)
+
+``` 
 
 
 

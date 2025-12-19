@@ -244,7 +244,7 @@ print("Transformations complete")
 # colnames(popCourses)
 
 keepColumns <- c(
-  #   "EMPLID"                      ,
+     "EMPLID"                      ,
   #   "TERM"                        ,
   "course"                      ,
   #   "class"                       ,
@@ -531,14 +531,15 @@ lapply(target_classes,
          # Use class_year 2024 and 2025 as the test set
          trainIndex <- which(popSample$class_year < 2024)
          
-         trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
-         testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% "cleanGrade")])]
+         trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade","EMPLID") )])]
+         testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade", "EMPLID") )])]
          
          #       return(list(training = trainData, testing = testData))
          
-         theData <- list(training = trainData, testing = testData)
+         theData <- list(training = trainData, testing = testData, trainID = popSample$EMPLID[trainIndex], testID = popSample$EMPLID[-trainIndex] )
          
          #     })
+         
          
          saveRDS(theData, here::here("Data", paste("Decision Tree vH3", target, "Data.rds")))
          
