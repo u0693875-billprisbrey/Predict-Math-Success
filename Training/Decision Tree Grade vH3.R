@@ -462,6 +462,8 @@ hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year,
 
 hiGrades$class_year_shift <- hiGrades$class_year + 1
 
+saveRDS(hiGrades, here::here("Data", "hiGrades from vH3.rds"))
+
 cleanData <- merge(cleanData, hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE)
 
 # Calculate distance as a z-score
@@ -491,7 +493,7 @@ cleanData$dist <- sqrt(
 # )
 
 
-# stop("Next step is the training loop")
+stop("Next step is the training loop")
 
 ###########
 ## SPLIT ##

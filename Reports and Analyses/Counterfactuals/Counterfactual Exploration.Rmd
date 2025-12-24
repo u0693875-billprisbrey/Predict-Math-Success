@@ -45,7 +45,7 @@ source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 
 
 
-```{r}
+```{r eval=FALSE}
 
 ##########
 ## LOAD ##
@@ -100,7 +100,7 @@ data_list <- setNames(
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 # Re-name 
 
@@ -110,7 +110,7 @@ vK0_model_list <- model_list  # no test
 ``` 
 
 
-```{r}
+```{r eval=FALSE}
 
 ## PREDICTIONS ##
 
@@ -165,7 +165,7 @@ names(predictions_over_time) <- list("GRADEGPA", "grade_quad")
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
 theResults_vK0 <- lapply(list("GRADEGPA", "grade_quad"), function(tClass){
   
@@ -216,7 +216,7 @@ names(theResults_vK0) <- list("GRADEGPA", "grade_quad")
 
 
 
-```{r}
+```{r eval=FALSE}
 
 ##########
 ## LOAD ##
@@ -248,7 +248,7 @@ data_list <- setNames(
 ```
 
 
-```{r}
+```{r eval=FALSE}
 
 # Re-name 
 
@@ -258,7 +258,7 @@ vH2_model_list <- model_list # test score
 ``` 
 
 
-```{r}
+```{r eval=FALSE}
 
 ## VH2 ##
 ## PREDICTIONS ##
@@ -290,7 +290,7 @@ names(thePredictions_vH2) <- list("GRADEGPA", "grade_quad")
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 
 theResults_vH2 <- lapply(list("GRADEGPA", "grade_quad"), function(x) {
@@ -324,12 +324,39 @@ names(theResults_vH2) <- list("GRADEGPA", "grade_quad")
 
 ```
 
-```{r}
+```{r eval=FALSE}
 
 # Align vH2 prediction
 
 aligned_vH2 <- alignPrediction(prediction_list = thePredictions_vH2, reference_list = vH2_data_list)
 
+
+```
+
+
+```{r eval=FALSE}
+
+# Align vK0
+
+aligned_vK0 <- alignPrediction(prediction_list = predictions_over_time[["GRADEGPA"]], reference_list = vK0_data_list[["GRADEGPA"]])
+
+``` 
+
+
+```{r eval=FALSE}
+
+# Combine predictions
+
+merge_columns <- colnames(aligned_vK0[["2024"]]) |>
+  (\(x){x[-which(x %in% c("pred", "ACT_submit", "SAT_submit"))]})()
+
+aligned_comb <- merge(aligned_vK0[["2024"]],
+                        aligned_vH2[["GRADEGPA"]],
+                        by = merge_columns,
+                        all.x = TRUE
+                        ) 
+colnames(aligned_comb)[colnames(aligned_comb) %in% c("pred.x")] <- "pred.vK0"
+colnames(aligned_comb)[colnames(aligned_comb) %in% c("pred.y")] <- "pred.vH2"
 
 ```
 
@@ -344,15 +371,17 @@ aligned_vH2 <- alignPrediction(prediction_list = thePredictions_vH2, reference_l
 
 
 
-
-
-
+# Start Here
 
 ```{r}
 
 ##############
 ## LOAD vH3 ##
 ##############
+
+# load "hiGrades"
+
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
 
 ## MODELING RELATED ##
 
@@ -391,22 +420,6 @@ vH3_model_list <- model_list # test score
 
 ```{r}
 
-###########################
-## ADD Z-SCORE DISTANCES ##
-########################### 
-
-# It's kinda weird it's not already there, honestly
-
-
-
-
-
-
-```
-
-
-```{r}
-
 #################
 ##      vH3    ## 
 ## PREDICTIONS ##
@@ -419,6 +432,12 @@ thePredictions_vH3 <- list("GRADEGPA" = vH3_pred)
 ```
 
 ```{r}
+
+#############
+##   vH3   ## 
+## RESULTS ##
+############# 
+
 
 vH3_results <- postResample(pred = vH3_pred,
                             obs = vH3_data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]] )
@@ -433,47 +452,369 @@ theResults_vH3 <- list("GRADEGPA" = vH3_results)
 
 # Align vH3 prediction
 
-aligned_vH3 <- alignPrediction(prediction_list = thePredictions_vH3, reference_list = vH3_data_list)
+# First add the EMPLID back to the training and testing sets
 
+vH3_data_list[["GRADEGPA"]][["training"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["trainID"]]
+
+vH3_data_list[["GRADEGPA"]][["testing"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["testID"]]
+
+#aligned_vH3 <- alignPrediction(prediction_list = thePredictions_vH3, reference_list = vH3_data_list)
+
+aligned_vH3 <- vH3_data_list[["GRADEGPA"]][["testing"]]
+
+aligned_vH3$pred <- vH3_pred
 
 ```
 
 
 
 
+
+
+# Develop predictions for all courses vH3
+
 ```{r}
 
-# Align vK0
+#################
+## ALL OPTIONS ## 
+#################
 
-aligned_vK0 <- alignPrediction(prediction_list = predictions_over_time[["GRADEGPA"]], reference_list = vK0_data_list[["GRADEGPA"]])
+testingGround <- aligned_vH3[,-which(colnames(aligned_vH3) %in% c("pred"))]  
+
+
+courseGrid <- expand.grid(unique(testingGround$EMPLID), unique(testingGround$course))
+
+testingGround <- merge(testingGround, courseGrid, by.x = "EMPLID", by.y="Var1", all = TRUE)
+names(testingGround)[names(testingGround) == "course"] <- "course_orig"
+names(testingGround)[names(testingGround) == "Var2"] <- "course"
+
+```
+
+```{r}
+
+#########################
+## CALCULATE DISTANCES ##
+######################### 
+
+# merge in the information from the year prior
+
+tg2 <- merge(testingGround[,-which(colnames(testingGround) %in% c("HSGPA.z", "ACTMATH.z","dist") )],
+                        hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE 
+                        )
+
+# Calculate the distance as a z-score 
+
+tg2$ACTMATH.z <- (tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev
+tg2$HSGPA.z <- (tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev
+
+# Calculate distance 
+
+tg2$dist <- sqrt(
+  ((tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev)^2 +
+    ((tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev)^2
+)
+
+
+```
+
+
+```{r}
+
+#################
+## PREDICTIONS ##
+#################
+
+trainColumns <- vH3_model_list[["GRADEGPA"]]$trainingData |> colnames() |> (\(x){x[-which(x %in% ".outcome")]})()
+
+completeCasesFilter <- tg2[,trainColumns] |>
+    complete.cases()
+ 
+#  complete.cases(tg2[,trainColumns])
+
+  
+tg2$pred.vH3 <- NA
+tg2$pred.vH3[completeCasesFilter] <- predict(vH3_model_list[["GRADEGPA"]], tg2[completeCasesFilter,]               
+                        ) 
+
+#[,-which(colnames(tg2) %in% c("class_year.y", "ACTMATH.stdev","HSGPA.median","HSGPA.stdev","HSGPA.count"))]
+
+
+testingGround$pred.vH3 <- predict(vH3_model_list[["GRADEGPA"]], testingGround) 
+
+
+```  
+
+```{r eval=FALSE}
+
+# COMPARISON SANDBOX
+# This section is not repeatable because I fixed the "merge" and now I properly calculate the z-scores and distances per course.
+
+# But now my displayCourseAlternatives won't work # FIXED
+
+# Now I get a lot of variation in the predicted grade-- nice!
+
+# And I'd like to compare with the courseScatter
+
+
+
+```
+
+
+# Alternatives vH3  
+
+```{r} 
+
+set.seed(123)
+sampleEmplid <- sample(testingGround$EMPLID, 1) 
+displayCourseAlternatives(testingGround, unid = sampleEmplid)
 
 ``` 
 
-# Combine predictions
+```{r}  
+
+# Let's see a few more of these
+
+sampleEmplid <- sample(testingGround$EMPLID, 1) 
+displayCourseAlternatives(testingGround, unid = sampleEmplid)
+
+# I should put text on here with their pred - actual
+# and list, in a legend to the right, top courses, or something
+
+# well, this one did less than the prediction
+
+# Identify people predicted at less than 2.4
+
+testingGround$cut_vH3 <- cut(testingGround$pred.vH3, breaks = c(0,2.4,4), include.lowest = TRUE, right = FALSE)
+
+lowEmplids <- testingGround$EMPLID[testingGround$cut_vH3 == "[0,2.4)" & !is.na(testingGround$cut_vH3)]
+
+set.seed(42)
+sampleLowEmplids <- sample(lowEmplids, 10, replace = FALSE)
+
+```
 
 
 ```{r}
 
-# Combine predictions
+#####################
+## EXAMINE VISUALS ##
+#####################
 
-merge_columns <- colnames(aligned_vK0[["2024"]]) |>
-  (\(x){x[-which(x %in% c("pred", "ACT_submit", "SAT_submit"))]})()
+displayCourseAlternatives(testingGround, 
+                          unid = sampleLowEmplids[1],
+                          legend_params = list(plot=FALSE))  
 
-aligned_comb <- merge(aligned_vK0[["2024"]],
-                        aligned_vH2[["GRADEGPA"]],
-                        by = merge_columns,
-                        all.x = TRUE
-                        ) 
-colnames(aligned_comb)[colnames(aligned_comb) %in% c("pred.x")] <- "pred.vK0"
-colnames(aligned_comb)[colnames(aligned_comb) %in% c("pred.y")] <- "pred.vH2"
+displayCourseAlternatives(tg2, 
+                          unid = sampleLowEmplids[1],
+                          legend_params = list(plot=FALSE))  
+
+emplidFilter <- tg2$EMPLID == sampleLowEmplids[1] 
+
+nearest10courses <- tg2 |>
+  (\(x){x[emplidFilter,]})() |>
+  (\(x){x[order(x$dist, decreasing = FALSE),]})() |>
+  (\(x){x$course[1:10]})()
+
+distCutOff <- tg2$dist <= 3
+
+cutoffCourses <- tg2$course[emplidFilter & distCutOff]
+
+courseScatter(hiGrades[hiGrades$class_year == 2023 & hiGrades$course %in% cutoffCourses,],
+              # ellipse_params = list(plot=FALSE),
+              qrect_params = list(border = NA),
+              showCourse = TRUE,
+              plot_params = list(xlim = c(3.2,4.0), ylim = c(15,34)),
+              legend_params = list(inset = c(-0.3,0), xpd = TRUE))
+
+
+points(x = unique(tg2$HSGPA[emplidFilter]),
+       y = unique(tg2$ACTMATH[emplidFilter]),
+       col = "red",
+       pch = 13, cex = 2
+       )
+
+plot(y = tg2$pred.vH3[emplidFilter & tg2$dist <= 3], 
+     x = tg2$dist[emplidFilter  & tg2$dist <= 3],
+     pch = 1:nrow(tg2[emplidFilter  & tg2$dist <= 3,]))
+
+
+
+
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("High School GPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              )
+              )
+
+```  
+
+```{r}
+
+############################
+## EXPLORING DIST CUT-OFF ##
+############################
+
+hist(tg2$dist)
+hist(tg2$dist[tg2$dist <= 3], right = TRUE)
+
+tg2$dist |>
+  cut(breaks = c(seq(from=0,to = 9, by = 1), seq(from =10, to = 120, by = 10))) |>
+  table() |>
+  proportions() |>
+  cumsum() |>
+  plot()
+
+# not a bad elbow at a distance of 5
+
+# <=3 is 71% of the counterfactuals
+
+# let's see if I only look at actual courses
+
+actualFilter <- tg2$course == tg2$course_orig
+
+tg2$dist[actualFilter] |>
+  cut(breaks = c(seq(from=0,to = 9, by = 1), seq(from =10, to = 120, by = 10))) |>
+  table() |>
+  proportions() |>
+  cumsum() |>
+  plot()
+
+# it's a lot tighter.
+# <= 3 is 90% of the actual courses
+# so <= 3 looks like a pretty reasonable cut-off
+
+# In fact, you almost want to cut-off at <=2, with 74%
+
+#    (0,1]     (1,2]     (2,3]     (3,4]     (4,5]     (5,6] 
+# 0.3732465 0.7374749 0.9058116 0.9619238 0.9854709 0.9919840 
+#    (6,7]     (7,8]     (8,9]    (9,10]   (10,20]   (20,30] 
+# 0.9939880 0.9959920 0.9974950 0.9974950 0.9994990 0.9994990 
+#  (30,40]   (40,50]   (50,60]   (60,70]   (70,80]   (80,90] 
+# 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 1.0000000 
+# (90,100] (100,110] (110,120] 
+# 1.0000000 1.0000000 1.0000000 
+
+## Can I just assume closest is best?
+
+cor(tg2$pred.vH3, tg2$dist, use = "complete.obs") # -0.17 # not nothing!
+
+cor(tg2$pred.vH3[actualFilter], tg2$dist[actualFilter], use = "complete.obs")
+# -0.33 # A lot stronger!
+
+distFilter <- tg2$pred.vH3 <=3
+cor(tg2$pred.vH3[distFilter], tg2$dist[distFilter], use = "complete.obs")
+# -0.08 # huh, about disappears
+
+cor(tg2$pred.vH3[actualFilter & distFilter], tg2$dist[actualFilter & distFilter], use = "complete.obs")
+# -0.341 # as expected, the strongest one 
+
+distFilter <- tg2$pred.vH3 <=2
+cor(tg2$pred.vH3[actualFilter & distFilter], tg2$dist[actualFilter & distFilter], use = "complete.obs") # -0.345 
+
+plot(y=tg2$pred.vH3[actualFilter],
+     x = tg2$dist[actualFilter])
+
+# I like this plot-- predicted grade drops with distance
+boxplot(pred.vH3 ~ cut(dist, breaks = 0:5) , data = tg2[actualFilter,] )
+
+# It's a good pattern that holds
+# Plenty of overlap
+# This graphic needs to be shown in my deep dive if it's not already there  
+boxplot(GRADEGPA ~ cut(dist, breaks = 0:5) , data = tg2[actualFilter,] )
 
 ```
+
+
+
+Using the z-score distances correctly:
+
+I'm looking at the grade predictions for EMPLID = "01512029" and it predicts a high grade for MATH_1311 and 2270 --- in fact, it recommends the "highest" grades for extremely high distance courses, and courses that don't look like reasonable recommendations.
+
+Why would it do that?
+
+- "dist" is a bad predictor, and I should just remove it (and rely on z-scores alone, as they also have direction)
+
+- I should cap "dist" to remove these extremely high values (But should I cap z-scores too, then?)
+
+- I have a "matching" problem where very high ability and confidence students dare to take courses far higher than them, and the predictions reflect the counter-examples of students who could do this (when reasonable people self-select out, as they should)
+
+- This shows the difference between "predicting" and "recommending" -- the model can accurately predict the high confidence/ability daredevils, who have some extra reason to believe they can (and they are right) but this doesn't make a good recommendation. 
+
+- How could I manage this?  Should I truncate the predictions to a maximum distance?  Or limit course recommendations to the ten closest classes?
+
+++ Later
+
+This is how recommendation differs from prediction -- prediction is what I have observed.  In order for a valid recommendation, I need "positivity" or that each possible intervention (course choice) is possible.  
+
+In other words, I can't accurately predict a result ( a course choice) that I never saw in my training.  This is because I used a decision tree, which split what I have.  A linear regression could extrapolate. 
+
+What I can do is something like--
+
+-- Exclude courses where less than 15-20 people matched my incoming qualifications (due to poor representation).
+-- Use "dist" as a measure of fit, and exclude courses > some cut-off.
+-- I am using Euclidean distance of z-scores, which is a special case of Mahalonobis distance for un-correlated variables.  Except-- my variables are correlated, which suggests I should calculate Mahalanobis distance.
+
+-- But, in any case, roughly--- I'll try using dist <=3 as my cut-off, sorting highest to lowest GPA, and see where that gets me.  
+
+-- It's tempting to plot dist x pred
+
+-- Given the lack of precision in these predictions, I don't think the extra information of plotting dist x pred will be that interesting. 
+
+```{r} 
+
+###################################
+## IMPROVED DISPLAY ALTERNATIVES ##
+##       WITH DIST CUT-OFF       ##
+###################################
+
+# Developing in a concurrent sandbox
+
+```
+
+
+
+
+
+
+==
+
+The following text refers to not using the z-score distances correctly.  I'll delete this before too long. 
+
+What I mean to say is, this graphic is really sucky and frankly I don't believe it.  
+
+I have it predicting the same grades for a wide variety of classes.
+
+The "distance" graphic suggests that there is some difference in these courses.
+
+Of course, I haven't calcualated the distance between passing and failing.  It might not be much.
+
+But roughly I'm thinking things like -- 
+
+ - focusing on the <2.7 group (high risk)
+ - scrapping this graphic (as there is minimal separation)
+ - Presenting the information in a new way  
+   - Calling out the "baseline" grade and group of courses at this baseline 
+   - Listing courses above and below
+   - Don't you think? 
+
+ - What would be really fascinating is finding people predicted to fail, and seeing if there was a course with a higher predicted grade.  
+ 
+I'd like to compare this graphic with the distance graphic. 
+   
 
 
 
 # Develop predictions for all courses
 
-```{r}
+```{r eval=FALSE}
 
 ############################################
 ## CREATE 'TESTING GROUND' COUNTERFACTUAL ##
@@ -507,7 +848,7 @@ Should I look at lowest actual grades? Largest differences between predictions?
 
 Lowest predictions?  Best grades despite lowest predictions?  
 
-```{r}
+```{r eval=FALSE}
 
 # Lowest actual
 
@@ -611,7 +952,10 @@ Or should I just start using SHAP values?
 
 
 
-```{r}  
+```{r eval=FALSE}  
+
+# I sh/could just delete this section.
+# It partially preps "cleanData" then attempted a failed merge, which I managed by going back to the model train to save the EMPLID's.
 
 # Recovering EMPLIDs
 

@@ -860,8 +860,8 @@ displayCourseAlternatives <- function(data,
                                       axis_params = list(list()),
                                       point_params = list(
                                         list(),
-                                        list(),
-                                        list()
+                                        list() #,
+                                      # list(),  
                                       ),
                                       legend_params = list(),
                                       mtext_params = list()
@@ -876,10 +876,10 @@ displayCourseAlternatives <- function(data,
   # randomly assign a unid if not specified
   
   if(is.na(unid)){
-    unid <- sample(data[,"unid"],1)
+    unid <- sample(data[,"EMPLID"],1)
   }
   
-  plotFilter <- testingGround$unid == unid
+  plotFilter <- data$EMPLID == unid
   
   # Plot parameters
   default_par_params <- list(mar=c(4,7,3,10), bg = "bisque", fg = "grey20")
@@ -890,7 +890,7 @@ displayCourseAlternatives <- function(data,
   n_courses <- nlevels(data$course)   # number of courses
   
   # Establish the xlim range
-  xLim <- range(data[plotFilter,c("pred.vH2","pred.vK0", "GRADEGPA")], na.rm=TRUE)
+  xLim <- range(data[plotFilter,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
   
   default_plot_params <- list(
     x = NULL,
@@ -961,16 +961,16 @@ displayCourseAlternatives <- function(data,
   # points
   default_point_params <- list(
     list(
-      x = data[plotFilter,"pred.vH2"],
+      x = data[plotFilter,"pred.vH3"],
       y = as.numeric(data[plotFilter, "course"]), 
       pch = 9, 
       col = "mediumpurple3"
     ),
-    list(x = data[plotFilter,"pred.vK0"],
-         y = as.numeric(data[plotFilter, "course"]), 
-         pch = 1, 
-         col = "seagreen"
-    ),
+#    list(x = data[plotFilter,"pred.vK0"],
+#         y = as.numeric(data[plotFilter, "course"]), 
+#         pch = 1, 
+#         col = "seagreen"
+#    ),
     list(
       x = unique(data$GRADEGPA[plotFilter]),
       y = as.numeric(unique(data$course_orig[plotFilter])),  
@@ -997,23 +997,23 @@ displayCourseAlternatives <- function(data,
   # legend
   default_legend_params <- list("topright",
                                 bg = "ivory",
-                                col = c("mediumpurple3", "seagreen", "darkorange2"),
+                                col = c("mediumpurple3",  "darkorange2"), # "seagreen",
                                 pch = c(9,1,13),
                                 pt.lwd = c(1,1,2),
                                 pt.cex = c(1,1,1.6),
-                                legend = c("Test score (vH2)", "No test score (vK0)", "Actual"),
+                                legend = c("Predicted (vH3)",  "Actual"), # "No test score (vK0)",
                                 xpd = TRUE,
                                 inset = c(-0.50,0))
   legend_params <- modifyList(default_legend_params, legend_params)  
   do.call(legend, legend_params) 
   
   default_mtext_params <- list(
-    side = c(1,3),
-    text = c("GPA", "Individual course predictions"),
-    line = c(2.3, 1),
-    outer = c(FALSE, FALSE),
-    cex = c(1,1.5),
-    font = c(1,2)
+    side = c(1,3,3),
+    text = c("GPA", unid,  "Grade predictions per course"),
+    line = c(2.3, 1.2,  0.4),
+    outer = c(FALSE, FALSE, FALSE),
+    cex = c(1,1.25,0.95),
+    font = c(1,2,2)
   )
   
   mtext_params <- modifyList(default_mtext_params, mtext_params)
