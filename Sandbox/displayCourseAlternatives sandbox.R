@@ -4,6 +4,7 @@
 
 displayCourseAlternatives <- function(data,
                                       unid = NA,
+                                      dist_cutoff = 3,
                                       par_params = list(),
                                       plot_params = list(),
                                       rect_params = list(),
@@ -14,7 +15,10 @@ displayCourseAlternatives <- function(data,
                                         # list(),  
                                       ),
                                       legend_params = list(),
-                                      mtext_params = list()
+                                      mtext_params = list(),
+                                      cutoff_text_params = list(),
+                                      risk_line_params = list(),
+                                      risk_legend_params = list()
 ){
   
   # where data is trainingGround  
@@ -23,13 +27,33 @@ displayCourseAlternatives <- function(data,
   incoming.par <- par(mar = c(4,2,2,1))
   on.exit(par(incoming.par))
   
+  ## APPLY FILTERS ## 
+  
   # randomly assign a unid if not specified
   
   if(is.na(unid)){
     unid <- sample(data[,"EMPLID"],1)
   }
   
-  plotFilter <- data$EMPLID == unid
+  emplidFilter <- data$EMPLID == unid
+  
+  if(is.na(dist_cutoff)){ # why isn't NA working?
+    
+    distFilter <- rep(TRUE, nrow(data)) # no distance filter
+    
+  } else {
+    
+    distFilter <- data$dist <= dist_cutoff & !is.na(data$dist)
+    
+  }
+  
+  # Need an error message if the cut-off removes all values 
+  
+  fData <- data[emplidFilter & distFilter,] # filtered data
+  
+  if(nrow(fData) == 0 ) {stop("\n\nNo predictions found;\nincrease dist_cutoff value")}
+  
+  fData <- droplevels(fData)
   
   # Plot parameters
   default_par_params <- list(mar=c(4,7,3,10), bg = "bisque", fg = "grey20")
@@ -37,10 +61,10 @@ displayCourseAlternatives <- function(data,
   do.call(par, par_params)
   
   # Empty plot
-  n_courses <- nlevels(data$course)   # number of courses
+  n_courses <- nlevels(fData$course)   # number of courses
   
   # Establish the xlim range
-  xLim <- range(data[plotFilter,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
+  xLim <- range(fData[,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
   
   default_plot_params <- list(
     x = NULL,
@@ -91,7 +115,7 @@ displayCourseAlternatives <- function(data,
   default_axis_params <- list(
     list(side =2, 
          at = 1:n_courses, 
-         labels = levels(data[,"course"]), 
+         labels = levels(fData[,"course"]), 
          las = 1,
          tick = FALSE)
   )
@@ -111,8 +135,8 @@ displayCourseAlternatives <- function(data,
   # points
   default_point_params <- list(
     list(
-      x = data[plotFilter,"pred.vH3"],
-      y = as.numeric(data[plotFilter, "course"]), 
+      x = fData[,"pred.vH3"],
+      y = as.numeric(fData[, "course"]), 
       pch = 9, 
       col = "mediumpurple3"
     ),
@@ -122,12 +146,12 @@ displayCourseAlternatives <- function(data,
     #         col = "seagreen"
     #    ),
     list(
-      x = unique(data$GRADEGPA[plotFilter]),
-      y = as.numeric(unique(data$course_orig[plotFilter])),  
+      x = unique(fData$GRADEGPA),
+      y = as.numeric(unique(fData$course_orig)),  
       pch = 13,
       lwd = 2,
       cex = 2,
-      col = "red"
+      col = "darkorange2"
     )
   )
   
@@ -148,7 +172,7 @@ displayCourseAlternatives <- function(data,
   default_legend_params <- list("topright",
                                 bg = "ivory",
                                 col = c("mediumpurple3",  "darkorange2"), # "seagreen",
-                                pch = c(9,1,13),
+                                pch = c(9,13),
                                 pt.lwd = c(1,1,2),
                                 pt.cex = c(1,1,1.6),
                                 legend = c("Predicted (vH3)",  "Actual"), # "No test score (vK0)",
@@ -168,5 +192,49 @@ displayCourseAlternatives <- function(data,
   
   mtext_params <- modifyList(default_mtext_params, mtext_params)
   do.call(mtext, mtext_params)
+  
+  # Add high risk indicator
+  
+  if(any(fData$pred.vH3[!is.na(fData$pred.vH3)] < 2.4)) {
+    
+    default_risk_line_params <- list(
+      v = 2.4,
+      col = "red",
+      lwd = 1.25
+    )
+    risk_line_params <- modifyList(default_risk_line_params, risk_line_params)
+    do.call(abline, risk_line_params)
+    
+    default_risk_legend_params <- list("bottomright",
+                                  bg = "ivory",
+                                  #border = "red",
+                                  bty = "o",
+                                  pch = "|",
+                                  col = "red",
+                                  box.lwd = 2,
+                                  box.col = "red",
+                                  text.font = 2,
+                                  legend = c("HIGH RISK"), # "No test score (vK0)",
+                                  xpd = TRUE,
+                                  inset = c(-0.50,0))
+    risk_legend_params <- modifyList(default_risk_legend_params, risk_legend_params)  
+    do.call(legend, risk_legend_params) 
+    
+  }
+ 
+  # Cut-off text
+  
+  default_cutoff_text_params <- list(
+    text = paste("Filtered to distance cut-off <= ", dist_cutoff, sep = ""),
+    side = 1,
+    font = 3,
+    line = 2.7,
+    adj = 1,
+    at = par("usr")[2] + 0.5 * (par("usr")[2] - par("usr")[1]) 
+  
+  )
+  
+  cutoff_text_params <- modifyList(default_cutoff_text_params, cutoff_text_params)
+  do.call(mtext, cutoff_text_params)
   
 }
