@@ -10,13 +10,13 @@ displayCourseAlternatives <- function(data,
                                       axis_params = list(list()),
                                       point_params = list(
                                         list(),
-                                        list(),
-                                        list()
+                                        list() #,
+                                        # list(),  
                                       ),
                                       legend_params = list(),
                                       mtext_params = list()
-                                      ){
- 
+){
+  
   # where data is trainingGround  
   
   
@@ -26,10 +26,10 @@ displayCourseAlternatives <- function(data,
   # randomly assign a unid if not specified
   
   if(is.na(unid)){
-    unid <- sample(data[,"unid"],1)
+    unid <- sample(data[,"EMPLID"],1)
   }
   
-  plotFilter <- testingGround$unid == unid
+  plotFilter <- data$EMPLID == unid
   
   # Plot parameters
   default_par_params <- list(mar=c(4,7,3,10), bg = "bisque", fg = "grey20")
@@ -40,7 +40,7 @@ displayCourseAlternatives <- function(data,
   n_courses <- nlevels(data$course)   # number of courses
   
   # Establish the xlim range
-  xLim <- range(data[plotFilter,c("pred.vH2","pred.vK0", "GRADEGPA")], na.rm=TRUE)
+  xLim <- range(data[plotFilter,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
   
   default_plot_params <- list(
     x = NULL,
@@ -54,19 +54,19 @@ displayCourseAlternatives <- function(data,
   
   plot_params <- modifyList(default_plot_params, plot_params)
   do.call(plot, plot_params)
-
+  
   # Background rectangle
-#  default_rect_params <- list(xleft = par("usr")[1],
-#                              ybottom = par("usr")[3],
-#                              xright = par("usr")[2],
-#                              ytop = par("usr")[4],
-#                              col = "gray90",
-#                              border = NULL
-#                              )
-#  rect_params <- modifyList(default_rect_params,
-#                            rect_params
-#                            )
-#  do.call(rect, rect_params)
+  #  default_rect_params <- list(xleft = par("usr")[1],
+  #                              ybottom = par("usr")[3],
+  #                              xright = par("usr")[2],
+  #                              ytop = par("usr")[4],
+  #                              col = "gray90",
+  #                              border = NULL
+  #                              )
+  #  rect_params <- modifyList(default_rect_params,
+  #                            rect_params
+  #                            )
+  #  do.call(rect, rect_params)
   
   default_rect_params <- list(
     colors = c("gray92", "gray97"),  # Alternating colors
@@ -89,12 +89,12 @@ displayCourseAlternatives <- function(data,
   
   # axis
   default_axis_params <- list(
-                                list(side =2, 
-                                at = 1:n_courses, 
-                                labels = levels(data[,"course"]), 
-                                las = 1,
-                                tick = FALSE)
-                                )
+    list(side =2, 
+         at = 1:n_courses, 
+         labels = levels(data[,"course"]), 
+         las = 1,
+         tick = FALSE)
+  )
   
   # Merge axis params sequentially
   for (i in seq_along(axis_params)) {
@@ -111,16 +111,16 @@ displayCourseAlternatives <- function(data,
   # points
   default_point_params <- list(
     list(
-    x = data[plotFilter,"pred.vH2"],
-    y = as.numeric(data[plotFilter, "course"]), 
-    pch = 9, 
-    col = "mediumpurple3"
+      x = data[plotFilter,"pred.vH3"],
+      y = as.numeric(data[plotFilter, "course"]), 
+      pch = 9, 
+      col = "mediumpurple3"
     ),
-    list(x = data[plotFilter,"pred.vK0"],
-         y = as.numeric(data[plotFilter, "course"]), 
-         pch = 1, 
-         col = "seagreen"
-    ),
+    #    list(x = data[plotFilter,"pred.vK0"],
+    #         y = as.numeric(data[plotFilter, "course"]), 
+    #         pch = 1, 
+    #         col = "seagreen"
+    #    ),
     list(
       x = unique(data$GRADEGPA[plotFilter]),
       y = as.numeric(unique(data$course_orig[plotFilter])),  
@@ -130,7 +130,7 @@ displayCourseAlternatives <- function(data,
       col = "red"
     )
   )
-
+  
   
   # Merge point params sequentially
   for (i in seq_along(point_params)) {
@@ -147,77 +147,26 @@ displayCourseAlternatives <- function(data,
   # legend
   default_legend_params <- list("topright",
                                 bg = "ivory",
-                                col = c("mediumpurple3", "seagreen", "darkorange2"),
+                                col = c("mediumpurple3",  "darkorange2"), # "seagreen",
                                 pch = c(9,1,13),
                                 pt.lwd = c(1,1,2),
                                 pt.cex = c(1,1,1.6),
-                                legend = c("Test score (vH2)", "No test score (vK0)", "Actual"),
+                                legend = c("Predicted (vH3)",  "Actual"), # "No test score (vK0)",
                                 xpd = TRUE,
                                 inset = c(-0.50,0))
   legend_params <- modifyList(default_legend_params, legend_params)  
   do.call(legend, legend_params) 
   
   default_mtext_params <- list(
-    side = c(1,3),
-    text = c("GPA", "Individual course predictions"),
-    line = c(2.3, 1),
-    outer = c(FALSE, FALSE),
-    cex = c(1,1.5),
-    font = c(1,2)
+    side = c(1,3,3),
+    text = c("GPA", unid,  "Grade predictions per course"),
+    line = c(2.3, 1.2,  0.4),
+    outer = c(FALSE, FALSE, FALSE),
+    cex = c(1,1.25,0.95),
+    font = c(1,2,2)
   )
   
   mtext_params <- modifyList(default_mtext_params, mtext_params)
   do.call(mtext, mtext_params)
-}
-
-
-courseVariation <- function(data, 
-                            unid = NA
-) {
-  
-  # Randomly assign a unid if not specified
-  
-  if(is.na(unid)){
-    unid <- sample(data[,"unid"],1)
-  }
-  
-  plotFilter <- testingGround$unid == unid
-  
-  # number of courses
-  n_courses <- nlevels(data$course)
-  
-  
-  # empty plot
-  plot(x = NULL,
-       y = NULL,
-       xlim = c(0,4),
-       ylim = c(1, n_courses),
-       xlab = "GPA",
-       ylab = "",
-       yaxt = "n"
-  )
-  
-  # Add course names to y-axis
-  axis(2, at = 1:n_courses, labels = levels(data[,"course"]), las = 1)
-  
-  # predictions
-  points(x = data[plotFilter,"pred.vH2"],
-         y = as.numeric(data[plotFilter, "course"]), 
-         pch = 1, 
-         col = "goldenrod1")
-  
-  points(x = data[plotFilter,"pred.vK0"],
-         y = as.numeric(data[plotFilter, "course"]), 
-         pch = 9, 
-         col = "mediumpurple")  
-  
-  # actual
-  points(x = unique(data$GRADEGPA[plotFilter]),
-         y = as.numeric(unique(data$course_orig[plotFilter])),  pch = "X", col = "red")  
-  
-  legend("topleft",
-         col = c("goldenrod1", "mediumpurple","red"),
-         pch = c(1,9,"X"),
-         legend = c("Test score (vH2)", "No test score (vK0)", "Actual") )
   
 }
