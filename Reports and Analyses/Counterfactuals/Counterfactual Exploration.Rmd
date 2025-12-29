@@ -728,7 +728,17 @@ boxplot(pred.vH3 ~ cut(dist, breaks = 0:5) , data = tg2[actualFilter,] )
 # It's a good pattern that holds
 # Plenty of overlap
 # This graphic needs to be shown in my deep dive if it's not already there  
+
+# Use these two graphics to explain the <=3 dist cut-off 
 boxplot(GRADEGPA ~ cut(dist, breaks = 0:5) , data = tg2[actualFilter,] )
+
+
+tg2$dist[actualFilter] |>
+  cut(breaks = c(seq(from=0,to = 9, by = 1), seq(from =10, to = 120, by = 10))) |>
+  table() |>
+  proportions() |>
+  cumsum() |>
+  plot()
 
 ```
 
