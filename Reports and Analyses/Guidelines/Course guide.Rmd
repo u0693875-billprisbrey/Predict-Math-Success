@@ -22,8 +22,8 @@ output: html_document
 *Additional work* 
 
   - Investigate median unsuccessful student and compare distances 
-  - Investigate whether higher HSGPA and ACTMATH than course median predicts lower grades (suggesting that students should be bumped up if they are >75th or >90th percentiles for a course)   
-  - Train a new predictive model that incorporates z-score distance.  
+  - Investigate whether higher HSGPA and ACTMATH than course median predicts lower grades (suggesting that students should be bumped up if they are >75th or >90th percentiles for a course) ***DONE***   
+  - Train a new predictive model that incorporates z-score distance.  ***DONE***
 
 ```{r include=FALSE}
 
@@ -65,6 +65,9 @@ mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
 creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
 
 source(here::here("Functions", "Predict Math Success Functions.R"))
+
+
+
 
 ```
 
@@ -453,9 +456,9 @@ DrawEllipse(x=clusterPoints$HSGPA.Q.50.[4],
 par(xpd=TRUE)
 legend("topright",
        bg = "snow",
-       legend = c("basic", "intermediate","advanced","elite"),
+       legend = rev(c("Basic", "Intermediate","Advanced","Elite")),
        pt.cex = 3,
-       col = clusterColors,
+       col = rev(clusterColors),
        pch = 19,
        xpd = TRUE,
        inset = c(-0.155,0)
@@ -694,13 +697,115 @@ text(x = cleanData$HSGPA[intermediateEmplidFilter] ,
 
 ```
 
+
+
 This could emphasize the three closest courses and identify them in the legend.
 
 A table unique to the student could also be produced with the distance to all courses.  
 
-# Demonstration:  Predicted grades  (To be added)
+# Demonstration:  Predicted grades 
 
-Given a student's identification number, grades can be roughly predicted by course with a wide margin of error.   
+Given a student's identification number, 
+
+  - High-risk course selections can be identified (with [XX]% risk of failing) 
+  - Grades of close courses can be estimated  
+
+These estimates have a wide margin of error. Many students with high predictions fail and vice versa.   
+```{r}  
+
+#########################
+## LOAD MODEL AND DATA ##
+#########################
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Re-name 
+
+vH3_data_list <- data_list  # test score
+vH3_model_list <- model_list # test score
+
+# Align
+
+vH3_data_list[["GRADEGPA"]][["training"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["trainID"]]
+
+vH3_data_list[["GRADEGPA"]][["testing"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["testID"]]
+
+aligned_vH3 <- vH3_data_list[["GRADEGPA"]][["testing"]]
+
+
+```
+
+```{r}
+
+## DEVELOP COuNTERFACTUALS ## 
+
+testingGround <- aligned_vH3  
+
+courseGrid <- expand.grid(unique(testingGround$EMPLID), unique(testingGround$course))
+
+testingGround <- merge(testingGround, courseGrid, by.x = "EMPLID", by.y="Var1", all = TRUE)
+names(testingGround)[names(testingGround) == "course"] <- "course_orig"
+names(testingGround)[names(testingGround) == "Var2"] <- "course"
+
+## CALCULATE DISTANCES ## 
+
+tg2 <- merge(testingGround[,-which(colnames(testingGround) %in% c("HSGPA.z", "ACTMATH.z","dist") )],
+                        hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE 
+                        )
+
+# Calculate the distance as a z-score 
+
+tg2$ACTMATH.z <- (tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev
+tg2$HSGPA.z <- (tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev
+
+# Calculate distance 
+
+tg2$dist <- sqrt(
+  ((tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev)^2 +
+    ((tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev)^2
+)
+
+## COUNTERFACTUAL PREDICTIONS ## 
+
+trainColumns <- vH3_model_list[["GRADEGPA"]]$trainingData |> colnames() |> (\(x){x[-which(x %in% ".outcome")]})()
+
+completeCasesFilter <- tg2[,trainColumns] |>
+    complete.cases()
+
+tg2$pred.vH3 <- NA
+tg2$pred.vH3[completeCasesFilter] <- predict(vH3_model_list[["GRADEGPA"]], tg2[completeCasesFilter,]               
+                        ) 
+testingGround$pred.vH3 <- predict(vH3_model_list[["GRADEGPA"]], testingGround) 
+
+```
+
+
+```{r}
+
+displayCourseAlternatives(
+  data = tg2,
+  unid = interEmplid[1]
+)
+
+
+```
+
 
 ```{r eval = FALSE}
 
@@ -714,9 +819,4 @@ Currently, these predictions:
 
 ```
 
-```{r} 
-
-# First, let's worry about this tomorrow
-
-``` 
 
