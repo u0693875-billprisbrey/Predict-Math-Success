@@ -366,18 +366,20 @@ row_id <- 7 # euclidean, ward.D2
 ## START HERE ##  
 ################  
 
-hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
-                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
-                        c(median = median(x),
-                          IQR = IQR(x),
-                          stdev = sd(x),
-                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
-                          count = length(x)
-                        ) 
-                      }) |>
-  (\(x){
-    do.call(data.frame,x)
-  })()
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
+# hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+#                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+#                        c(median = median(x),
+#                          IQR = IQR(x),
+#                          stdev = sd(x),
+#                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
+#                          count = length(x)
+#                        ) 
+#                      }) |>
+#  (\(x){
+#    do.call(data.frame,x)
+#  })()
 
 
 hiGrades$clust1 <- hiGrades |>
@@ -677,8 +679,11 @@ set.seed(123)
 intermediateConditionFilter <-  cleanData$HSGPA > 3.8 & !is.na(cleanData$HSGPA) &
                  cleanData$HSGPA < 3.9 & !is.na(cleanData$HSGPA) &
                  cleanData$ACTMATH > 25 & !is.na(cleanData$ACTMATH) &
-                 cleanData$ACTMATH < 30 & !is.na(cleanData$ACTMATH) 
-interEmplid <- sample(cleanData$EMPLID[intermediateConditionFilter] , 10)
+                 cleanData$ACTMATH < 30 & !is.na(cleanData$ACTMATH)
+
+yearFilter <- cleanData$class_year == 2024
+
+interEmplid <- sample(cleanData$EMPLID[intermediateConditionFilter & yearFilter] , 10)
 
 intermediateEmplidFilter <- cleanData$EMPLID == interEmplid[1]
 
@@ -716,6 +721,8 @@ These estimates have a wide margin of error. Many students with high predictions
 #########################
 ## LOAD MODEL AND DATA ##
 #########################
+
+# hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
 
 # Build file paths
 model_files <- here::here("Models", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " model.rds"))
@@ -800,6 +807,7 @@ testingGround$pred.vH3 <- predict(vH3_model_list[["GRADEGPA"]], testingGround)
 
 displayCourseAlternatives(
   data = tg2,
+  dist_cutoff = 2,
   unid = interEmplid[1]
 )
 
@@ -819,4 +827,15 @@ Currently, these predictions:
 
 ```
 
+# Demonstration: An explanation of the predicted grades
+
+Per the ethical guidelines [CITE], a student may be entitled to an explanation of machine learning that informs their academic career.  This section uses SHAP values to identify the components that led to the grade prediction per course.   
+
+An interactive app that allowed toggling the inputs and showing the difference in the grade prediction could be useful.  
+
+```{r}  
+
+
+
+``` 
 
