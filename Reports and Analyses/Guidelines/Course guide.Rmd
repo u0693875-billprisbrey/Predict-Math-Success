@@ -64,6 +64,8 @@ ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
 mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
 creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
 
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
 source(here::here("Functions", "Predict Math Success Functions.R"))
 
 
@@ -653,13 +655,65 @@ hiGrades[hiGrades$class_year == 2023,c("course", colnames(hiGrades)[grepl("HSGPA
 
 ```
 
-# Demonstration: Closest courses
-
-Given a student's identification number, the incoming qualifications can be retrieved and the three closest courses by z-score can be returned. 
-
+# Demonstrations
 
 ```{r}
 
+## SAMPLING ## 
+
+# low
+set.seed(123)
+yearFilter <- cleanData$class_year == 2024
+
+lowConditionFilter <-  !is.na(cleanData$HSGPA) &
+                 cleanData$HSGPA < 3.8 & !is.na(cleanData$HSGPA) &
+                 cleanData$ACTMATH < 25 & !is.na(cleanData$ACTMATH)  
+
+# intermediate 
+intermediateConditionFilter <-  !is.na(cleanData$HSGPA) & cleanData$HSGPA > 3.8 &
+                 cleanData$HSGPA < 3.9 & !is.na(cleanData$HSGPA) &
+                 cleanData$ACTMATH > 25 & !is.na(cleanData$ACTMATH) &
+                 cleanData$ACTMATH < 30 & !is.na(cleanData$ACTMATH)
+
+# high
+hiConditionFilter <-  !is.na(cleanData$HSGPA) &
+                 cleanData$HSGPA >= 3.9 & !is.na(cleanData$HSGPA) &
+                 cleanData$ACTMATH > 30 & !is.na(cleanData$ACTMATH) 
+
+
+
+lowEmplid <- sample(
+  cleanData$EMPLID[lowConditionFilter & yearFilter], 
+  10
+)
+
+interEmplid <- sample(
+  cleanData$EMPLID[intermediateConditionFilter & yearFilter], 
+  10)
+
+hiEmplid <- sample(
+  cleanData$EMPLID[hiConditionFilter & yearFilter], 
+  10)
+
+lowEmplidFilter <- cleanData$EMPLID == lowEmplid[1]
+intermediateEmplidFilter <- cleanData$EMPLID == interEmplid[1]
+hiEmplidFilter <- cleanData$EMPLID == hiEmplid[1]
+
+
+
+```
+
+### Low examples
+
+#### ***Closest courses***
+
+Given a student's identification number, the incoming qualifications can be retrieved and the three closest courses by z-score can be returned. 
+
+### Intermediate examples 
+
+#### ***Closest courses***
+
+```{r}
 
 courseScatter(hiGrades[hiGrades$class_year == 2023,], 
               clusterColumn = "clust1",
@@ -675,17 +729,6 @@ courseScatter(hiGrades[hiGrades$class_year == 2023,],
               )
               )
 
-set.seed(123)
-intermediateConditionFilter <-  cleanData$HSGPA > 3.8 & !is.na(cleanData$HSGPA) &
-                 cleanData$HSGPA < 3.9 & !is.na(cleanData$HSGPA) &
-                 cleanData$ACTMATH > 25 & !is.na(cleanData$ACTMATH) &
-                 cleanData$ACTMATH < 30 & !is.na(cleanData$ACTMATH)
-
-yearFilter <- cleanData$class_year == 2024
-
-interEmplid <- sample(cleanData$EMPLID[intermediateConditionFilter & yearFilter] , 10)
-
-intermediateEmplidFilter <- cleanData$EMPLID == interEmplid[1]
 
 points(x = cleanData$HSGPA[intermediateEmplidFilter] ,
        y = cleanData$ACTMATH[intermediateEmplidFilter],
@@ -701,8 +744,6 @@ text(x = cleanData$HSGPA[intermediateEmplidFilter] ,
 
 
 ```
-
-
 
 This could emphasize the three closest courses and identify them in the legend.
 
@@ -833,9 +874,41 @@ Per the ethical guidelines [CITE], a student may be entitled to an explanation o
 
 An interactive app that allowed toggling the inputs and showing the difference in the grade prediction could be useful.  
 
+
 ```{r}  
 
+cleanData |>
+  (\(x){x[intermediateEmplidFilter, c("HSGPA","ACTMATH")]})() |>
+  unique() |>
+  round(2)  |>
+  kbl(caption = paste("Student ", interEmplid[1]),row.names = FALSE,
+      col.names = c("HS GPA", "ACT Math"),  # nicer column names
+      align = "c") |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                position = "left") 
+
+# Table of course distances  
+tg2 |>
+  (\(x){x[x$EMPLID == interEmplid[1], ]})() |> # filter to emplid
+  (\(x){x[x$dist <= 2 & !is.na(x$dist), ]})() |> # filter to distance cut-off 
+  (\(x){x[order(x$dist),]})() |> # descending order
+  (\(x){row.names(x) <- x[,"course"]; return(x)})() |>
+  (\(x){x[,c("dist", 
+             "pred.vH3",
+          #   "ACTMATH",
+          #   "HSGPA",
+             "ACTMATH.median", 
+             "HSGPA.median")]})() |>
+  round(2) |>
+  kbl(caption = "Distance to median successful student and predicted grades",
+      col.names = c("Distance", "Predicted Grade", "Median ACT Math", "Median HS GPA"),
+      align = "c") |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE)
+
+```
 
 
-``` 
+
 
