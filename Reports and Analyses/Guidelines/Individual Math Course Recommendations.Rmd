@@ -3,9 +3,10 @@ title: "Individual Math Course Recommendations"
 author: "Bill Prisbrey"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params: 
-  emplid: "01447102"
+  emplid: "01399728"
   class_yr: 2023  
   dist_cutoff: 2 
+  closest_cutoff: 
 output:
   html_document:
     keep_md: true
@@ -13,14 +14,18 @@ output:
 
 **EXPLANATION:** 
 
-This document can be used to help the incoming freshman select a math course.  
+This document is a demonstration of a report that could be used to help the incoming freshman select a math course.   It shows the actual performance of students from the year 2024 compared to their grade projections.  
 
-It provides the statistical distance to the qualifications of successful students in the prior year's courses.  Academic performance roughly increases with distance and courses with a distance measure larger than three are not recommended.  
+It provides the statistical distance to the qualifications of successful students in the prior year's courses.  Academic performance roughly decreases with distance and courses with a distance measure larger than three are not recommended.  
 
 It also provides individual grade expectations per course based on available information about the student and the department's historical records.  
 
-These projected grades have a large margin of error and many students who are projected to perform well end up performing poorly, and many students who are projected to flunk end up performing well.  
+These projected grades have a large margin of error and many students who are projected to perform well end up performing poorly, and vice versa.  Individual effort is important.  Qualities like motivation and factors like concurrent course load, course schedule, and individual circumstances are not captured in the projections. 
 
+
+**IMPORTANT NOTE:** 
+
+***This document shows historical projections and actual performance for students in 2024.*** 
   
 ```{r include=FALSE}
 
@@ -175,12 +180,15 @@ hiGrades$clust1 <- hiGrades |>
 
 ```{r}
 
-qualification <- any(tg2$pred.vH3[tg2$EMPLID == params$emplid & !is.na(tg2$dist) & tg2$dist <= params$dist_cutoff] <= 2.4)
+high_risk_qualification <- any(tg2$pred.vH3[tg2$EMPLID == params$emplid & !is.na(tg2$dist) & tg2$dist <= params$dist_cutoff] <= 2.4)
+
+low_risk_qualification <- all(tg2$pred.vH3[tg2$EMPLID == params$emplid & !is.na(tg2$dist) & tg2$dist <= params$dist_cutoff] > 2.4)
+
 
 ```
 
 
-```{r eval=qualification}
+```{r eval=high_risk_qualification, fig.height=2, fig.width=11}
 
 par(oma = c(0,0,0,0), mar = c(0,0,0,0))
 
@@ -204,7 +212,7 @@ rect(xleft = par("usr")[1],
      col = "pink")
 
 text(x=0.5, y = 0.619,
-     labels = "HIGH\nRISK",
+     labels = "HIGH RISK",
      font = 2,
      cex = 3.619,
      col = "red")
@@ -213,10 +221,48 @@ text(x=0.5,
      y = 0.3,
      labels = "This student is at high risk of failing one or more math course options.",
      font = 3,
-     cex = 2.3)
+     cex = 1.9)
 
 ```
 
+
+
+```{r eval=low_risk_qualification, fig.height=2, fig.width=11}
+
+par(oma = c(0,0,0,0), mar = c(0,0,0,0))
+
+plot(x=0.5,
+     y=0.5,
+     xlim = c(0,1),
+     ylim = c(0,1),
+     xaxt = "n",
+     yaxt = "n",
+     xlab = "",
+     ylab = "",
+     type = "n" 
+     )
+
+box(col = "forestgreen", lwd = 3)
+
+rect(xleft = par("usr")[1],
+     ybottom = par("usr")[3],
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "palegreen")
+
+text(x=0.5, y = 0.619,
+     labels = "LOW RISK",
+     font = 2,
+     cex = 3.619,
+     col = "forestgreen")
+
+text(x=0.5,
+     y = 0.3,
+     labels = "This student is at low risk of failing.",
+     font = 3,
+     cex = 1.9)
+
+```
 
 
 
@@ -231,7 +277,7 @@ courseScatter(hiGrades[hiGrades$class_year == params$class_yr,],
               legend_params = list(plot = FALSE),
               plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("High School GPA","ACT Math", "Plotting individual students against incoming qualifications", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACT Math", "Plotting individual students against incoming qualifications", "Median student achieving at least B- per course"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
                     line = c(2.3, 2.3, 1.25, 0.30)
@@ -259,10 +305,15 @@ text(x = ftfData$HSGPA[emplidFilter] ,
 
 ```{r}
 
+
 displayCourseAlternatives(
   data = tg2,
   dist_cutoff = params$dist_cutoff,
-  unid = params$emplid
+  unid = params$emplid,
+  legend_params = list(inset = c(-0.225,0)),
+  risk_legend_params = list(inset = c(-0.225,0)),
+  cutoff_text_params = list(line = c(2.7,3.7),
+  at = par("usr")[2] + 0.25 * (par("usr")[2] - par("usr")[1]) )
 )
 
 
@@ -304,6 +355,14 @@ tg2 |>
 
 ```
 
+
+## Projection explanation 
+
+The grade projection is based on [list of factors].  A separate logistic regression analysis found that [factors] are statistically significant predictors (p < .05).  
+
+A full explanation of the projection and methodology is available.  
+
+Further explanation of any particular projection is available upon request.  
 
 
 

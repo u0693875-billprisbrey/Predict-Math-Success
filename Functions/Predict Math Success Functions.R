@@ -855,6 +855,8 @@ createCM <- function(data, target = "GRADEGPA", cuts=NA, cap=TRUE){
 displayCourseAlternatives <- function(data,
                                       unid = NA,
                                       dist_cutoff = 3,
+                                      closest_cutoff = 6,
+                                      sort = "dist",
                                       par_params = list(),
                                       plot_params = list(),
                                       rect_params = list(),
@@ -871,8 +873,9 @@ displayCourseAlternatives <- function(data,
                                       risk_legend_params = list()
 ){
   
-  # where data is trainingGround  
+  # something is really wrong with the filters and display
   
+  # where data is trainingGround  
   
   incoming.par <- par(mar = c(4,2,2,1))
   on.exit(par(incoming.par))
@@ -885,9 +888,11 @@ displayCourseAlternatives <- function(data,
     unid <- sample(data[,"EMPLID"],1)
   }
   
+  # print(unid) # for trouble-shooting
+  
   emplidFilter <- data$EMPLID == unid
   
-  if(is.na(dist_cutoff)){ # why isn't NA working?
+  if(is.na(dist_cutoff)){ 
     
     distFilter <- rep(TRUE, nrow(data)) # no distance filter
     
@@ -897,16 +902,62 @@ displayCourseAlternatives <- function(data,
     
   }
   
-  # Need an error message if the cut-off removes all values 
+  # remove distance filter if not enough are found and closest_cutoff is specified
+  
+  if(!is.na(closest_cutoff)){
+    
+    if(sum(distFilter & emplidFilter) < closest_cutoff) {
+      
+      # is.na(table(distFilter & emplidFilter)["TRUE"]) | table(distFilter & emplidFilter)["TRUE"] < closest_cutoff 
+      
+      distFilter <- rep(TRUE, nrow(data))
+      
+    }
+  }
+  
+  # using closest instead of this
+  # # Need an error message if the cut-off removes all values
+  # if(nrow(fData) == 0 ) {stop("\n\nNo predictions found;\nincrease dist_cutoff value")}
   
   fData <- data[emplidFilter & distFilter,] # filtered data
+  # fData <- droplevels(fData)
+  fData <- fData[order(fData$dist, decreasing = FALSE),]
   
-  if(nrow(fData) == 0 ) {stop("\n\nNo predictions found;\nincrease dist_cutoff value")}
+  if(is.na(closest_cutoff)){ 
+    
+    closestFilter <- rep(TRUE, nrow(fData)) # no closest filter
+    
+  } else {
+    
+    closestFilter <- c(rep(TRUE, closest_cutoff), rep(FALSE, nrow(fData) - closest_cutoff ))
+    
+  }
+  
+  fData <- fData[closestFilter,]
   
   fData <- droplevels(fData)
   
+  # Sorting for the plot
+  
+  if(sort == "dist") {fData <- fData[order(fData$dist, decreasing = TRUE),]}
+  if(sort == "grade") {fData <- fData[order(fData$pred.vH3, decreasing = FALSE),]}
+  if(sort == "course") {fData <- fData[order(fData$course, decreasing = FALSE),]}
+  
+  # high risk condition
+  high_risk_condition <- any(fData$pred.vH3[!is.na(fData$pred.vH3)] < 2.4)
+  
   # Plot parameters
-  default_par_params <- list(mar=c(4,7,3,10), bg = "bisque", fg = "grey20")
+  
+  if(high_risk_condition) { 
+    
+    default_par_params <- list(mar=c(5,7,3,10), bg = "bisque", fg = "grey20")
+    
+  } else { 
+    
+    default_par_params <- list(mar=c(4,7,3,10), bg = "bisque", fg = "grey20")
+    
+  }
+  
   par_params <- modifyList(default_par_params, par_params)
   do.call(par, par_params)
   
@@ -914,7 +965,13 @@ displayCourseAlternatives <- function(data,
   n_courses <- nlevels(fData$course)   # number of courses
   
   # Establish the xlim range
-  xLim <- range(fData[,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
+  if(high_risk_condition) {
+    
+    xLim <- range(c(fData[,c("pred.vH3", "GRADEGPA")], 2.4), na.rm=TRUE)
+    
+  } else {
+    xLim <- range(fData[,c("pred.vH3", "GRADEGPA")], na.rm=TRUE) # "pred.vK0",
+  }
   
   default_plot_params <- list(
     x = NULL,
@@ -965,7 +1022,7 @@ displayCourseAlternatives <- function(data,
   default_axis_params <- list(
     list(side =2, 
          at = 1:n_courses, 
-         labels = levels(fData[,"course"]), 
+         labels = fData[,"course"], 
          las = 1,
          tick = FALSE)
   )
@@ -986,7 +1043,7 @@ displayCourseAlternatives <- function(data,
   default_point_params <- list(
     list(
       x = fData[,"pred.vH3"],
-      y = as.numeric(fData[, "course"]), 
+      y =  1:n_courses,   #as.numeric(fData[, "course"]), 
       pch = 9, 
       col = "mediumpurple3"
     ),
@@ -997,7 +1054,7 @@ displayCourseAlternatives <- function(data,
     #    ),
     list(
       x = unique(fData$GRADEGPA),
-      y = as.numeric(unique(fData$course_orig)),  
+      y = match(unique(fData$course_orig), fData$course),  #as.numeric(unique(fData$course_orig)),  
       pch = 13,
       lwd = 2,
       cex = 2,
@@ -1045,7 +1102,7 @@ displayCourseAlternatives <- function(data,
   
   # Add high risk indicator
   
-  if(any(fData$pred.vH3[!is.na(fData$pred.vH3)] < 2.4)) {
+  if(high_risk_condition) {
     
     default_risk_line_params <- list(
       v = 2.4,
@@ -1074,18 +1131,40 @@ displayCourseAlternatives <- function(data,
   
   # Cut-off text
   
-  default_cutoff_text_params <- list(
-    text = paste("Filtered to distance cut-off <= ", dist_cutoff, sep = ""),
-    side = 1,
-    font = 3,
-    line = 2.7,
-    adj = 1,
-    at = par("usr")[2] + 0.5 * (par("usr")[2] - par("usr")[1]) 
+  if(high_risk_condition) { 
     
-  )
+    default_cutoff_text_params <- list(
+      # text = paste("Filtered to distance cut-off <= ", dist_cutoff, sep = ""),
+      text = c(paste("Max distance of ", round(max(fData$dist, na.rm=TRUE),2), sep = ""),
+               "Courses with predicted grades less than 2.4 are high risk."),
+      side = c(1,1),
+      font = c(3,3),
+      line = c(2.5,3.5),
+      adj = c(1,1),
+      at = par("usr")[2] + 0.5 * (par("usr")[2] - par("usr")[1]) 
+      
+    )
+    
+    
+  } else { 
+    
+    default_cutoff_text_params <- list(
+      # text = paste("Filtered to distance cut-off <= ", dist_cutoff, sep = ""),
+      text = paste("Max distance of ", round(max(fData$dist, na.rm=TRUE),2), sep = ""),
+      side = 1,
+      font = 3,
+      line = 2.7,
+      adj = 1,
+      at = par("usr")[2] + 0.5 * (par("usr")[2] - par("usr")[1]) 
+      
+    )
+    
+  }
   
   cutoff_text_params <- modifyList(default_cutoff_text_params, cutoff_text_params)
   do.call(mtext, cutoff_text_params)
+  
+  invisible(unid)
   
 }
 
