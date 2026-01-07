@@ -3,10 +3,10 @@ title: "Individual Math Course Recommendations"
 author: "Bill Prisbrey"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params: 
-  emplid: "01399728"
+  emplid: "01495399"
   class_yr: 2023  
   dist_cutoff: 2 
-  closest_cutoff: 
+  closest_cutoff: 6
 output:
   html_document:
     keep_md: true
@@ -16,9 +16,9 @@ output:
 
 This document is a demonstration of a report that could be used to help the incoming freshman select a math course.   It shows the actual performance of students from the year 2024 compared to their grade projections.  
 
-It provides the statistical distance to the qualifications of successful students in the prior year's courses.  Academic performance roughly decreases with distance and courses with a distance measure larger than three are not recommended.  
+It provides the statistical distance to the qualifications of successful students in the prior year's courses (2023).  Academic performance roughly decreases with distance and courses with a distance measure larger than three are not recommended.  
 
-It also provides individual grade expectations per course based on available information about the student and the department's historical records.  
+It also provides individual grade expectations per course based on limited available information about the student and the department's historical records.  
 
 These projected grades have a large margin of error and many students who are projected to perform well end up performing poorly, and vice versa.  Individual effort is important.  Qualities like motivation and factors like concurrent course load, course schedule, and individual circumstances are not captured in the projections. 
 
@@ -175,6 +175,30 @@ hiGrades$clust1 <- hiGrades |>
 
 ```
 
+```{r eval=FALSE}
+
+# This enables the selection of example unid's that are called in a separate documnet
+
+criteria <- list("elite" = !is.na(aligned_vH3$ACTMATH) & aligned_vH3$ACTMATH > 30 & aligned_vH3$HSGPA > 3.93 & !is.na(aligned_vH3$HSGPA),
+                 "advanced" = !is.na(aligned_vH3$ACTMATH) &  aligned_vH3$ACTMATH > 25 & aligned_vH3$ACTMATH <= 30 & aligned_vH3$HSGPA > 3.9 & aligned_vH3$HSGPA <= 3.93 & !is.na(aligned_vH3$HSGPA),
+                 "intermediate" = !is.na(aligned_vH3$ACTMATH) & aligned_vH3$ACTMATH > 23 & aligned_vH3$ACTMATH <= 25 & aligned_vH3$HSGPA > 3.8 & aligned_vH3$HSGPA <= 3.9 & !is.na(aligned_vH3$HSGPA),
+                 "basic" = !is.na(aligned_vH3$ACTMATH) & aligned_vH3$ACTMATH > 10 & aligned_vH3$ACTMATH <= 23 & aligned_vH3$HSGPA > 3.7 & aligned_vH3$HSGPA <= 3.8 & !is.na(aligned_vH3$HSGPA),
+                 "high" = !is.na(aligned_vH3$ACTMATH) & aligned_vH3$ACTMATH > 30 & aligned_vH3$ACTMATH <= 36 & aligned_vH3$HSGPA > 3.00 & aligned_vH3$HSGPA <= 3.8 & !is.na(aligned_vH3$HSGPA),
+                 "low"= !is.na(aligned_vH3$ACTMATH) & aligned_vH3$ACTMATH > 10 & aligned_vH3$ACTMATH <= 20 & aligned_vH3$HSGPA > 3.00 & aligned_vH3$HSGPA <= 3.8 & !is.na(aligned_vH3$HSGPA)
+                 )
+
+set.seed(42)
+candidates <- lapply(criteria, function(x) {
+  sample(aligned_vH3$EMPLID[x],1)
+  
+})
+
+# candidates
+
+
+```
+
+
 # `r paste("Student ID:", params$emplid, sep=" ")`
 
 
@@ -270,12 +294,17 @@ text(x=0.5,
 
 ```{r}
 
+emplidFilter <- ftfData$EMPLID == params$emplid
+
+xLim <- range(c(ftfData$HSGPA[emplidFilter], 3.6, 4.0))
+yLim <- range(c(ftfData$ACTMATH[emplidFilter]-1, 17, 36))
+
 courseScatter(hiGrades[hiGrades$class_year == params$class_yr,], 
               clusterColumn = "clust1",
               ellipse_params = list(plot = FALSE),
               qrect_params = list(border = NA),
               legend_params = list(plot = FALSE),
-              plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
+              plot_params = list(xlim = xLim, ylim = yLim),
               mtext_params = list(side = c(1,2,3,3),
                     text = c("High School GPA","ACT Math", "Plotting individual students against incoming qualifications", "Median student achieving at least B- per course"),
                     font = c(1,1,2,3),
@@ -284,7 +313,7 @@ courseScatter(hiGrades[hiGrades$class_year == params$class_yr,],
               )
               )
 
-emplidFilter <- ftfData$EMPLID == params$emplid
+
 
 points(x = ftfData$HSGPA[emplidFilter] ,
        y = ftfData$ACTMATH[emplidFilter],
@@ -305,23 +334,41 @@ text(x = ftfData$HSGPA[emplidFilter] ,
 
 ```{r}
 
+if(high_risk_qualification) { 
 
 displayCourseAlternatives(
   data = tg2,
   dist_cutoff = params$dist_cutoff,
+  closest_cutoff = params$closest_cutoff,
   unid = params$emplid,
   legend_params = list(inset = c(-0.225,0)),
   risk_legend_params = list(inset = c(-0.225,0)),
   cutoff_text_params = list(line = c(2.7,3.7),
   at = par("usr")[2] + 0.25 * (par("usr")[2] - par("usr")[1]) )
 )
-
+  
+} else {
+  
+  displayCourseAlternatives(
+  data = tg2,
+  dist_cutoff = params$dist_cutoff,
+  closest_cutoff = params$closest_cutoff,
+  unid = params$emplid,
+  legend_params = list(inset = c(-0.225,0)),
+  risk_legend_params = list(inset = c(-0.225,0)),
+  cutoff_text_params = list(line = c(2.5),
+  at = par("usr")[2] + 0.25 * (par("usr")[2] - par("usr")[1]) )
+)
+  
+}
 
 ```
 
 ## Table 
 
 ```{r}  
+
+# Student qualifications  
 
 ftfData |>
   (\(x){x[emplidFilter, c("HSGPA","ACTMATH")]})() |>
@@ -334,11 +381,45 @@ ftfData |>
                 full_width = FALSE,
                 position = "left") 
 
-# Table of course distances  
+```
+
+
+```{r}
+
+# Table of course distances
+
+# Adjust cut off to use closest_cutoff instead
+
+row_count <- tg2 |>
+  (\(x){x[x$EMPLID == params$emplid, ]})() |>
+  nrow()
+
+row_check <- tg2 |>
+  (\(x){x[x$EMPLID == params$emplid, ]})() |>
+  (\(x){x[x$dist <= params$dist_cutoff & !is.na(x$dist), ]})() |>
+  nrow()
+
+if(row_check < params$closest_cutoff) {
+  
+  tableFilter <- tg2 |>
+  (\(x){x[x$EMPLID == params$emplid, ]})() |>
+  (\(x){x[order(x$dist),]})() |> # descending order  
+  (\(x){c(rep(TRUE, params$closest_cutoff), rep(FALSE, row_count - params$closest_cutoff) ) })()
+  
+  
+} else {
+  
+    tableFilter <- tg2 |>
+  (\(x){x[x$EMPLID == params$emplid, ]})() |>
+  (\(x){x[order(x$dist),]})() |> # descending order
+  (\(x){x$dist <= params$dist_cutoff & !is.na(x$dist)})()
+  
+}
+
 tg2 |>
   (\(x){x[x$EMPLID == params$emplid, ]})() |> # filter to emplid
-  (\(x){x[x$dist <= params$dist_cutoff & !is.na(x$dist), ]})() |> # filter to distance cut-off 
   (\(x){x[order(x$dist),]})() |> # descending order
+  (\(x){x[tableFilter, ]})() |> # filter to distance cut-off 
   (\(x){row.names(x) <- x[,"course"]; return(x)})() |>
   (\(x){x[,c("dist", 
              "pred.vH3",
@@ -360,9 +441,11 @@ tg2 |>
 
 The grade projection is based on [list of factors].  A separate logistic regression analysis found that [factors] are statistically significant predictors (p < .05).  
 
-A full explanation of the projection and methodology is available.  
+Further explanation of any particular projection is available upon request. 
 
-Further explanation of any particular projection is available upon request.  
+A full explanation of the methodology is available.  
+
+ 
 
 
 

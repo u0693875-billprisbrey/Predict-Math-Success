@@ -655,7 +655,136 @@ hiGrades[hiGrades$class_year == 2023,c("course", colnames(hiGrades)[grepl("HSGPA
 
 ```
 
+# Predictive Modeling  
+
+## *Identify high and low risk groups:*
+
+A predictive model can identify a group of students with a high rate of failure.  Roughly one-third of these "high risk" students will fail (achieving a grade less than 1.7, or D+ or less.)  This compares to the "low risk" students, with only a 5% failure rate (one in twenty.)
+
+The predictive model primarily relies on the student's high school GPA and ACT math test scores.  It also uses the difference between the student's qualifications and the prior year's median successful student's qualifications.  
+
+## *Compare predicted grades across courses:* 
+
+The model can produce predicted grades per course per student and can be used to compare courses and select courses where the expected grade is higher. 
+
+These predicted grades align to the actual grades with an r-squared value of 0.26, meaning that the incoming qualifications account for only about a quarter of the variation in grade performance. Qualities and factors that presumably have an impact but are not included in the model are individual motivation, student-teacher alignment, course schedule, difficulty and number of concurrent courses, and other individual circumstances.  
+
+The predicted grades also have a mean absolute error of 0.81, putting almost an entire grade point margin of error onto any individual prediction.  This margin of error suggests that incoming qualifications of high school GPA and ACT math test scores are not deterministic and that high values in either category do not guarantee success.  
+
+It also suggests that the predictive model should only be used as a loose guideline.  Examples of individual recommendations accompany this guide. 
+
+
+```{r}  
+
+#########################
+## LOAD MODEL AND DATA ##
+#########################
+
+# hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Re-name 
+
+vH3_data_list <- data_list  # test score
+vH3_model_list <- model_list # test score
+
+# Align
+
+vH3_data_list[["GRADEGPA"]][["training"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["trainID"]]
+
+vH3_data_list[["GRADEGPA"]][["testing"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["testID"]]
+
+aligned_vH3 <- vH3_data_list[["GRADEGPA"]][["testing"]]
+
+# Predict
+
+aligned_vH3$pred <- predict(vH3_model_list[["GRADEGPA"]], aligned_vH3)
+
+
+```
+
+
+
+```{r}
+
+# Predicted vs actual hexplot
+
+predictionMap(data = aligned_vH3, 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+
+```
+
+
+
+```{r}
+
+# Risk table
+
+aligned_vH3[["pred_cut_2.4"]] <- cut(aligned_vH3[["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE)
+
+aligned_vH3[["cut_1.7"]] <- cut(aligned_vH3[["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+
+
+# Create confusion matrix with proportions
+conf_table <- table(aligned_vH3[,c("pred_cut_2.4", "cut_1.7")])
+
+# Convert to proportions and percentages
+prop_table <- prop.table(conf_table) * 100
+
+# Combine counts and percentages
+combined <- matrix(
+  paste0(conf_table, "\n(", round(prop_table, 1), "%)"),
+  nrow = nrow(conf_table)
+)
+
+dimnames(combined) <- dimnames(conf_table)
+rownames(combined) <- c("High risk", "Low risk")
+
+combined |>
+  kbl(caption = "Performance by risk group",
+      col.names = c("Fail (<1.7)", "Pass (≥1.7)"),
+      #row.names = c("High_risk", "Low_risk"),
+      align = "c",
+      escape = FALSE) |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                font_size = 18) |>
+  # add_header_above(c("Group" = 1, "Performance" = 2),
+  #                 bold = TRUE, font_size = 20) |>
+  row_spec(0, bold = TRUE, font_size = 20, background = "#e6f2ff")
+
+recall <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[,1])})()) |> round(2) |> (\(x){x*100})()
+
+precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[1,])})()) |> round(2) |> (\(x){x*100})()
+
+```   
+
+
+Generally, the model finds that math grades improve with higher ACT math test scores and high school GPA. 
+
 # Demonstrations
+
+Please refer to the accompanying reports of individual course recommendations. 
+
+I am not sure if anything following is worth keeping. 
 
 ```{r}
 

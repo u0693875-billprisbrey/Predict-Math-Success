@@ -3,7 +3,7 @@ title: "Individual Math Course Recommendations"
 author: "Bill Prisbrey"
 date: "January 06, 2026"
 params: 
-  emplid: "01399728"
+  emplid: "01495399"
   class_yr: 2023  
   dist_cutoff: 2 
   closest_cutoff: 6
@@ -54,17 +54,17 @@ These projected grades have a large margin of error and many students who are pr
 
 
 
-![](Individual-Math-Course-Recommendations_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](C:\Users\u0693875\DOCUME~1\Projects\FIRSTT~1\PREDIC~1\REPORT~1\GUIDEL~1\INDIVI~2\HIGHEX~1/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 
 
 ## Distance  
 
-![](Individual-Math-Course-Recommendations_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](C:\Users\u0693875\DOCUME~1\Projects\FIRSTT~1\PREDIC~1\REPORT~1\GUIDEL~1\INDIVI~2\HIGHEX~1/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ## Projections 
 
-![](Individual-Math-Course-Recommendations_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](C:\Users\u0693875\DOCUME~1\Projects\FIRSTT~1\PREDIC~1\REPORT~1\GUIDEL~1\INDIVI~2\HIGHEX~1/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ## Table 
 
@@ -84,10 +84,12 @@ These projected grades have a large margin of error and many students who are pr
 </tbody>
 </table>
 
-<table class="table table-striped table-hover" style="color: black; width: auto !important; margin-left: auto; margin-right: auto;">
+
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Distance to median successful student and predicted grades</caption>
  <thead>
   <tr>
+   <th style="text-align:left;">   </th>
    <th style="text-align:center;"> Distance </th>
    <th style="text-align:center;"> Predicted Grade </th>
    <th style="text-align:center;"> Median ACT Math </th>
@@ -96,7 +98,46 @@ These projected grades have a large margin of error and many students who are pr
  </thead>
 <tbody>
   <tr>
-
+   <td style="text-align:left;"> MATH_1035 </td>
+   <td style="text-align:center;"> 2.38 </td>
+   <td style="text-align:center;"> 2.43 </td>
+   <td style="text-align:center;"> 24.0 </td>
+   <td style="text-align:center;"> 3.71 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> MATH_1215 </td>
+   <td style="text-align:center;"> 2.62 </td>
+   <td style="text-align:center;"> 2.40 </td>
+   <td style="text-align:center;"> 26.0 </td>
+   <td style="text-align:center;"> 3.91 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> MATH_1100 </td>
+   <td style="text-align:center;"> 2.70 </td>
+   <td style="text-align:center;"> 2.61 </td>
+   <td style="text-align:center;"> 25.5 </td>
+   <td style="text-align:center;"> 3.81 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> MATH_1080 </td>
+   <td style="text-align:center;"> 2.71 </td>
+   <td style="text-align:center;"> 2.56 </td>
+   <td style="text-align:center;"> 25.0 </td>
+   <td style="text-align:center;"> 3.87 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> MATH_1090 </td>
+   <td style="text-align:center;"> 2.95 </td>
+   <td style="text-align:center;"> 2.89 </td>
+   <td style="text-align:center;"> 24.0 </td>
+   <td style="text-align:center;"> 3.83 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> MATH_1210 </td>
+   <td style="text-align:center;"> 3.05 </td>
+   <td style="text-align:center;"> 2.91 </td>
+   <td style="text-align:center;"> 27.0 </td>
+   <td style="text-align:center;"> 3.94 </td>
   </tr>
 </tbody>
 </table>
@@ -106,9 +147,11 @@ These projected grades have a large margin of error and many students who are pr
 
 The grade projection is based on [list of factors].  A separate logistic regression analysis found that [factors] are statistically significant predictors (p < .05).  
 
-A full explanation of the projection and methodology is available.  
+Further explanation of any particular projection is available upon request. 
 
-Further explanation of any particular projection is available upon request.  
+A full explanation of the methodology is available.  
+
+ 
 
 
 
