@@ -7,23 +7,32 @@ output: html_document
 
 **PURPOSE:**  This report is a guide to recommended math courses for first time freshmen.  It is based on the incoming qualifications of successful students (who achieve a minimum grade of B-) in the prior year. 
 
-*Report improvements* 
+# How to use this guide 
 
-  - Add explanatory text    
-  - Turn "year" into a parameter  
-  - Turn plots into interactive "plotly" plots (allowing mouse-over and hover)  
-  - Add number lines next to the table for ACT math test scores and high school GPA with the percentile markers 
-  - Add descriptive information like the count or % of population per cluster or course
-  - Add sections: 
-      - Distance to course / top three closest courses (interactive)  
-      - Grade prediction per course / top three grades (interactive)    
-      - Explanation of grade prediction (SHAP values) 
+This guide can be used to select an appropriate math course for first time freshman. 
+
+It compares the qualifications of the incoming student with the median qualifications of the successful student of the prior year. 
+
+It is recommended that a student prefer courses where his/her qualifications are closer and avoid courses where his/her qualifications are farther away from the median successful student.   
+
+This is not a strongly definitive guide and there is considerable overlap between courses of acceptable qualifications. 
+
+## *Four clusters:*
+
+The math courses taken by first year freshmen are sorted into four clusters:  elite, advanced, intermediate, and basic.  These clusters are defined by the median high school GPA and the median ACT math test score of students who achieved a grade of B-minus or better in the year 2023.  These clusters, and the courses they consist of, are displayed in a series of charts.    
+
+## *Overlapping ranges:*
+
+Each course shows a wide range of the incoming qualifications of students.  There is considerable overlap in the qualifications between courses, meaning this guide should be interpreted loosely. Many students will have multiple options with equivalent grade expectations.   
+
+Tables are provided with selected percentiles to use as an easy reference. 
+
+## *Individual reports:*  
+
+A report per individual can be automatically generated that includes identification of high risk course selections and grade predictions for the closest courses.  
+
       
-*Additional work* 
 
-  - Investigate median unsuccessful student and compare distances 
-  - Investigate whether higher HSGPA and ACTMATH than course median predicts lower grades (suggesting that students should be bumped up if they are >75th or >90th percentiles for a course) ***DONE***   
-  - Train a new predictive model that incorporates z-score distance.  ***DONE***
 
 ```{r include=FALSE}
 
@@ -360,7 +369,7 @@ row_id <- 7 # euclidean, ward.D2
 ```
 
 
-# Cluster placement
+# Four clusters 
 
 ```{r} 
 
@@ -781,4 +790,15 @@ precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.
 
 ```   
 
+*Possible improvements and ideas* 
+
+  - Turn plots into interactive "plotly" plots (allowing mouse-over and hover)  
+  - Add number lines next to the table for ACT math test scores and high school GPA with the percentile markers 
+  - Turn "year" into a parameter
+  - Add descriptive information like the count or % of population per cluster or course
+  - Add examples of individual reports
+  - Add sections: 
+      - Distance to course / top three closest courses (interactive)  
+      - Grade prediction per course / top three grades (interactive)    
+      - Explanation of grade prediction (SHAP values) 
 

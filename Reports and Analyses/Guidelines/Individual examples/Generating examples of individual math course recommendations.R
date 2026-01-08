@@ -95,7 +95,7 @@ lapply(seq_along(candidates), function(x){
   
   rmarkdown::render(
     input = here::here("Reports and Analyses","Guidelines", "Individual Math Course Recommendations.Rmd"),
-    output_file = here::here("Reports and Analyses","Guidelines", "Individual examples", paste(names(candidates)[x], " example", "run A",".html", sep = "")),
+    output_file = here::here("Reports and Analyses","Guidelines", "Individual examples", paste(names(candidates)[x], " example", " run A",".html", sep = "")),
     params = list(emplid = candidates[[x]])
                     )
 })
