@@ -1516,3 +1516,246 @@ courseScatter <- function(
   
 }
 
+courseScatterPlotly <- function(
+    data,
+    clusterColumn = NA,
+    showCourse = FALSE,
+    ellipseFilter = NA,
+    clusterFilter = NA,
+    featureMaps = list(courseMap = NA,
+                       yearMap = NA,
+                       clusterMap = NA),
+    dist_params = list(),
+    hclust_params = list(),
+    cutree_params = list(),
+    ellipse_npoints = 50,
+    plot_title = NULL,
+    xaxis_title = "HSGPA",
+    yaxis_title = "ACT MATH"
+) {
+  
+  library(plotly)
+  
+  #############  
+  ## CLUSTER ##
+  #############  
+  
+  
+  data$clust <- NA
+  
+  if (is.na(clusterColumn)) {
+    for (yr in unique(data$class_year)) {
+      yearFilter <- data$class_year == yr
+      features <- data[yearFilter, c("HSGPA.median", "HSGPA.IQR", "ACTMATH.median", "ACTMATH.IQR")]
+      
+      theDistance <- do.call(dist, modifyList(list(x = features, method = "euclidean"), dist_params))
+      theHclust <- do.call(hclust, modifyList(list(d = theDistance, method = "complete"), hclust_params))
+      clusters <- do.call(cutree, modifyList(list(tree = theHclust, k = 3), cutree_params))
+      
+      data$clust[yearFilter] <- clusters
+    }
+  } else {
+    data$clust <- data[, clusterColumn]
+    clusters <- unique(data[, clusterColumn])
+  }
+  
+  ##################
+  ## FEATURE MAPS ##
+  ##################
+  
+  if (any(is.na(featureMaps))) {
+    
+    if (is.na(featureMaps[["courseMap"]])) {
+      mainCourses <- data.frame(
+        color = c("steelblue4", "skyblue", "tan4", "goldenrod4", "rosybrown4",
+                  "darkseagreen4", "lightgoldenrod4", "tan4", "thistle4", 
+                  "lightskyblue4", "paleturquoise4", "plum4", "darkseagreen", "burlywood4"),
+        course = c("MATH_1010", "MATH_1050", "MATH_1210", "MATH_1030", "MATH_1090",
+                   "MATH_1070", "MATH_1220", "MATH_1080", "MATH_1060", "MATH_1310",
+                   "MATH_2210", "MATH_990", "MATH_1100", "MATH_1250"),
+        stringsAsFactors = FALSE
+      )
+      
+      extraCourses <- setdiff(unique(data$course), mainCourses$course)
+      if (length(extraCourses) > 0) {
+        extraCourses <- data.frame(
+          color = rep("darkorange3", length(extraCourses)),
+          course = extraCourses,
+          stringsAsFactors = FALSE
+        )
+        featureMaps[["courseMap"]] <- rbind(mainCourses, extraCourses)
+      } else {
+        featureMaps[["courseMap"]] <- mainCourses
+      }
+    }
+    
+    if (is.na(featureMaps[["yearMap"]])) {
+      # Plotly symbols: circle, square, diamond, cross, x, triangle-up, etc.
+      featureMaps[["yearMap"]] <- data.frame(
+        symbol = c("circle", "square", "diamond", "triangle-up", "triangle-down",
+                   "cross", "x", "star", "hexagon", "pentagon",
+                   "circle-open", "square-open", "diamond-open", "triangle-up-open",
+                   "triangle-down-open", "cross-open", "x-open", "star-open",
+                   "hexagon-open", "pentagon-open", "circle-dot"),
+        class_year = 2025:2005,
+        stringsAsFactors = FALSE
+      )
+    }
+    
+    if (is.na(featureMaps[["clusterMap"]])) {
+      colors <- c("darkorange", "steelblue", "purple3", "turquoise3", 
+                  "magenta", "forestgreen", "brown", "pink", "sienna")
+      featureMaps[["clusterMap"]] <- data.frame(
+        color = colors[seq_along(unique(data$clust))],
+        clust = unique(data$clust),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  
+  # Merge maps to data
+  data <- merge(data, featureMaps[["yearMap"]], by = "class_year")
+  
+  if (showCourse) {
+    data <- merge(data, featureMaps[["courseMap"]], by = "course")
+  } else {
+    data <- merge(data, featureMaps[["clusterMap"]], by = "clust")
+  }
+  
+  returnData <- data
+  
+  # Filter to cluster if specified
+  if (!any(is.na(clusterFilter))) {
+    data <- data[data$clust %in% clusterFilter, ]
+  }
+  
+  ####################
+  ## ELLIPSE HELPER ##
+  ####################
+  
+  make_ellipse <- function(cx, cy, rx, ry, npoints = 50) {
+    theta <- seq(0, 2 * pi, length.out = npoints)
+    list(
+      x = cx + rx * cos(theta),
+      y = cy + ry * sin(theta)
+    )
+  }
+  
+  ##########  
+  ## PLOT ##
+  ##########  
+  
+  # Dynamic title
+  if (is.null(plot_title)) {
+    plot_title <- paste("Course medians in", paste(unique(data$class_year), collapse = ", "))
+  }
+  
+  # Determine grouping variable for legend
+  group_var <- if (showCourse) "course" else "clust"
+  
+  # Build base plot
+  p <- plot_ly()
+  
+  # Add points by group (for proper legend)
+  groups <- unique(data[[group_var]])
+  
+  for (g in groups) {
+    gdata <- data[data[[group_var]] == g, ]
+    
+    p <- p %>% add_trace(
+      data = gdata,
+      x = ~HSGPA.median,
+      y = ~ACTMATH.median,
+      type = "scatter",
+      mode = "markers",
+      marker = list(
+        color = gdata$color[1],
+        symbol = gdata$symbol,
+        size = 10,
+        line = list(width = 1, color = "white")
+      ),
+      name = as.character(g),
+      text = ~paste0(
+        "Course: ", course, "<br>",
+        "Year: ", class_year, "<br>",
+        "HSGPA: ", round(HSGPA.median, 2), " (IQR: ", round(HSGPA.IQR, 2), ")<br>",
+        "ACT Math: ", round(ACTMATH.median, 1), " (IQR: ", round(ACTMATH.IQR, 1), ")"
+      ),
+      hoverinfo = "text",
+      legendgroup = as.character(g)
+    )
+  }
+  
+  #############
+  ## ELLIPSE ##
+  #############  
+  
+  if (all(is.na(ellipseFilter))) {
+    ellipseFilter <- rep(TRUE, nrow(data))
+  }
+  
+  ellipse_data <- data[ellipseFilter, ]
+  
+  if (nrow(ellipse_data) > 0) {
+    for (i in seq_len(nrow(ellipse_data))) {
+      ell <- make_ellipse(
+        cx = ellipse_data$HSGPA.median[i],
+        cy = ellipse_data$ACTMATH.median[i],
+        rx = 0.5 * ellipse_data$HSGPA.IQR[i],
+        ry = 0.5 * ellipse_data$ACTMATH.IQR[i],
+        npoints = ellipse_npoints
+      )
+      
+      p <- p %>% add_trace(
+        x = ell$x,
+        y = ell$y,
+        type = "scatter",
+        mode = "lines",
+        line = list(color = ellipse_data$color[i], width = 1.5),
+        showlegend = FALSE,
+        hoverinfo = "skip"
+      )
+    }
+  }
+  
+  ##############
+  ## LAYOUT ##
+  ##############
+  
+  p <- p %>% layout(
+    title = list(text = plot_title, font = list(size = 18)),
+    xaxis = list(
+      title = xaxis_title,
+      gridcolor = "white",
+      zerolinecolor = "white"
+    ),
+    yaxis = list(
+      title = yaxis_title,
+      gridcolor = "white",
+      zerolinecolor = "white"
+    ),
+    plot_bgcolor = "grey90",
+    paper_bgcolor = "ivory",
+    legend = list(
+      x = 1.02,
+      y = 1,
+      bgcolor = "snow",
+      bordercolor = "gray",
+      borderwidth = 1
+    ),
+    hovermode = "closest"
+  )
+  
+  # Return both plot and data
+  structure(
+    list(plot = p, data = returnData),
+    class = "courseScatterPlotly"
+  )
+}
+
+# Print method to display just the plot
+print.courseScatterPlotly <- function(x, ...) {
+  print(x$plot)
+}
+
+
