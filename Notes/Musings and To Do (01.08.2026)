@@ -1,0 +1,121 @@
+Musings and To Do
+1.08.2026
+
+What I've got--
+- Several reports that feel about 80-90% done: 
+
+  * Deeper dive into vH3
+  * Models over time (course selection; grades)
+  * Predictors over time
+  * Withdraw analysis 
+  
+- An easy-to-use and easy-to-defend, intuitive rough guideline 
+- An individual report with grade predictions 
+- That overview of math courses I initially did before filtering down
+  to Year One and FTF 
+-   
+
+
+
+
+What I don't have / could do --
+- Clean explanation of cleaning/prep that I can refer or duplicate
+- SHAP values report for an indvidual prediction  
+- Defense of gender as a predictive variable  
+- Independent exploration of "yr-diff"  
+- Summary of conclusions
+- High-level document walking over findings and recommendations 
+- Over time models to include "distance"
+- Modify "distance" to Mahalanobis distance 
+- Convert guides and recommendations to Tableau 
+- A list of all of the models I've done / summary 
+- Logistic regression using "dist" to identify significant variables  
+- Intentional "matching" analysis (how do students with ACT Math of 30 do in 1010?)  
+- The line density of prediction vs actual  
+- Use distance in grade-only prediction 
+
+
+What I'm thinking: 
+
+- Write a nice over view
+- Polish up the sub-set reports:
+  - Models over time  
+  - Predictors over time  
+  - Deeper dive into "vH3"  
+  - Withdraw  
+  - Use of counter-factuals 
+- Finishing touches:    
+  - Course guide and individual report    
+  
+WHAT ARE MY BIG-PICTURE TAKE-AWAYS? 
+
+  - Course selection is either well done or doesn't matter;
+    all of these courses are appropriately freshman-level 
+    ( unless "dist", which *was* important, distinguishes courses ) 
+  - Or maybe lots of overlap between acceptable courses obscures the course signal  
+  - Number of students with ACT Math test scores has dramatically dropped 
+  - Math course placement tests-- I don't have any data and can't draw conclusions.
+     It might be "hidden" or "baked into" this analysis, inside the "black box" 
+  - Something about how it's changed over time     
+  - We aren't accepting predictable failures     
+  - Mix of courses is dramatically changing (in favor of 1090 instead of 1010)
+
+
+  
+  - Does "yr diff" matter?  
+    
+  
+  
+Report and status: 
+
+ - Counterfactuals: 
+    - Counterfactual Exploration (40%) 
+      - Only an early or rough draft written   
+      - This could be the explanation or defense of the 3.0 distance 
+      - I could complete a treatment pretty quickly I think
+ - Withdraw:        
+    - Withdraw (90%)
+      - Needs cleaning and prep section added 
+      - Really an appendix and not independent   
+      - Add a clear conclusion  
+ - Instructor variation:        
+    - Instructor variation (100%)
+ - Guidelines: 
+    - Course Guide (99%)
+    - Individual Recommendation (99%)
+      - Update via feedback / upgrade for Fall 2026
+ - Exploratory Data Analysis: 
+    - Predictors over Time (95%) 
+      - Needs cleaning and prep section added 
+    - Math grade by ACT and High School (abandon)
+      - Pillage for graphics (?) (unless I need to reference just the graphics) 
+    - Math course exploratory data analysis (abandon)
+      - "Frequent fliers" could be interesting new study  
+      - Possibly develop into an overview of "math at the U"    
+ - Evaluate decision trees: 
+    - Deeper dive into vH3 model (70%)
+      - Needs cleaning and prep section added 
+      - Modify to address vH3 
+      - Add line density comparing predicted vs actual  
+      - Do I need an independent report that explores the variables in more detail? 
+         - Why not create a template and spit out an appendix reference?  
+    - Comparing vH2 and vK0 models in year 2024 (80%)
+      - A nice reference section in the appendix  
+      - Ideally I'd inlcude the "dist" variable and re-do, but probably o.k.    
+    - Evaluate Grade Decision Trees Over Time (vK0) (70%) 
+      - Polish this up briefly as an appendix 
+    - Evaluate Grade Decision Trees Over Time (vJ0) (60%)
+      - If this is my latest-and-greatest over -time for grade it needs some work 
+    - Evaluate course decision trees over time vC0 (90%)  
+      - Needs attention 
+  - Children: 
+    - Selecting high volume math course child (abandon) 
+    
+      
+
+Where's my report on predicting courses?       
+
+  
+  
+  
+  
