@@ -19,7 +19,7 @@ What I've got--
 
 
 What I don't have / could do --
-- Clean explanation of cleaning/prep that I can refer or duplicate
+- Clean explanation of cleaning/prep that I can refer or duplicate **DONE**
 - SHAP values report for an indvidual prediction  
 - Defense of gender as a predictive variable  
 - Independent exploration of "yr-diff"  
@@ -86,7 +86,8 @@ Report and status:
       - Update via feedback / upgrade for Fall 2026
  - Exploratory Data Analysis: 
     - Predictors over Time (95%) 
-      - Needs cleaning and prep section added 
+      - Needs cleaning and prep section added (DONE)  
+      - Add "dist" or "z-scores" (???)
     - Math grade by ACT and High School (abandon)
       - Pillage for graphics (?) (unless I need to reference just the graphics) 
     - Math course exploratory data analysis (abandon)
@@ -110,10 +111,8 @@ Report and status:
       - Needs attention 
   - Children: 
     - Selecting high volume math course child (abandon) 
-    
-      
-
-Where's my report on predicting courses?       
+  - Cleaning and Prep 
+    - Source data, cleaning, and prep (100%)
 
   
   
