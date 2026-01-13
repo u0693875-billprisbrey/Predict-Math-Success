@@ -1,0 +1,870 @@
+---
+title: "Counterfactuals Explained"
+author: "Bill Prisbrey"
+date: "2026-01-12"
+output:
+  html_document:
+    keep_md: true
+---
+
+**PURPOSE:** This report describes using counterfactuals and distance in recommending a course.  
+
+# What are counterfactuals? 
+
+Counterfactuals are a "what if" question.  In this case, it is an attempt to answer: *What if a different course was taken?*  It uses the model that was trained on the actual courses taken, swaps out the course for the other options, and produces an expected grade.  
+
+Counterfactuals have a few problems.  Chief among them is that there is no way to evaluate their accuracy: there is no way to know what would have actually happened if a student took a different course.  It is taking a model grounded in reality and applying it to an imaginary landscape, an alternate reality where we can ask what if people did things differently?       
+
+One way to improve the reasonableness of a counterfactual estimate is to stay within the bounds of the training data.  That is to say, the model would produce a poor estimate of a grade for a course that had completely dissimilar students.  For example, take Math 2250, where the minimum incoming qualifications for students were an ACT math test score of 23 and a high school GPA of 3.11.  The model's predicted grade for that course for a student with qualifications far away from that (say, an ACT math test score of 17 with a high school GPA of 3.0) might not be reasonable.  
+
+Then, in order to get the best counterfactual estimates, the predictions should be bounded to be close to what happened in reality. 
+
+In this case, it is recommended to limit interpresting counterfactuals to courses that are less than three distance units away.  This limit is explored below.  (A more thorough approach would be to use the "MatchIt" package to better match the fictitious, counterfactual estimates with similar actual students.)   
+
+
+# Both accuracy and GPA decline with distance
+
+Two variables are the most relevant towards predicting the grade for initial math courses for first time freshmen: high school GPA and ACT math test scores.  
+
+Another variable can be derived from these two, called "distance". It is the distance to the median qualifications of the successful student from the prior year.  (Please see the section "Distance calculation explained" below for more detail.) 
+
+In the first place, the GPA gently declines as the distance increases, as shown in the boxplot titled "Distance and GPA."  This suggests that a student should prefer courses that are closer.  
+
+In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in the boxplot titled "Prediction accuracy with distance.")  Actually, if you look at the graph closely, you'll see that the prediction error increases up until a distance of about four, and then starts declining again.  This increase in accuracy is due to the fact above:  the model easily predicts low grades for distant courses.  Accuracy, but not desirability, is improved for the very distant courses.  
+
+Students have historically been capable of sorting themselves (or were guided) into close courses:  91% of the students took a course within three of these distance units. 
+
+Therefore, in order to improve desirability of a course and preserve a reasonable interpretation of a counterfactual, the author recommends limiting counterfactuals to courses that are less than three units away. 
+
+***Distance calculation explained***  
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=11)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+library(kableExtra)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
+mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
+creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
+
+##########
+## PREP ##
+##########
+
+# convert to numeric
+mathCourses$CATNBR <- as.numeric(as.character(mathCourses$CATNBR))
+
+# identify unique classes
+mathCourses$class <- paste(mathCourses$TERM, mathCourses$SUBJECT_CD, mathCourses$CATNBR, mathCourses$SECTION, sep= "_")
+
+# identify unique courses
+mathCourses$course <- paste(mathCourses$SUBJECT_CD, mathCourses$CATNBR, sep="_")
+
+# re-arrange order
+mathCourses <- mathCourses[,c("TERM", "course", "class", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME", "EOTDATE", colnames(mathCourses)[!colnames(mathCourses) %in% c("TERM", "course", "EOTDATE", "CATNBR", "EMPLID", "TITLE", "SECTION",  "UNITS", "GRADE", "GRADEGPA", "INSTEMPLID", "INSTNAME") ] )   ]
+
+## IDENTIFY FIRST TERM OF MATH CLASSES ##
+
+# Identify minimum term per student
+minTerm <- aggregate(TERM ~ EMPLID, data = mathCourses, min, na.rm = TRUE)
+minTerm$reference <- paste(minTerm$EMPLID, minTerm$TERM, sep = "_") # combine for reference
+mathCourses$minTerm <- paste(mathCourses$EMPLID, mathCourses$TERM, sep = "_") %in% minTerm$reference # identify courses in minimum terms 
+
+firstTermFilter <- mathCourses$minTerm == TRUE
+
+mathLabFilter <- 
+  mathCourses$GRADE %in% c(" ", NA) &
+  mathCourses$UNITS == 0
+
+firstCourses <- mathCourses[firstTermFilter & !mathLabFilter,]
+
+# Merge in FTF data
+student_demographics <- c("SEX",
+                          "FIRST_GEN_STATUS_CD",
+                          "ETHNICITY",
+                          "RESSTAT",
+                          "FA_PELL",
+                          "AGE"
+)
+academic_prep <- c(
+  "APCREDIT",
+  "HSGPA",
+  "HSPRIVATE",
+  "HONORS",
+  "ACTCOMP",
+  "ACTENGL",
+  "ACTMATH",
+  "ACTSCI" #,
+  #  SATMATH, # leaving out SAT because it's a smaller proportion
+  #  SATVERBAL,
+  #  SATWRTG        
+)
+
+firstCourses <- merge(firstCourses, ftfData[, c("EMPLID","COHORT_DT", student_demographics, academic_prep)], by = "EMPLID",  all.x = TRUE)
+
+# Merge in credit load
+names(creditLoad)[names(creditLoad) == "UNITS"] <- "load"
+
+firstCourses <- merge(firstCourses, creditLoad, by = c("TERM", "EMPLID"), all.x = TRUE)
+
+# Freshman year
+firstCourses$cohort_year <- year(firstCourses$COHORT_DT)
+
+# Class year
+firstCourses$class_year <- year(firstCourses$EOTDATE)
+
+# Year to class
+firstCourses$yr_diff <- time_length(interval(firstCourses$COHORT_DT, firstCourses$EOTDATE), "years")
+
+# Season
+
+# Align season
+season_map <- c("4" = "spring", "6" = "summer", "8" = "fall")
+
+# Extract 4th digit and map
+firstCourses$season <- season_map[substr(firstCourses$TERM, 4, 4)]
+
+# Course levels column
+firstCourses$course_level <- firstCourses$CATNBR %/% 1000
+
+# filter out courses at 3000+ level
+course_levelFilter <- firstCourses$course_level < 3
+
+# filter out courses that aren't recent
+course_by_year <- table(firstCourses[course_levelFilter, c("course","class_year")  ]) |> as.data.frame()
+recentCourses <- unique(course_by_year$course[course_by_year$class_year %in% c(2021:2025) & course_by_year$Freq > 0])
+recent_filter <- firstCourses$course %in% recentCourses
+
+# Age buckets
+firstCourses$age_cut <- cut(firstCourses$AGE, breaks = c(0,17,18,19,21,100))
+
+# Age filter
+ageFilter <- firstCourses$AGE > 11
+
+# print("Prep complete")
+
+## GRADE TRANSFORMATIONS ## 
+
+# convert grade value names to values compatible with R naming
+
+clean_grade <- function(x) {
+  x <- as.character(x)
+  x <- gsub("-", "_minus", x)   # replace '-' with '_minus'
+  x <- gsub("\\+", "_plus", x)  # replace '+' with '_plus'
+  x <- gsub(" ", "missing", x)        # replace spaces with '_'
+  
+  return(x)
+}
+
+firstCourses$cleanGrade <- clean_grade(firstCourses$GRADE) 
+
+firstCourses$cleanGrade <- factor(firstCourses$cleanGrade,
+                                  levels = c(
+                                    "A", "A_minus", "B_plus", "B", "B_minus", "C_plus",
+                                    "C", "C_minus", "D_plus", "D", "D_minus",   
+                                    "E", "EU", "W", "I", "CR",  "NC", "V", 
+                                    "missing", NA
+                                  )
+)
+
+# RARE AND UNUSUAL VALUES
+
+rareGrades <- firstCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") # , "EU" convert EU to 0
+
+# WITHDRAW
+firstCourses$wdraw_binary <- NA
+firstCourses$wdraw_binary <- ifelse(firstCourses$GRADE == "W","withdraw","not_withdraw")
+
+## CONVERT APCREDIT NA VALUES to ZERO ##  
+
+firstCourses$APCREDIT[is.na(firstCourses$APCREDIT)] <- 0
+
+# print("Transformations complete")
+
+#################
+## PRE-PROCESS ##
+#################
+
+
+# Select columns
+
+# colnames(popCourses)
+
+keepColumns <- c(
+  "EMPLID"                      ,
+  "course"                      ,
+  "SEX"                         ,
+  "FIRST_GEN_STATUS_CD"         ,
+  "ETHNICITY"                   ,
+  "RESSTAT"                     ,
+  "FA_PELL"                     ,
+  "APCREDIT"                    ,
+  "HSGPA"                       ,
+  "HSPRIVATE"                   ,
+  "HONORS"                      ,
+  "ACTCOMP"                     ,
+  "ACTENGL"                     ,
+  "ACTMATH"                     ,
+  "ACTSCI"                      ,
+  "cohort_year"                 ,
+  "class_year"                  ,
+  "yr_diff"                     ,
+  "season"                      ,
+  "course_level"                ,
+  "age_cut"                     ,
+  "cleanGrade"                  ,
+  "HSGPA.z"                     ,
+  "ACTMATH.z"                   ,
+  "dist"
+)
+
+target_classes <- c("GRADEGPA") 
+
+###########
+## CLEAN ##
+###########
+
+cleanFilters <- !is.na(firstCourses$cleanGrade) & 
+  !rareGrades
+#!popCourses$cleanGrade %in% c("missing", "V", "I", "NC", "CR") 
+
+# Outlier filters
+zeroHSGPA_filter <- firstCourses$HSGPA == 0
+highLoad_filter <- firstCourses$load > quantile(firstCourses$load, 0.99)
+preMath_filter <- firstCourses$yr_diff < -0.5 # since all cohort dates start in September, I wanted to include the summer before the cohort date
+outlierFilters <- !zeroHSGPA_filter & !highLoad_filter & !preMath_filter
+
+# withdrawFilter
+withdrawFilter <- firstCourses$cleanGrade != "W"
+
+# Combined filters
+cleanData <- firstCourses[cleanFilters & outlierFilters & course_levelFilter & recent_filter & ageFilter & withdrawFilter,]
+cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
+cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
+
+cleanData$course <- factor(cleanData$course)
+cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
+
+#############################################  
+## DISTANCE FROM MEDIAN SUCCESSFUL STUDENT ##  
+#############################################  
+
+hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x),
+                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
+                          count = length(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()  
+
+
+# Merge to cleanData 
+
+hiGrades$class_year_shift <- hiGrades$class_year + 1
+
+cleanData <- merge(cleanData, hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE)
+
+# Calculate distance as a z-score
+
+cleanData$ACTMATH.z <- (cleanData$ACTMATH - cleanData$ACTMATH.median)/cleanData$ACTMATH.stdev
+cleanData$HSGPA.z <- (cleanData$HSGPA - cleanData$HSGPA.median)/cleanData$HSGPA.stdev
+
+  
+
+cleanData$dist <- sqrt(
+  ((cleanData$ACTMATH - cleanData$ACTMATH.median)/cleanData$ACTMATH.stdev)^2 +
+    ((cleanData$HSGPA - cleanData$HSGPA.median)/cleanData$HSGPA.stdev)^2
+)
+
+```
+
+```{r}
+
+##############
+## LOAD vH3 ##
+##############
+
+# load "hiGrades"
+
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  list("GRADEGPA")
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", "vH3", " ", list("GRADEGPA"), " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  list("GRADEGPA")
+)
+
+```
+
+
+```{r}
+
+# Re-name 
+
+vH3_data_list <- data_list  # test score
+vH3_model_list <- model_list # test score
+
+``` 
+
+```{r}
+
+#################
+##      vH3    ## 
+## PREDICTIONS ##
+################# 
+
+vH3_pred <- predict(vH3_model_list[["GRADEGPA"]], vH3_data_list[["GRADEGPA"]][["testing"]] ) 
+
+thePredictions_vH3 <- list("GRADEGPA" = vH3_pred)
+
+```
+
+
+
+```{r}
+
+#############
+##   vH3   ## 
+## RESULTS ##
+############# 
+
+
+vH3_results <- postResample(pred = vH3_pred,
+                            obs = vH3_data_list[["GRADEGPA"]][["testing"]][["GRADEGPA"]] )
+
+theResults_vH3 <- list("GRADEGPA" = vH3_results)
+
+```
+
+
+
+```{r}
+
+# Align vH3 prediction
+
+# First add the EMPLID back to the training and testing sets
+
+vH3_data_list[["GRADEGPA"]][["training"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["trainID"]]
+
+vH3_data_list[["GRADEGPA"]][["testing"]][["EMPLID"]] <- vH3_data_list[["GRADEGPA"]][["testID"]]
+
+#aligned_vH3 <- alignPrediction(prediction_list = thePredictions_vH3, reference_list = vH3_data_list)
+
+aligned_vH3 <- vH3_data_list[["GRADEGPA"]][["testing"]]
+
+aligned_vH3$pred <- vH3_pred
+
+```
+
+
+```{r}
+
+#################
+## ALL OPTIONS ## 
+#################
+
+testingGround <- aligned_vH3[,-which(colnames(aligned_vH3) %in% c("pred"))]  
+
+
+courseGrid <- expand.grid(unique(testingGround$EMPLID), unique(testingGround$course))
+
+testingGround <- merge(testingGround, courseGrid, by.x = "EMPLID", by.y="Var1", all = TRUE)
+names(testingGround)[names(testingGround) == "course"] <- "course_orig"
+names(testingGround)[names(testingGround) == "Var2"] <- "course"
+
+```
+
+```{r}
+
+#########################
+## CALCULATE DISTANCES ##
+######################### 
+
+# merge in the information from the year prior
+
+tg2 <- merge(testingGround[,-which(colnames(testingGround) %in% c("HSGPA.z", "ACTMATH.z","dist") )],
+                        hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE 
+                        )
+
+# Calculate the distance as a z-score 
+
+tg2$ACTMATH.z <- (tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev
+tg2$HSGPA.z <- (tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev
+
+# Calculate distance 
+
+tg2$dist <- sqrt(
+  ((tg2$ACTMATH - tg2$ACTMATH.median)/tg2$ACTMATH.stdev)^2 +
+    ((tg2$HSGPA - tg2$HSGPA.median)/tg2$HSGPA.stdev)^2
+)
+
+
+```
+
+
+```{r}
+
+#################
+## PREDICTIONS ##
+#################
+
+trainColumns <- vH3_model_list[["GRADEGPA"]]$trainingData |> colnames() |> (\(x){x[-which(x %in% ".outcome")]})()
+
+completeCasesFilter <- tg2[,trainColumns] |>
+    complete.cases()
+ 
+#  complete.cases(tg2[,trainColumns])
+
+  
+tg2$pred.vH3 <- NA
+tg2$pred.vH3[completeCasesFilter] <- predict(vH3_model_list[["GRADEGPA"]], tg2[completeCasesFilter,]               
+                        ) 
+
+#[,-which(colnames(tg2) %in% c("class_year.y", "ACTMATH.stdev","HSGPA.median","HSGPA.stdev","HSGPA.count"))]
+
+
+testingGround$pred.vH3 <- predict(vH3_model_list[["GRADEGPA"]], testingGround) 
+
+
+```  
+
+```{r}
+
+# Grade decreases with distance
+
+par(mar = c(5.1,6.1,4.1,2.1),
+    bg = "lavenderblush"
+    )
+
+boxplot(dist ~ GRADEGPA, data = aligned_vH3, outline = FALSE,
+        col = "rosybrown",
+        xlab = "",
+        ylab = "",
+        las = 1)
+
+mtext(side = 1,
+      text = "Math grade (GPA)",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+mtext(side = 2,
+      text = "Distance",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+mtext(side = 3,
+      text = "Distance and GPA",
+      font  = 2,
+      cex = 2.4,
+      line = 2)
+
+mtext(side = 3,
+      text = "This plot shows that grade declines with distance",
+      font  = 3,
+      cex = 1.4,
+      line = 0.7)
+
+```
+
+
+
+```{r}
+
+# Errors increase with distance 
+
+par(mar = c(5.1,6.1,4.1,2.1),
+    bg = "lavenderblush"
+    )
+
+aligned_vH3$error <- aligned_vH3$pred - aligned_vH3$GRADEGPA
+
+aligned_vH3$dist_band <- cut(aligned_vH3$dist, breaks = c(0,0.5, 1,1.5, 2, 2.5, 3,4,5,10,20,120))
+
+boxplot(abs(error) ~ dist_band, data = aligned_vH3,
+        xlab = "",
+        ylab = "",
+        col = "plum")
+
+mtext(side = 1,
+      text = "Distance from median successful student",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+mtext(side = 2,
+      text = "Absolute prediction error",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+
+mtext(side = 3,
+      text = "Prediction accuracy with distance",
+      font  = 2,
+      cex = 2.4,
+      line = 2)
+
+mtext(side = 3,
+      text = "Prediction accuracy decreases with distance",
+      font  = 3,
+      cex = 1.4,
+      line = 0.8)
+
+```
+
+
+
+
+```{r}  
+
+
+par(mar = c(5.1,6.1,4.1,2.1),
+    bg = "lavenderblush"
+    )
+
+actualDist <- tg2$dist[tg2$course_orig == tg2$course] |>
+  cut(breaks = c(0,0.5, 1,1.5, 2, 2.5, 3,4,5,10,20,120), right = TRUE, include.lowest = TRUE) |>
+  table() 
+
+actualDist |>
+  proportions() |>
+  cumsum() |>
+  (\(x){
+    plot(x,
+         ylim = c(0, 1),
+         las = 1,
+         xlab = "",
+         ylab = "",
+         xaxt = "n",
+         yaxt = "n")
+  })()
+
+rect(par("usr")[1] ,
+     par("usr")[3] ,
+     par("usr")[2] ,
+     par("usr")[4] ,
+     col = "gray92")
+
+invisible(
+lapply(seq(0,1, by = 0.05), function(x){
+  abline(h = x, lwd = 2, lty=3, col = "gray99")
+})
+)
+
+
+invisible(
+lapply(1:length(actualDist), function(x){
+  abline(v = x, lwd = 2, lty=5, col = "gray99")
+})
+)
+
+axis(side = 1,
+     at = 1:length(actualDist),
+     labels = names(actualDist))
+
+axis(side = 2,
+     at = seq(from=0, to=1, by = 0.2 ),
+     labels = paste(seq(from = 0, to = 100, by =20), "%", sep = ""),
+     las =1
+     )
+
+actualDist |>
+  proportions() |>
+  cumsum() |>
+  points(pch = 19,
+         col = "purple",
+         cex=1.15)
+
+dist3 <- actualDist |>
+  proportions() |>
+  cumsum() |>
+  (\(x){ 
+    x[which(names(x) == "(2.5,3]")]
+    })()
+  
+
+text(y = dist3,
+     x = which(names(actualDist) == "(2.5,3]"),
+     labels = paste(round(100*dist3,0), "%", sep = "" ),
+     pos = 1
+     )
+
+mtext(side = 1,
+      text = "Distance breaks",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+mtext(side = 2,
+      text = "Cumulative percentage",
+      font = 1,
+      cex = 1.6,
+      line = 3.5)
+
+mtext(side = 3,
+      text = "Distance as a cumulative percentage",
+      font  = 2,
+      cex = 2.4,
+      line = 2)
+
+mtext(side = 3,
+      text = "This plot shows that 91% of all students took a course with a distance less than three",
+      font  = 3,
+      cex = 1.4,
+      line = 0.8)
+
+# is this -ALL- students, or just the successful ones?
+
+```
+
+
+```{r eval=FALSE}
+
+# I don't think plotting the cumulative percentage of the predictions is informative
+
+ counterfactualDist <- tg2$dist |>
+  cut(breaks = c(0,0.5, 1,1.5, 2, 2.5, 3,4,5,10,20,120), right = TRUE) |>
+  table() 
+
+ counterfactualDist |>
+  proportions() |>
+  cumsum() |>
+  (\(x){
+    points(x,
+           pch = 13,
+           col = "red")
+  })()
+
+
+```
+
+
+# Walking through an example  
+
+An example is given for a first-time freshman who took Math 1090 in the Fall of 2024.  This student had a high GPA coming from high school, but relatively low test scores.  These qualifications are plotted and compared to the median qualifications of the successful student from the prior year in a couple of scatterplots titled "Course medians in 2023", where the second one is interactive.  Both plots show the interquartile range plotted as an ellipse around Math 1090, the class he actually ended up taking, that roughly show the qualifications of about half of the successful students.  
+
+Our student is outside of that range, and it's not terribly clear which course is closest to him.  Several courses seem reasonable.   
+
+A look at the counterfactuals shows a wide range of estimated grades as well.  The counterfactuals are sorted from the closest to the farthest, with the three-unit cutoff shown as a horizontal red line. His actual performance is shown as a circled red 'x'.  
+
+As it is, he performed better than expected with a grade of 3.7 against a prediction of 2.7.  However, one wonders if he could have done even better in Math 1035, where he was predicted to achieve 3.2.   In any case, it looks like he could have done as well in any of Math 1030, 1010, 1050, 1100, or 1035 as he did in 1090.  1040, where his predicted grade was lower, might be a questionable recommendation.  Math 1070, 1060, 1080, and 1215 can hardly be recommended and Math 1210 can't be recommended at all as it is both far away from him and his predicted grade is so low it puts him at risk of failing. 
+
+
+```{r}
+
+courseScatter(data = hiGrades[hiGrades$class_year == 2023,],
+            #  cutree_params = list(k=4), # sheesh, how do I match the course guide?
+            showCourse = FALSE,
+            ellipseFilter = which(hiGrades$course[hiGrades$class_year == 2023] == unique(tg2$course_orig[tg2$EMPLID ==  "01487355" ]) ),
+            plot_params = list(ylim = c(15,36)),
+            qrect_params = list(border = NA ),
+            legend_params = list(plot = FALSE) # inset = c(-0.17,0
+            )
+
+points(x = unique(tg2$HSGPA[tg2$EMPLID == "01487355"]) ,
+       y = unique(tg2$ACTMATH[tg2$EMPLID == "01487355"]),
+       pch = 13,
+       cex = 3,
+       col = "firebrick")
+
+text(
+  x = unique(tg2$HSGPA[tg2$EMPLID == "01487355"]) ,
+  y = unique(tg2$ACTMATH[tg2$EMPLID == "01487355"]),
+  labels = "01487355",
+  pos = 3,
+  col = "firebrick",
+  cex = 1.2
+  
+)
+
+``` 
+
+
+```{r fig.height = 9}
+
+
+displayCourseAlternatives(data = tg2,
+                          unid = "01487355",
+                          dist_cutoff = NA,
+                          closest_cutoff = NA,
+                          legend_params = list(inset = c(-0.17,0)),
+                          risk_legend_params = list(inset = c(-0.05,0))
+                          ) 
+
+```
+
+```{r} 
+
+# plotly version
+
+result <- courseScatterPlotly(
+  data = hiGrades[hiGrades$class_year == 2023,],
+                    ellipseFilter = which(hiGrades$course[hiGrades$class_year == 2023] == unique(tg2$course_orig[tg2$EMPLID ==  "01487355" ]) )
+                    ) 
+
+result$plot %>% 
+  layout(yaxis = list(range = c(15,38))) %>%
+  add_markers(
+    x = unique(tg2$HSGPA[tg2$EMPLID == "01487355"]),
+    y = unique(tg2$ACTMATH[tg2$EMPLID == "01487355"]),
+    marker = list(
+      symbol = "x-thin", 
+      size = 20, 
+      line = list(
+        color = "firebrick", 
+        width = 3
+        )
+                  ),
+    inherit = FALSE,
+    name = "Student"
+  ) 
+
+``` 
+
+
+```{r}  
+
+# Student qualifications  
+
+unid <- "01487355"
+
+emplidFilter <- ftfData$EMPLID == unid
+
+ftfData |>
+  (\(x){x[emplidFilter, c("HSGPA","ACTMATH")]})() |>
+  unique() |>
+  round(2)  |>
+  kbl(caption = paste("Student ", unid),row.names = FALSE,
+      col.names = c("HS GPA", "ACT Math"),  # nicer column names
+      align = "c") |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                position = "left") 
+
+```
+
+```{r}
+
+# Table of predicted grades
+
+tableFilter <- tg2 |>
+  (\(x){x[x$EMPLID == unid, ]})() |>
+  (\(x){rep(TRUE, nrow(x))})()
+  
+#  (\(x){x[order(x$dist),]})() |> # descending order
+#  (\(x){x$dist <= params$dist_cutoff & !is.na(x$dist)})()
+
+tg2 |>
+  (\(x){x[x$EMPLID == "01487355", ]})() |> # filter to emplid
+  (\(x){x[order(x$dist),]})() |> # descending order
+  (\(x){x[tableFilter, ]})() |> # filter to distance cut-off 
+  (\(x){row.names(x) <- x[,"course"]; return(x)})() |>
+  (\(x){x[,c("dist", 
+             "pred.vH3",
+          #   "ACTMATH",
+          #   "HSGPA",
+             "ACTMATH.median", 
+             "HSGPA.median")]})() |>
+  round(2) |>
+  kbl(caption = "Distance to median successful student and predicted grades",
+      col.names = c("Distance", "Predicted Grade", "Median ACT Math", "Median HS GPA"),
+      align = "c") |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE)
+
+
+```
+
+
+```{r eval = FALSE}
+
+# Errors increase with distance 
+# Sandbox
+
+boxplot(pred ~ GRADEGPA, data = aligned_vH3)
+
+boxplot(dist ~ GRADEGPA, data = aligned_vH3, outline = FALSE)
+
+plot(x = aligned_vH3$dist, y = abs(aligned_vH3$error), xlim = c(0,5))
+lines(loess.smooth(aligned_vH3$dist, abs(aligned_vH3$error)), col = "blue", lwd = 2)
+
+boxplot(dist_band ~ GRADEGPA, data = aligned_vH3, outline = FALSE)
+
+```
+
+
+
+That is, if there were no or hardly any students with an ACT math test score less than 20 who took Math 
+
+Another problem with counterfactuals is a limit to their accuracy.  As courses get more and more unlike the training data, the accuracy 
+
+It's an effort to step into a fictitious alternative universe, and maybe in that alternative universe the student didn't connect with study group that they did in the actual class they took, or maybe 
+
+
+the predicted grades for alternative course selections.  This takes the model that was trained on the grades earned from the courses that were actually taken, and swaps out the other course options to get a possible new
