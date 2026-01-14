@@ -7,14 +7,15 @@ format:
     keep-md: true
     page-layout: article
     toc: true 
-    toc-location: left  
+    toc-location: left 
+    fig-cap-location: top 
 execute: 
   echo: false
   warning: false
   message: false
   error: false
 fig-height: 5
-fig-width: 11 
+fig-width: 8 
 editor: source
 ---
 
@@ -38,17 +39,25 @@ Two variables are the most relevant towards predicting the grade for initial mat
 
 Another variable can be derived from these two, called "distance". It is the distance to the median qualifications of the successful student from the prior year. (Please see the section "Distance calculation explained" below for more detail.)
 
-In the first place, the GPA gently declines as the distance increases, as shown in the boxplot titled "Distance and GPA." This suggests that a student should prefer courses that are closer.
+In the first place, the GPA gently declines as the distance increases, as shown in @fig-GPA. This suggests that a student should prefer courses that are closer.
 
-In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in the boxplot titled "Prediction accuracy with distance.") Actually, if you look at the graph closely, you'll see that the prediction error increases up until a distance of about four, and then starts declining again. This increase in accuracy is due to the fact above: that the model easily predicts low grades for distant courses. Accuracy, but not desirability, is improved for the very distant courses.
+In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in @fig-errors.) Actually, if you look at the graph closely, you'll see that the prediction error increases up until a distance of about four, and then starts declining again. This increase in accuracy is due to the fact above: that the model easily predicts low grades for distant courses. Accuracy, but not desirability, is improved for the very distant courses.
 
-Students have historically been capable of sorting themselves (or were guided) into close courses: 91% of the students took a course within three of these distance units.
+Students have historically been capable of sorting themselves (or were guided) into close courses: 91% of the students took a course within three of these distance units (@fig-cuml-perc).
 
 Therefore, in order to improve desirability of a course and preserve a reasonable interpretation of a counterfactual, the author recommends limiting interpreting counterfactuals to courses that are less than three units away.
 
 ***Distance calculation explained***
 
-I need to add an explanation here
+For each course, how students who earned a B- or better performed on ACT math and high school GPA is calculated. An incoming student's distance from that successful group is measured in standardized units across both dimensions.
+
+More specifically, the median and standard deviation are calculated per course per year for the ACT math test scores and the high school GPA for students who achieved a grade of at least a B-minus.  
+
+Next, a standardized score is calculated for any given student.  It is the difference for each of the student's ACT math test score and high school GPA and the prior year's median, divided by the standard deviation.  (Note that this uses the median rather than the mean, making it more robust to outliers.) 
+
+Finally, the distance is calculated in Euclidean standardized space as the square root of the scores squared and summed. 
+
+
 
 ```{r}
 #| include: false
@@ -486,6 +495,8 @@ testingGround$pred.vH3 <- predict(vH3_model_list[["GRADEGPA"]], testingGround)
 ```
 
 ```{r}
+#| label: fig-GPA
+#| fig-cap: "GPA with distance"
 
 # Grade decreases with distance
 
@@ -512,7 +523,7 @@ mtext(side = 2,
       line = 3.5)
 
 mtext(side = 3,
-      text = "Distance and GPA",
+      text = "GPA with distance",
       font  = 2,
       cex = 2.4,
       line = 2)
@@ -526,6 +537,8 @@ mtext(side = 3,
 ```
 
 ```{r}
+#| label: fig-errors
+#| fig-cap: "Prediction accuracy with distance"
 
 # Errors increase with distance 
 
@@ -570,7 +583,8 @@ mtext(side = 3,
 ```
 
 ```{r}
-
+#| label: fig-cuml-perc
+#| fig-cap: "Distance as a cumulative percentage"
 
 par(mar = c(5.1,6.1,4.1,2.1),
     bg = "lavenderblush"
@@ -694,21 +708,27 @@ mtext(side = 3,
 
 # Walking through an example
 
-An example is given for a first-time freshman who took Math 1090 in the Fall of 2024. This student had a high GPA coming from high school, but relatively low test scores. These qualifications are plotted and compared to the median qualifications of the successful student from the prior year in a couple of scatterplots titled "Course medians in 2023", where the second one is interactive. Both plots show the interquartile range plotted as an ellipse around Math 1090, the class he actually ended up taking, that roughly show the qualifications of about half of the successful students.
+An example is given for a first-time freshman who took Math 1090 in the Fall of 2024. This student had a high GPA coming from high school, but relatively low test scores. These qualifications are plotted and compared to the median qualifications of the successful student from the prior year (@fig-course-scatter and @fig-course-scatter-plotly). Both plots show the interquartile range plotted as an ellipse around Math 1090, the class he actually ended up taking, that roughly show the qualifications of about half of the successful students.
 
 Our student is outside of that range, and it's not terribly clear which course is closest to him. Several courses seem reasonable.
 
-A look at the counterfactuals shows a wide range of estimated grades as well. The counterfactuals are sorted from the closest to the farthest, with the three-unit cutoff shown as a horizontal red line. His actual performance is shown as a circled red 'x'.
+A look at the counterfactuals shows a wide range of estimated grades as well (@fig-counterfactual). The counterfactuals are sorted from the closest to the farthest, with the three-unit cutoff shown as a horizontal orange line. His actual performance is shown as a circled red 'x'.
 
-As it is, he performed better than expected with a grade of 3.7 against a prediction of 2.7. However, one wonders if he could have done even better in Math 1035, where he was predicted to achieve 3.2. In any case, it looks like he could have done as well in any of Math 1030, 1010, 1050, 1100, or 1035 as he did in 1090. 1040, where his predicted grade was lower, might be a questionable recommendation. Math 1070, 1060, 1080, and 1215 can hardly be recommended and Math 1210 can't be recommended at all as it is both far away from him and his predicted grade is so low it puts him at risk of failing.
+As it is, he performed better than expected with a grade of 3.7 against a prediction of 2.7. However, one wonders if he could have done even better in Math 1035, where he was predicted to achieve 3.2. In any case, it looks like he could have done as well in any of Math 1030, 1010, 1050, 1100, or 1035 as he did in 1090. 1040, where his predicted grade was lower, might be a questionable recommendation. Math 1070, 1060, 1080, and 1215 can hardly be recommended and Math 1210 can't be recommended at all as it is both far away from him and his predicted grade is so low it puts him at a higher risk of failing.
 
 ```{r}
+#| label: fig-course-scatter
+#| fig-cap: "Median qualifications of successful students per course (year 2023)"
+#| fig-width: 6.5
 
 courseScatter(data = hiGrades[hiGrades$class_year == 2023,],
             #  cutree_params = list(k=4), # sheesh, how do I match the course guide?
             showCourse = FALSE,
             ellipseFilter = which(hiGrades$course[hiGrades$class_year == 2023] == unique(tg2$course_orig[tg2$EMPLID ==  "01487355" ]) ),
             plot_params = list(ylim = c(15,36)),
+            mtext_params = list(
+text = c("HSGPA","ACT MATH", "Median qualifications of successful students", sep = "") 
+            ),
             qrect_params = list(border = NA ),
             legend_params = list(plot = FALSE) # inset = c(-0.17,0
             )
@@ -733,12 +753,15 @@ text(
 
 
 ```{r}
+#| label: fig-course-scatter-plotly
+#| fig-cap: "Interactive median qualifications of successful students per course (year 2023)"
 
 # plotly version
 
 result <- courseScatterPlotly(
   data = hiGrades[hiGrades$class_year == 2023,],
-                    ellipseFilter = which(hiGrades$course[hiGrades$class_year == 2023] == unique(tg2$course_orig[tg2$EMPLID ==  "01487355" ]) )
+                    ellipseFilter = which(hiGrades$course[hiGrades$class_year == 2023] == unique(tg2$course_orig[tg2$EMPLID ==  "01487355" ]) ),
+                    plot_title = "Interactive median qualifications"
                     ) 
 
 result$plot %>% 
@@ -755,22 +778,48 @@ result$plot %>%
         )
                   ),
     inherit = FALSE,
-    name = "Student"
+    name = "01487355"
   ) 
 
 ```
 
-```{r}
-#| fig-height: 9
-#| out-height: "100%"
-#| out-width: "100%"
 
-displayCourseAlternatives(data = tg2, unid = "01487355", dist_cutoff = NA, closest_cutoff = NA, legend_params = list(inset = c(-0.17,0)), risk_legend_params = list(inset = c(-0.05,0)) )
+```{r}
+#| fig-height: 7
+#| fig-width: 7
+#| fig-cap: "Counterfactual grade predictions per course"
+#| label: fig-counterfactual
+
+displayCourseAlternatives(data = tg2, unid = "01487355", dist_cutoff = NA, closest_cutoff = NA, legend_params = list(inset = c(-0.45,0)), risk_legend_params = list(inset = c(-0.375,0)) ) 
+
+
+abline(h = 8.5, col = "orange", lwd = 3, lty = 1)
+
+axis(side = 4,
+     at = 8,
+     labels = "DISREGARD (TOO FAR)",
+     tick = FALSE,
+     line = -8.5,
+     col.axis = "orange",
+     font = 2,
+     las = 1,
+     outer = FALSE
+)
+
+points(y = 7.75,
+       x = 3.75,
+       pch = 25,
+       bg = "orange",
+       col = "orange",
+       cex = 2
+)
 
 ```
 
 
 ```{r}
+#| label: tbl-student
+#| tbl-cap: "Incoming student qualifications"
 
 # Student qualifications  
 
@@ -792,6 +841,8 @@ ftfData |>
 ```
 
 ```{r}
+#| label: tbl-distance
+#| tbl-cap: "Distance to median successful student and predicted grades"
 
 # Table of predicted grades
 
