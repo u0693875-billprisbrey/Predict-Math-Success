@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Bill Prisbrey">
+<meta name="dcterms.date" content="2026-01-12">
+
+<title>Counterfactuals Explained (vQ0)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="Counterfactuals Explained_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Counterfactuals Explained_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Counterfactuals Explained_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Counterfactuals Explained_files/libs/quarto-html/popper.min.js"></script>
+<script src="Counterfactuals Explained_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Counterfactuals Explained_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Counterfactuals Explained_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Counterfactuals Explained_files/libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Counterfactuals Explained_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Counterfactuals Explained_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Counterfactuals Explained_files/libs/bootstrap/bootstrap-bb462d781dde1847d9e3ccf7736099dd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="Counterfactuals Explained_files/libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
+
+<script src="Counterfactuals Explained_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+
+<script src="Counterfactuals Explained_files/libs/plotly-binding-4.11.0/plotly.js"></script>
+
+<script src="Counterfactuals Explained_files/libs/typedarray-0.1/typedarray.min.js"></script>
+
+<script src="Counterfactuals Explained_files/libs/jquery-3.5.1/jquery.min.js"></script>
+
+<link href="Counterfactuals Explained_files/libs/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+
+<script src="Counterfactuals Explained_files/libs/crosstalk-1.2.2/js/crosstalk.min.js"></script>
+
+<link href="Counterfactuals Explained_files/libs/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet">
+
+<script src="Counterfactuals Explained_files/libs/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+<script src="Counterfactuals Explained_files/libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="Counterfactuals Explained_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#section" id="toc-section" class="nav-link active" data-scroll-target="#section"></a></li>
+  <li><a href="#what-are-counterfactuals" id="toc-what-are-counterfactuals" class="nav-link" data-scroll-target="#what-are-counterfactuals">What are counterfactuals?</a></li>
+  <li><a href="#both-accuracy-and-gpa-decline-with-distance" id="toc-both-accuracy-and-gpa-decline-with-distance" class="nav-link" data-scroll-target="#both-accuracy-and-gpa-decline-with-distance">Both accuracy and GPA decline with distance</a></li>
+  <li><a href="#walking-through-an-example" id="toc-walking-through-an-example" class="nav-link" data-scroll-target="#walking-through-an-example">Walking through an example</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Counterfactuals Explained (vQ0)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Bill Prisbrey </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 12, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="section" class="level2">
+<h2 class="anchored" data-anchor-id="section"></h2>
+<p><strong>PURPOSE:</strong> This report describes using counterfactuals and distance in recommending a course.</p>
+</section>
+<section id="what-are-counterfactuals" class="level1">
+<h1>What are counterfactuals?</h1>
+<p>Counterfactuals are a “what if” question. In this case, it is an attempt to answer: <em>What if a different course was taken?</em> It uses the model that was trained on the actual courses taken, swaps out the course for the other options, and produces an expected grade.</p>
+<p>Counterfactuals have a few problems. Chief among them is that there is no way to evaluate their accuracy: there is no way to know what would have actually happened if a student took a different course. It is taking a model grounded in reality and applying it to an imaginary landscape, an alternate reality where we can ask what if people did things differently?</p>
+<p>One way to improve the reasonableness of a counterfactual estimate is to stay within the bounds of the training data. That is to say, the model would produce a poor estimate of a grade for a course that had completely dissimilar students. For example, take Math 2250, where the minimum incoming qualifications for students were an ACT math test score of 23 and a high school GPA of 3.11. The model’s predicted grade for that course for a student with qualifications far away from that (say, an ACT math test score of 17 with a high school GPA of 3.0) might not be reasonable.</p>
+<p>Then, in order to get the best counterfactual estimates, the predictions should be bounded to be close to what happened in reality.</p>
+<p>In this case, it is recommended to limit interpresting counterfactuals to courses that are less than three distance units away. This limit is explored below. (A more thorough approach would be to use the “MatchIt” package to better match the fictitious, counterfactual estimates with similar actual students.)</p>
+</section>
+<section id="both-accuracy-and-gpa-decline-with-distance" class="level1">
+<h1>Both accuracy and GPA decline with distance</h1>
+<p>Two variables are the most relevant towards predicting the grade for initial math courses for first time freshmen: high school GPA and ACT math test scores.</p>
+<p>Another variable can be derived from these two, called “distance”. It is the distance to the median qualifications of the successful student from the prior year. (Please see the section “Distance calculation explained” below for more detail.)</p>
+<p>In the first place, the GPA gently declines as the distance increases, as shown in the boxplot titled “Distance and GPA.” This suggests that a student should prefer courses that are closer.</p>
+<p>In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in the boxplot titled “Prediction accuracy with distance.”) Actually, if you look at the graph closely, you’ll see that the prediction error increases up until a distance of about four, and then starts declining again. This increase in accuracy is due to the fact above: the model easily predicts low grades for distant courses. Accuracy, but not desirability, is improved for the very distant courses.</p>
+<p>Students have historically been capable of sorting themselves (or were guided) into close courses: 91% of the students took a course within three of these distance units.</p>
+<p>Therefore, in order to improve desirability of a course and preserve a reasonable interpretation of a counterfactual, the author recommends limiting counterfactuals to courses that are less than three units away.</p>
+<p><strong><em>Distance calculation explained</em></strong></p>
+<p>I need to add an explanation here</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Counterfactuals-Explained_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Counterfactuals-Explained_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Counterfactuals-Explained_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="walking-through-an-example" class="level1">
+<h1>Walking through an example</h1>
+<p>An example is given for a first-time freshman who took Math 1090 in the Fall of 2024. This student had a high GPA coming from high school, but relatively low test scores. These qualifications are plotted and compared to the median qualifications of the successful student from the prior year in a couple of scatterplots titled “Course medians in 2023”, where the second one is interactive. Both plots show the interquartile range plotted as an ellipse around Math 1090, the class he actually ended up taking, that roughly show the qualifications of about half of the successful students.</p>
+<p>Our student is outside of that range, and it’s not terribly clear which course is closest to him. Several courses seem reasonable.</p>
+<p>A look at the counterfactuals shows a wide range of estimated grades as well. The counterfactuals are sorted from the closest to the farthest, with the three-unit cutoff shown as a horizontal red line. His actual performance is shown as a circled red ‘x’.</p>
+<p>As it is, he performed better than expected with a grade of 3.7 against a prediction of 2.7. However, one wonders if he could have done even better in Math 1035, where he was predicted to achieve 3.2. In any case, it looks like he could have done as well in any of Math 1030, 1010, 1050, 1100, or 1035 as he did in 1090. 1040, where his predicted grade was lower, might be a questionable recommendation. Math 1070, 1060, 1080, and 1215 can hardly be recommended and Math 1210 can’t be recommended at all as it is both far away from him and his predicted grade is so low it puts him at risk of failing.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Counterfactuals-Explained_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Counterfactuals-Explained_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="1056"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div class="plotly html-widget html-fill-item" id="htmlwidget-06cfbd2b20da026677e8" style="width:100%;height:295px;"></div>
+<script type="application/json" data-for="htmlwidget-06cfbd2b20da026677e8">{"x":{"visdat":{"64746fff1bce":["function () ","plotlyVisDat"],"647437b07289":["function () ","data"],"647411301791":["function () ","data"],"64742d9c3f65":["function () ","data"]},"cur_data":"64742d9c3f65","attrs":{"647437b07289":{"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"x":{},"y":{},"type":"scatter","mode":"markers","marker":{"color":"darkorange","symbol":["diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond"],"size":10,"line":{"width":1,"color":"white"}},"name":"1","text":{},"hoverinfo":"text","legendgroup":"1","inherit":true},"647411301791":{"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"x":{},"y":{},"type":"scatter","mode":"markers","marker":{"color":"steelblue","symbol":["diamond","diamond","diamond","diamond","diamond"],"size":10,"line":{"width":1,"color":"white"}},"name":"2","text":{},"hoverinfo":"text","legendgroup":"2","inherit":true},"64742d9c3f65":{"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"x":{},"y":{},"type":"scatter","mode":"markers","marker":{"color":"purple3","symbol":["diamond","diamond","diamond","diamond"],"size":10,"line":{"width":1,"color":"white"}},"name":"3","text":{},"hoverinfo":"text","legendgroup":"3","inherit":true},"64742d9c3f65.1":{"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"x":[3.9932499999999997,3.9918768798119375,3.9877800658432774,3.9810268276661218,3.9717280532646364,3.9600364282574154,3.9461439288038447,3.9302786693608729,3.912701157049935,3.8937000141372198,3.8735872388640398,3.8526930824443322,3.8313606263488591,3.8099401489169398,3.7887833737958059,3.768237694648036,3.7486404709572199,3.7303134885945668,3.7135576761037945,3.6986481634627619,3.6858297644568392,3.67531295684332,3.6672704263124656,3.6618342309932439,3.6590936330625059,3.6590936330625059,3.6618342309932439,3.6672704263124656,3.67531295684332,3.6858297644568392,3.6986481634627619,3.7135576761037945,3.7303134885945668,3.7486404709572199,3.768237694648036,3.7887833737958059,3.8099401489169398,3.8313606263488591,3.8526930824443322,3.8735872388640398,3.8937000141372198,3.9127011570499346,3.9302786693608729,3.9461439288038442,3.9600364282574154,3.9717280532646364,3.9810268276661218,3.9877800658432774,3.9918768798119375,3.9932499999999997],"y":[24,24.447570065895771,24.887791043683276,25.313434517077809,25.717511432013783,26.093386856719256,26.434888927112201,26.736410188638104,26.99299967051871,27.200444180555344,27.355337485628311,27.455136241950576,27.498201756702407,27.483826895322196,27.412247692636384,27.28463947717416,27.103097572305501,26.870602891089348,26.590972989763607,26.26879938357726,25.909372154236923,25.518593086911455,25.102878763082671,24.669055200454803,24.224245769932498,23.775754230067506,23.330944799545197,22.897121236917329,22.481406913088549,22.09062784576308,21.73120061642274,21.409027010236397,21.129397108910656,20.896902427694499,20.71536052282584,20.587752307363616,20.516173104677808,20.501798243297593,20.544863758049424,20.644662514371689,20.799555819444656,21.007000329481286,21.263589811361896,21.565111072887795,21.906613143280744,22.282488567986213,22.686565482922187,23.112208956316721,23.552429934104225,24],"type":"scatter","mode":"lines","line":{"color":"darkorange","width":1.5},"showlegend":false,"hoverinfo":"skip","inherit":true},"64742d9c3f65.2":{"x":3.9809999999999999,"y":17,"z":null,"type":"scatter","mode":"markers","marker":{"symbol":"x-thin","size":20,"line":{"color":"firebrick","width":3}},"name":"Student","inherit":false}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":{"text":"Course medians in 2023","font":{"size":18}},"xaxis":{"domain":[0,1],"automargin":true,"title":"HSGPA","gridcolor":"white","zerolinecolor":"white"},"yaxis":{"domain":[0,1],"automargin":true,"title":"ACT MATH","gridcolor":"white","zerolinecolor":"white","range":[15,38]},"plot_bgcolor":"grey90","paper_bgcolor":"ivory","legend":{"x":1.02,"y":1,"bgcolor":"snow","bordercolor":"gray","borderwidth":1},"hovermode":"closest","scene":{"zaxis":{"title":[]}},"showlegend":true},"source":"A","config":{"modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"data":[{"x":[3.7389999999999999,3.7999999999999998,3.7069999999999999,3.8624999999999998,3.8325,3.903,3.8959999999999999,3.8700000000000001,3.8259999999999996,3.8094999999999999,3.944,3.9064999999999999],"y":[20,21,24,26.5,23,25,26,25,24,25.5,27,26],"type":"scatter","mode":"markers","marker":{"color":"darkorange","symbol":["diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond","diamond"],"size":10,"line":{"color":"white","width":1}},"name":"1","text":["Course: MATH_1010<br>Year: 2023<br>HSGPA: 3.74 (IQR: 0.3)<br>ACT Math: 20 (IQR: 5)","Course: MATH_1030<br>Year: 2023<br>HSGPA: 3.8 (IQR: 0.32)<br>ACT Math: 21 (IQR: 6)","Course: MATH_1035<br>Year: 2023<br>HSGPA: 3.71 (IQR: 0.36)<br>ACT Math: 24 (IQR: 6.2)","Course: MATH_1040<br>Year: 2023<br>HSGPA: 3.86 (IQR: 0.23)<br>ACT Math: 26.5 (IQR: 4.8)","Course: MATH_1050<br>Year: 2023<br>HSGPA: 3.83 (IQR: 0.3)<br>ACT Math: 23 (IQR: 5)","Course: MATH_1060<br>Year: 2023<br>HSGPA: 3.9 (IQR: 0.31)<br>ACT Math: 25 (IQR: 3)","Course: MATH_1070<br>Year: 2023<br>HSGPA: 3.9 (IQR: 0.24)<br>ACT Math: 26 (IQR: 5)","Course: MATH_1080<br>Year: 2023<br>HSGPA: 3.87 (IQR: 0.36)<br>ACT Math: 25 (IQR: 3.5)","Course: MATH_1090<br>Year: 2023<br>HSGPA: 3.83 (IQR: 0.33)<br>ACT Math: 24 (IQR: 7)","Course: MATH_1100<br>Year: 2023<br>HSGPA: 3.81 (IQR: 0.34)<br>ACT Math: 25.5 (IQR: 5.8)","Course: MATH_1210<br>Year: 2023<br>HSGPA: 3.94 (IQR: 0.23)<br>ACT Math: 27 (IQR: 5)","Course: MATH_1215<br>Year: 2023<br>HSGPA: 3.91 (IQR: 0.29)<br>ACT Math: 26 (IQR: 3.5)"],"hoverinfo":["text","text","text","text","text","text","text","text","text","text","text","text"],"legendgroup":"1","error_y":{"color":"rgba(31,119,180,1)"},"error_x":{"color":"rgba(31,119,180,1)"},"line":{"color":"rgba(31,119,180,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":[3.96,3.899,3.9870000000000001,3.9950000000000001,3.9780000000000002],"y":[29,28,30,30,31],"type":"scatter","mode":"markers","marker":{"color":"steelblue","symbol":["diamond","diamond","diamond","diamond","diamond"],"size":10,"line":{"color":"white","width":1}},"name":"2","text":["Course: MATH_1220<br>Year: 2023<br>HSGPA: 3.96 (IQR: 0.16)<br>ACT Math: 29 (IQR: 4)","Course: MATH_1310<br>Year: 2023<br>HSGPA: 3.9 (IQR: 0.27)<br>ACT Math: 28 (IQR: 4)","Course: MATH_1311<br>Year: 2023<br>HSGPA: 3.99 (IQR: 0.04)<br>ACT Math: 30 (IQR: 4.5)","Course: MATH_2270<br>Year: 2023<br>HSGPA: 4 (IQR: 0.02)<br>ACT Math: 30 (IQR: 5)","Course: MATH_2200<br>Year: 2023<br>HSGPA: 3.98 (IQR: 0)<br>ACT Math: 31 (IQR: 0)"],"hoverinfo":["text","text","text","text","text"],"legendgroup":"2","error_y":{"color":"rgba(255,127,14,1)"},"error_x":{"color":"rgba(255,127,14,1)"},"line":{"color":"rgba(255,127,14,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":[3.9820000000000002,3.9969999999999999,3.9865000000000004,3.9900000000000002],"y":[32,34,31.5,36],"type":"scatter","mode":"markers","marker":{"color":"purple3","symbol":["diamond","diamond","diamond","diamond"],"size":10,"line":{"color":"white","width":1}},"name":"3","text":["Course: MATH_2210<br>Year: 2023<br>HSGPA: 3.98 (IQR: 0.07)<br>ACT Math: 32 (IQR: 4)","Course: MATH_2250<br>Year: 2023<br>HSGPA: 4 (IQR: 0.03)<br>ACT Math: 34 (IQR: 5)","Course: MATH_1320<br>Year: 2023<br>HSGPA: 3.99 (IQR: 0.06)<br>ACT Math: 31.5 (IQR: 2.8)","Course: MATH_2271<br>Year: 2023<br>HSGPA: 3.99 (IQR: 0.02)<br>ACT Math: 36 (IQR: 2)"],"hoverinfo":["text","text","text","text"],"legendgroup":"3","error_y":{"color":"rgba(44,160,44,1)"},"error_x":{"color":"rgba(44,160,44,1)"},"line":{"color":"rgba(44,160,44,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":[3.9932499999999997,3.9918768798119375,3.9877800658432774,3.9810268276661218,3.9717280532646364,3.9600364282574154,3.9461439288038447,3.9302786693608729,3.912701157049935,3.8937000141372198,3.8735872388640398,3.8526930824443322,3.8313606263488591,3.8099401489169398,3.7887833737958059,3.768237694648036,3.7486404709572199,3.7303134885945668,3.7135576761037945,3.6986481634627619,3.6858297644568392,3.67531295684332,3.6672704263124656,3.6618342309932439,3.6590936330625059,3.6590936330625059,3.6618342309932439,3.6672704263124656,3.67531295684332,3.6858297644568392,3.6986481634627619,3.7135576761037945,3.7303134885945668,3.7486404709572199,3.768237694648036,3.7887833737958059,3.8099401489169398,3.8313606263488591,3.8526930824443322,3.8735872388640398,3.8937000141372198,3.9127011570499346,3.9302786693608729,3.9461439288038442,3.9600364282574154,3.9717280532646364,3.9810268276661218,3.9877800658432774,3.9918768798119375,3.9932499999999997],"y":[24,24.447570065895771,24.887791043683276,25.313434517077809,25.717511432013783,26.093386856719256,26.434888927112201,26.736410188638104,26.99299967051871,27.200444180555344,27.355337485628311,27.455136241950576,27.498201756702407,27.483826895322196,27.412247692636384,27.28463947717416,27.103097572305501,26.870602891089348,26.590972989763607,26.26879938357726,25.909372154236923,25.518593086911455,25.102878763082671,24.669055200454803,24.224245769932498,23.775754230067506,23.330944799545197,22.897121236917329,22.481406913088549,22.09062784576308,21.73120061642274,21.409027010236397,21.129397108910656,20.896902427694499,20.71536052282584,20.587752307363616,20.516173104677808,20.501798243297593,20.544863758049424,20.644662514371689,20.799555819444656,21.007000329481286,21.263589811361896,21.565111072887795,21.906613143280744,22.282488567986213,22.686565482922187,23.112208956316721,23.552429934104225,24],"type":"scatter","mode":"lines","line":{"color":"darkorange","width":1.5},"showlegend":false,"hoverinfo":["skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip","skip"],"marker":{"color":"rgba(214,39,40,1)","line":{"color":"rgba(214,39,40,1)"}},"error_y":{"color":"rgba(214,39,40,1)"},"error_x":{"color":"rgba(214,39,40,1)"},"xaxis":"x","yaxis":"y","frame":null},{"x":[3.9809999999999999],"y":[17],"type":"scatter","mode":"markers","marker":{"color":"rgba(148,103,189,1)","symbol":"x-thin","size":20,"line":{"color":"firebrick","width":3}},"name":"Student","error_y":{"color":"rgba(148,103,189,1)"},"error_x":{"color":"rgba(148,103,189,1)"},"line":{"color":"rgba(148,103,189,1)"},"xaxis":"x","yaxis":"y","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-striped table-hover caption-top table-sm small" data-quarto-postprocess="true">
+<caption>Student 01487355</caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">HS GPA</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">ACT Math</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">3.98</td>
+<td style="text-align: center;">17</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-striped table-hover caption-top table-sm small" data-quarto-postprocess="true">
+<caption>Distance to median successful student and predicted grades</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Distance</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Predicted Grade</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Median ACT Math</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Median HS GPA</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MATH_1030</td>
+<td style="text-align: center;">1.36</td>
+<td style="text-align: center;">3.05</td>
+<td style="text-align: center;">21.0</td>
+<td style="text-align: center;">3.80</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1010</td>
+<td style="text-align: center;">1.45</td>
+<td style="text-align: center;">2.82</td>
+<td style="text-align: center;">20.0</td>
+<td style="text-align: center;">3.74</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1050</td>
+<td style="text-align: center;">1.79</td>
+<td style="text-align: center;">3.00</td>
+<td style="text-align: center;">23.0</td>
+<td style="text-align: center;">3.83</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1040</td>
+<td style="text-align: center;">1.90</td>
+<td style="text-align: center;">2.54</td>
+<td style="text-align: center;">26.5</td>
+<td style="text-align: center;">3.86</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1090</td>
+<td style="text-align: center;">1.90</td>
+<td style="text-align: center;">2.71</td>
+<td style="text-align: center;">24.0</td>
+<td style="text-align: center;">3.83</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1100</td>
+<td style="text-align: center;">2.06</td>
+<td style="text-align: center;">3.03</td>
+<td style="text-align: center;">25.5</td>
+<td style="text-align: center;">3.81</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1035</td>
+<td style="text-align: center;">2.12</td>
+<td style="text-align: center;">3.22</td>
+<td style="text-align: center;">24.0</td>
+<td style="text-align: center;">3.71</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1070</td>
+<td style="text-align: center;">2.27</td>
+<td style="text-align: center;">2.42</td>
+<td style="text-align: center;">26.0</td>
+<td style="text-align: center;">3.90</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1060</td>
+<td style="text-align: center;">2.51</td>
+<td style="text-align: center;">2.49</td>
+<td style="text-align: center;">25.0</td>
+<td style="text-align: center;">3.90</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1080</td>
+<td style="text-align: center;">2.55</td>
+<td style="text-align: center;">2.43</td>
+<td style="text-align: center;">25.0</td>
+<td style="text-align: center;">3.87</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1215</td>
+<td style="text-align: center;">2.58</td>
+<td style="text-align: center;">2.44</td>
+<td style="text-align: center;">26.0</td>
+<td style="text-align: center;">3.91</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1210</td>
+<td style="text-align: center;">2.64</td>
+<td style="text-align: center;">2.06</td>
+<td style="text-align: center;">27.0</td>
+<td style="text-align: center;">3.94</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1310</td>
+<td style="text-align: center;">3.34</td>
+<td style="text-align: center;">2.55</td>
+<td style="text-align: center;">28.0</td>
+<td style="text-align: center;">3.90</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_2250</td>
+<td style="text-align: center;">3.39</td>
+<td style="text-align: center;">2.49</td>
+<td style="text-align: center;">34.0</td>
+<td style="text-align: center;">4.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1220</td>
+<td style="text-align: center;">3.58</td>
+<td style="text-align: center;">2.37</td>
+<td style="text-align: center;">29.0</td>
+<td style="text-align: center;">3.96</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1311</td>
+<td style="text-align: center;">3.69</td>
+<td style="text-align: center;">2.40</td>
+<td style="text-align: center;">30.0</td>
+<td style="text-align: center;">3.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_2210</td>
+<td style="text-align: center;">4.71</td>
+<td style="text-align: center;">2.73</td>
+<td style="text-align: center;">32.0</td>
+<td style="text-align: center;">3.98</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_2271</td>
+<td style="text-align: center;">4.81</td>
+<td style="text-align: center;">2.64</td>
+<td style="text-align: center;">36.0</td>
+<td style="text-align: center;">3.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_2270</td>
+<td style="text-align: center;">4.85</td>
+<td style="text-align: center;">2.79</td>
+<td style="text-align: center;">30.0</td>
+<td style="text-align: center;">4.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MATH_1320</td>
+<td style="text-align: center;">6.43</td>
+<td style="text-align: center;">2.98</td>
+<td style="text-align: center;">31.5</td>
+<td style="text-align: center;">3.99</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MATH_1105</td>
+<td style="text-align: center;">NA</td>
+<td style="text-align: center;">NA</td>
+<td style="text-align: center;">NA</td>
+<td style="text-align: center;">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>That is, if there were no or hardly any students with an ACT math test score less than 20 who took Math</p>
+<p>Another problem with counterfactuals is a limit to their accuracy. As courses get more and more unlike the training data, the accuracy</p>
+<p>It’s an effort to step into a fictitious alternative universe, and maybe in that alternative universe the student didn’t connect with study group that they did in the actual class they took, or maybe</p>
+<p>the predicted grades for alternative course selections. This takes the model that was trained on the grades earned from the courses that were actually taken, and swaps out the other course options to get a possible new</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2</code></pre>
+</div>
+</div>
+<p>You can add options to executable code like this</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4</code></pre>
+</div>
+</div>
+<p>The <code>echo: false</code> option disables the printing of code (only output is displayed).</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
