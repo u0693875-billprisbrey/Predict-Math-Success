@@ -8,28 +8,31 @@ format:
     page-layout: article
     toc: true 
     toc-location: left  
-editor: visual
+execute: 
+  echo: false
+  warning: false
+  message: false
+  error: false
+fig-height: 5
+fig-width: 11 
+editor: source
 ---
-
-## Changes
-
-change "Course medians in 2023" to "Median qualifications per course (year 2023)"
 
 **PURPOSE:** This report describes using counterfactuals and distance in recommending a course.
 
 # What are counterfactuals?
 
-Counterfactuals are a "what if" question. In this case, it is an attempt to answer: *What if a different course was taken?* It uses the model that was trained on the actual courses taken, swaps out the course for the other options, and produces an expected grade.
+Counterfactuals are a "what if" question. In this case, it is an attempt to answer: *What if the student took a different course?* It uses the model that was trained on the actual courses taken, swaps out the course for the other options, and produces an expected grade.
 
-Counterfactuals have a few problems. Chief among them is that there is no way to evaluate their accuracy: there is no way to know what would have actually happened if a student took a different course. It is taking a model grounded in reality and applying it to an imaginary landscape, an alternate reality where we can ask what if people did things differently?
+Counterfactuals have a few problems. Chief among them is that there is no way to evaluate their accuracy: there is no way to know what would have actually happened if a student took a different course. It is taking a model grounded in reality and applying it to an imaginary landscape, exploring an alternate reality where people made different choices.
 
-One way to improve the reasonableness of a counterfactual estimate is to stay within the bounds of the training data. That is to say, the model would produce a poor estimate of a grade for a course that had completely dissimilar students. For example, take Math 2250, where the minimum incoming qualifications for students were an ACT math test score of 23 and a high school GPA of 3.11. The model's predicted grade for that course for a student with qualifications far away from that (say, an ACT math test score of 17 with a high school GPA of 3.0) might not be reasonable.
+One way to improve the reasonableness of a counterfactual estimate is to stay within the bounds of the training data. That is to say, the model would produce a poor estimate of a grade for a course that had completely dissimilar students. For example, take Math 2250, where the minimum incoming qualifications for students were an ACT math test score of 23 and a high school GPA of 3.11. The model's predicted grade for that course for a student with much lower qualifications (say, an ACT math test score of 17 with a high school GPA of 3.0) might not be believably realistic.
 
-Then, in order to get the best counterfactual estimates, the predictions should be bounded to be close to what happened in reality.
+In order to get the best counterfactual estimates, the predictions should be bounded to be close to what happened in reality.
 
-In this case, it is recommended to limit interpresting counterfactuals to courses that are less than three distance units away. This limit is explored below. (A more thorough approach would be to use the "MatchIt" package to better match the fictitious, counterfactual estimates with similar actual students.)
+In this case, it is recommended to limit interpreting counterfactuals to courses that are less than three distance units away. This limit is explored below. (A more thorough approach would be to use the "MatchIt" package to better match the fictitious counterfactual estimates with similar actual students.)
 
-# Both accuracy and GPA decline with distance
+# Using distance to limit counterfactuals
 
 Two variables are the most relevant towards predicting the grade for initial math courses for first time freshmen: high school GPA and ACT math test scores.
 
@@ -37,11 +40,11 @@ Another variable can be derived from these two, called "distance". It is the dis
 
 In the first place, the GPA gently declines as the distance increases, as shown in the boxplot titled "Distance and GPA." This suggests that a student should prefer courses that are closer.
 
-In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in the boxplot titled "Prediction accuracy with distance.") Actually, if you look at the graph closely, you'll see that the prediction error increases up until a distance of about four, and then starts declining again. This increase in accuracy is due to the fact above: the model easily predicts low grades for distant courses. Accuracy, but not desirability, is improved for the very distant courses.
+In the second place, prediction accuracy also gently declines (or the prediction error mildly increases) with distance (as shown in the boxplot titled "Prediction accuracy with distance.") Actually, if you look at the graph closely, you'll see that the prediction error increases up until a distance of about four, and then starts declining again. This increase in accuracy is due to the fact above: that the model easily predicts low grades for distant courses. Accuracy, but not desirability, is improved for the very distant courses.
 
 Students have historically been capable of sorting themselves (or were guided) into close courses: 91% of the students took a course within three of these distance units.
 
-Therefore, in order to improve desirability of a course and preserve a reasonable interpretation of a counterfactual, the author recommends limiting counterfactuals to courses that are less than three units away.
+Therefore, in order to improve desirability of a course and preserve a reasonable interpretation of a counterfactual, the author recommends limiting interpreting counterfactuals to courses that are less than three units away.
 
 ***Distance calculation explained***
 
@@ -559,7 +562,7 @@ mtext(side = 3,
       line = 2)
 
 mtext(side = 3,
-      text = "Prediction accuracy decreases with distance",
+      text = "This plot shows that prediction error increases with distance",
       font  = 3,
       cex = 1.4,
       line = 0.8)
@@ -728,18 +731,6 @@ text(
 
 ```
 
-```{r}
-#| fig.height: 9
-
-displayCourseAlternatives(data = tg2,
-                          unid = "01487355",
-                          dist_cutoff = NA,
-                          closest_cutoff = NA,
-                          legend_params = list(inset = c(-0.17,0)),
-                          risk_legend_params = list(inset = c(-0.05,0))
-                          ) 
-
-```
 
 ```{r}
 
@@ -768,6 +759,16 @@ result$plot %>%
   ) 
 
 ```
+
+```{r}
+#| fig-height: 9
+#| out-height: "100%"
+#| out-width: "100%"
+
+displayCourseAlternatives(data = tg2, unid = "01487355", dist_cutoff = NA, closest_cutoff = NA, legend_params = list(inset = c(-0.17,0)), risk_legend_params = list(inset = c(-0.05,0)) )
+
+```
+
 
 ```{r}
 
@@ -838,24 +839,3 @@ lines(loess.smooth(aligned_vH3$dist, abs(aligned_vH3$error)), col = "blue", lwd 
 boxplot(dist_band ~ GRADEGPA, data = aligned_vH3, outline = FALSE)
 
 ```
-
-That is, if there were no or hardly any students with an ACT math test score less than 20 who took Math
-
-Another problem with counterfactuals is a limit to their accuracy. As courses get more and more unlike the training data, the accuracy
-
-It's an effort to step into a fictitious alternative universe, and maybe in that alternative universe the student didn't connect with study group that they did in the actual class they took, or maybe
-
-the predicted grades for alternative course selections. This takes the model that was trained on the grades earned from the courses that were actually taken, and swaps out the other course options to get a possible new
-
-```{r}
-1 + 1
-```
-
-You can add options to executable code like this
-
-```{r}
-#| echo: false
-2 * 2
-```
-
-The `echo: false` option disables the printing of code (only output is displayed).

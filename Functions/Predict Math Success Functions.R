@@ -1435,9 +1435,9 @@ courseScatter <- function(
   
   default_mtext_params <- list(side = c(1:3),
                                font = c(1,1,2),
-                               cex = c(1.3,1.3,2.5),
+                               cex = c(1.3,1.3,1.55),
                                line = c(2.3, 2.3, 0.25),
-                               text = c("HSGPA","ACT MATH", paste("Course medians in ", unique(data$class_year)))
+                               text = c("HSGPA","ACT MATH", paste("Median qualifications of successful students per course (year " , unique(data$class_year), ")", sep = ""))
   )
   mtext_params <- modifyList(default_mtext_params, mtext_params)
   do.call(mtext, mtext_params)
@@ -1647,7 +1647,7 @@ courseScatterPlotly <- function(
   
   # Dynamic title
   if (is.null(plot_title)) {
-    plot_title <- paste("Course medians in", paste(unique(data$class_year), collapse = ", "))
+    plot_title <- paste("Median qualifications of successful students per course (year " , unique(data$class_year), ")", sep = "")
   }
   
   # Determine grouping variable for legend
