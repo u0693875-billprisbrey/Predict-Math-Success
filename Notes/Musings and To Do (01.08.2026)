@@ -115,6 +115,24 @@ Report and status:
     - Source data, cleaning, and prep (100%)
 
   
-  
-  
+As summarized for Luis:
+
+Final report outline:
+              
+- Accessible overview (high level take-aways, informal, plain language, no jargon.) (10% complete)          
+- Deep dive into final predictive model (70% complete)    
+- Walk through course guide and individual predictions (0%, replaced with counterfactuals (?))            
+- Appendices: 
+   - Cleaning and prep (100% complete)  
+   - Descriptive statistics (75%) 
+   - Predictors over time (95%) 
+   - Models over time: Grades (60%)
+   - Models over time: Courses (90%)
+   - Comparing predictions with and without ACT Math test scores (80%) 
+   - Predicting withdraw (90%)             
+   - Counterfactuals (100%)     
+
+- Possibly move everything to Quarto  
+
+
   
