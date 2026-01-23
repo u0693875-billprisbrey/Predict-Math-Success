@@ -6,6 +6,20 @@
 # It uses data derived by Bill Prisbrey.
 # It is similar to vH3, but it uses principal components per course
 
+# This model is highly experimental and sandbox-like
+
+# It ideally has these components:
+
+# PCA for the previous year on just the two dimensions
+#   Align the signage so dimensions are always consistent
+# Centroids calculated for both successful and failing students
+# Calculate isolation forest for both centroids (?)
+# Predict the principal components for next year's students 
+# Predict the isolation value for the next year's students
+# Calculate the distance to center of both centroids (successful and failing) 
+#    Experiment with a couple of methods
+#  
+
 library(caret)
 library(xgboost)
 library(lubridate)
@@ -460,7 +474,7 @@ hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year,
 
 hiGrades$class_year_shift <- hiGrades$class_year + 1
 
-saveRDS(hiGrades, here::here("Data", "hiGrades from vH3.rds"))
+# saveRDS(hiGrades, here::here("Data", "hiGrades from vH3.rds"))
 
 cleanData <- merge(cleanData, hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE)
 
@@ -556,6 +570,32 @@ plot(x = combined_pca$Dim.1,
 
 # Combining is just a bad idea.  These aren't the same thing.
 
+mathCourse <- "MATH_1035"
+
+plot(x = coords[[mathCourse]][["Dim.1"]],
+     y = coords[[mathCourse]][["Dim.2"]],
+     pch = c(4,1)[factor(coords[[mathCourse]][["PassFail"]])],
+     col = c("firebrick","forestgreen")[factor(coords[[mathCourse]][["PassFail"]])]
+     )
+
+points(x = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       y = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       pch = c(4,1),
+       col = c("firebrick","forestgreen"),
+       cex=3,
+       lwd = 3
+         )
+
+# o.k., I'm doing --- rolling three years, and...
+# ... yeah medians
+
+# I almost want an rmarkdown with all of these plotted
+
+
+
+
+
+
 # Let's keep the per-course z-scores and focus on extracting the distance.
 
 
@@ -601,9 +641,330 @@ successful_coords <- lapply(successful_perCourse_pca, function(x){
 
 yrFilter_2024 <- cleanData$class_year == 2024 & !is.na(cleanData$class_year)
 
-lapply(courses_2023,
+common_courses <- intersect(as.character(courses_2023), cleanData$course[yrFilter_2024])
+
+pred_pca <- lapply(common_courses,
+       
+       function(math_course){
+         
+         print(math_course)
+         
+         loop_course_filter <- cleanData$course == math_course
+         
+         if(any(is.na(perCourse_pca[[math_course]]))) {return(NA)}
+         
+         predict(perCourse_pca[[math_course]], cleanData[yrFilter_2024 & loop_course_filter, c("HSGPA","ACTMATH") ])
+         
+       }
        
        )
   
-# ugh re-booting
+names(pred_pca) <- common_courses
+
+
+# O.k, let's see what I've got here ---
+# I want to plot the 2024 onto the 2023
+
+coords_2024 <- lapply(pred_pca, function(x){
   
+  
+  
+  if(any(is.na(x))) {NA} else {
+    cbind(x$coord, x$dist)
+  }
+  
+})
+
+
+## 2023 and 2024 PLOTTED ##
+
+mathCourse <- "MATH_1035"
+
+plot(x = coords[[mathCourse]][["Dim.1"]],
+     y = coords[[mathCourse]][["Dim.2"]],
+     pch = c(4,1)[factor(coords[[mathCourse]][["PassFail"]])],
+     col = c("firebrick","forestgreen")[factor(coords[[mathCourse]][["PassFail"]])]
+)
+
+points(x = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       y = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       pch = c(4,1),
+       col = c("firebrick","forestgreen"),
+       cex=3,
+       lwd = 3
+)
+
+points(x = coords_2024[[mathCourse]][, "Dim.1"],
+     y = coords_2024[[mathCourse]][,"Dim.2"],
+     pch = 16,
+     col = "gray30"
+    # pch = c(3,6)[factor(coords_2024[[mathCourse]][["PassFail"]])],
+    # lwd = 2,
+    # col = c("firebrick","forestgreen")[factor(coords_2024[[mathCourse]][["PassFail"]])]
+)
+
+# honestly looks good
+# with a decent prediction at drawing a vertical line at Dim.1 = 0
+
+# now to calculate the distance
+
+dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+
+dist_fail <- sqrt(
+  (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
+  (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
+ )
+
+dist_pass <- sqrt(
+  (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
+    (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
+)
+
+# there's the absolute distance
+# let's get a direction distance
+# after a short break
+  
+signed_dist <- dist_fail - dist_pass 
+
+# I better keep it this simple and see what I got
+
+# o.k, time to train this, I think -- now that I have 
+# distance and components 
+
+# or, as it turns out, I'm only using the distance.
+# Or I can use a model per course, but that's not a lot of numbers
+
+cols <- colorRampPalette(c("red", "green"))(100)[
+  cut(signed_dist, breaks = 100, labels = FALSE)
+]
+
+points(x = coords_2024[[mathCourse]][, "Dim.1"],
+       y = coords_2024[[mathCourse]][,"Dim.2"],
+       pch = 16,
+       col = cols,
+       # col = "gray30"
+       # pch = c(3,6)[factor(coords_2024[[mathCourse]][["PassFail"]])],
+       # lwd = 2,
+       # col = c("firebrick","forestgreen")[factor(coords_2024[[mathCourse]][["PassFail"]])]
+)
+
+# eggs-cellent!
+
+## FULL PLOT ##
+
+# This is a good candidate for a function 
+
+mathCourse <- "MATH_1090"
+
+plot(x = coords[[mathCourse]][["Dim.1"]],
+     y = coords[[mathCourse]][["Dim.2"]],
+     pch = c(4,1)[factor(coords[[mathCourse]][["PassFail"]])],
+     col = c("firebrick","forestgreen")[factor(coords[[mathCourse]][["PassFail"]])]
+)
+
+points(x = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       y = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)[,2],
+       pch = c(4,1),
+       col = c("firebrick","forestgreen"),
+       cex=3,
+       lwd = 3
+)
+
+dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+
+dist_fail <- sqrt(
+  (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
+    (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
+)
+
+dist_pass <- sqrt(
+  (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
+    (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
+)
+
+
+signed_dist <- dist_fail - dist_pass 
+
+cols <- colorRampPalette(c("red", "green"))(100)[
+  cut(signed_dist, breaks = 100, labels = FALSE)
+]
+
+points(x = coords_2024[[mathCourse]][, "Dim.1"],
+       y = coords_2024[[mathCourse]][,"Dim.2"],
+       pch = 16,
+       col = cols
+)
+
+# All courses
+
+pred_dist <- lapply(common_courses, function(mathCourse){
+  
+  if(any(is.na(coords[[mathCourse]]))) {return(NA)} 
+                  
+  dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  
+  dist_fail <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
+  )
+  
+  dist_pass <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
+  )
+  
+  
+  signed_dist <- dist_fail - dist_pass 
+  
+  return(cbind(fail_dist = dist_fail, pass_dist = dist_pass, rel_dist = signed_dist))
+                    
+                    })
+names(pred_dist) <- common_courses
+
+# ok, now we can merge and predict
+
+pred_dist_frame <- do.call(rbind, pred_dist)
+
+cleanData <- merge(cleanData, pred_dist_frame, by = "row.names", all.x = TRUE)
+
+# how do I double-check this?
+
+View(cleanData[,c(keepColumns, "fail_dist","pass_dist","rel_dist")])
+
+cor(cleanData$dist, cleanData$pass_dist, use = "complete.obs") #0.98
+# Wow, ok, so that's the same thing!
+
+plot(x= cleanData$dist,
+     y = cleanData$pass_dist,
+     xlim = c(0,10))
+
+# well, o.k.
+# Not sure it was worth doing that...
+
+cols <- colorRampPalette(c("red", "green"))(100)[
+  cut(cleanData$GRADEGPA, breaks = 100, labels = FALSE)
+]
+
+plot(x= cleanData$pass_dist,
+     y = cleanData$rel_dist,
+     #xlim = c(0,10)
+     col= cols
+     )
+
+boxplot(dist ~ GRADEGPA, data = cleanData[cleanData$class_year == 2024,], outline = FALSE)
+boxplot(pass_dist ~ GRADEGPA, data = cleanData[cleanData$class_year == 2024,], outline = FALSE)
+boxplot(fail_dist ~ GRADEGPA, data = cleanData[cleanData$class_year == 2024,], outline = FALSE)
+boxplot(rel_dist ~ GRADEGPA, data = cleanData[cleanData$class_year == 2024,], outline = FALSE)
+
+# ok, I like it!
+
+# I mean, it's...one match and one additional feature
+
+# onto training
+
+stop("Next step is the training loop")
+
+###########
+## SPLIT ##
+###########
+
+# Initially take a subset
+set.seed(123)
+
+xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
+
+lapply(target_classes,
+       
+       
+       function(target){
+         
+         # establish sample of complete cases
+         popSample <- cleanData[  , c(target,keepColumns, "fail_dist", "pass_dist","rel_dist")] |> # no sampling index 
+           (\(x){x[complete.cases(x),]})()
+         
+         ## SPLIT ##  
+         
+         # Use cleanGrade to partition on, but drop it for the test and train data
+         # trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
+         
+         # Use class_year 2024 and 2025 as the test set
+         trainIndex <- which(popSample$class_year < 2024)
+         
+         trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade","EMPLID") )])]
+         testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade", "EMPLID") )])]
+         
+         #       return(list(training = trainData, testing = testData))
+         
+         theData <- list(training = trainData, testing = testData, trainID = popSample$EMPLID[trainIndex], testID = popSample$EMPLID[-trainIndex] )
+         
+         #     })
+         
+         
+         saveRDS(theData, here::here("Data", paste("Decision Tree vM0", target, "Data.rds")))
+         
+         
+         ## TRAIN ##  
+         
+         startTime <- Sys.time()
+         print(paste("STARTING", target, "AT", startTime,"\n"))
+         print(paste("STARTING", target, "AT", startTime,"\n"))
+         print(paste("STARTING", target, "AT", startTime,"\n"))
+         
+         # Establish weighting
+         
+         targetCol <- trainData[[target]]
+         
+         # Compute inverse-frequency weights automatically
+         weights_map <- 1 / prop.table(table(targetCol))
+         weights_map <- weights_map / mean(weights_map)  # normalize around 1
+         weights <- weights_map[as.character(targetCol)]
+         
+         # regression
+         ctrl <- trainControl(
+           method = "cv",
+           number = 5,
+           summaryFunction = defaultSummary
+         )
+         
+         xgb_grid <- expand.grid(
+           nrounds = 600,          # scale boosting rounds for dataset size
+           eta = c(0.05, 0.1),     # conservative learning rates
+           max_depth = c(4, 6),    # tree depth
+           gamma = 0,              # minimal regularization
+           colsample_bytree = 0.8, # prevent overfitting
+           min_child_weight = 1,
+           subsample = 0.8
+         )
+         
+         
+         fit <- 
+           suppressWarnings(
+             train(
+               reformulate(".", response = target), 
+               data = trainData,
+               method = "xgbTree",
+               trControl = ctrl,
+               preProcess = c("zv", "nzv", "center", "scale", "knnImpute"),
+               tuneGrid = xgb_grid,
+               weights = weights            
+             )
+           )
+         
+         endTime <- Sys.time()
+         
+         print(endTime-startTime)
+         print(endTime-startTime)
+         print(endTime-startTime)
+         
+         saveRDS(fit, here::here("Models", paste("Decision Tree vM0", target, "model.rds")))
+         
+         library(beepr)
+         beep(8); Sys.sleep(6); #beep(0); Sys.sleep(3); beep(0)
+         
+       })
+
+
+
