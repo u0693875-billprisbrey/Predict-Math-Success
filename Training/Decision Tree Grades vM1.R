@@ -31,6 +31,28 @@ library(lubridate)
 library(factoextra)
 library(FactoMineR)
 
+############### 
+## FUNCTIONS ## 
+############### 
+
+# For FactoMineR
+flipPCA <- function(pca_obj, vars_to_check = c("HSGPA", "ACTMATH")) {
+  loadings <- pca_obj$var$coord
+  
+  for (i in seq_len(ncol(loadings))) {
+    loading_sum <- sum(loadings[vars_to_check, i])
+    
+    if (loading_sum < 0) {
+      pca_obj$var$coord[, i] <- -pca_obj$var$coord[, i]
+      pca_obj$var$cor[, i] <- -pca_obj$var$cor[, i]
+      pca_obj$ind$coord[, i] <- -pca_obj$ind$coord[, i]
+    }
+  }
+  
+  return(pca_obj)
+}
+
+
 ##########
 ## LOAD ##
 ##########
@@ -463,22 +485,31 @@ cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
 ## PRINCIPAL COMPONENTS ##  
 ##########################  
 
+# Filters
+
+actFilter <- !is.na(cleanData$ACTMATH)
+hsgpaFilter <- !is.na(cleanData$HSGPA) & cleanData$HSGPA > 0
+
 # Rolling components
 
 no_of_years <- 1
+initial_year <- min(cleanData$class_year)+no_of_years - 1
+final_year <- max(cleanData$class_year)
 
-rolling_pca <- lapply(2006:2025, function(loop_target) { 
 
-target_year <- loop_target # 2024:2025
+# rolling_pca <- lapply(2006:2025, function(loop_target) { 
 
-base_pca <- lapply(c((min(target_year)- no_of_years):(min(target_year)-1) ), function(loop_year){
+# target_year <- loop_target # 2024:2025
+
+set.seed(123) # to ensure consistent sign application
+
+rolling_pca <- lapply(initial_year:final_year, function(loop_year){
  
   # Set filters
-  actFilter <- !is.na(cleanData$ACTMATH)
-  target_yr_filter <- cleanData$class_year %in% target_year & !is.na(cleanData$class_year)
-  loop_yr_filter <- cleanData$class_year %in% loop_year & !is.na(cleanData$class_year)
-  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter])
-  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter]) 
+  target_yr_filter <- (cleanData$class_year %in% (loop_year + 1)) & !is.na(cleanData$class_year)
+  loop_yr_filter <- cleanData$class_year %in% (loop_year - no_of_years +1 ):(loop_year) & !is.na(cleanData$class_year)
+  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter & hsgpaFilter])
+  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter & hsgpaFilter]) 
   common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
   
   per_course_pca <- lapply(common_courses, function(loop_course){ 
@@ -491,6 +522,10 @@ base_pca <- lapply(c((min(target_year)- no_of_years):(min(target_year)-1) ), fun
       loop_yr_filter & courseFilter & actFilter
       , c("ACTMATH","HSGPA", "GRADEGPA")] |> droplevels()
     
+  #  course_data_check <- cleanData[
+  #    loop_yr_filter & courseFilter & actFilter
+  #    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
+    
     course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
     
     if(nrow(course_data) < 3){ return(NA) } else {
@@ -498,27 +533,159 @@ base_pca <- lapply(c((min(target_year)- no_of_years):(min(target_year)-1) ), fun
       course_pca <- PCA(course_data, 
                         quanti.sup = 3,
                         quali.sup = 4,
-                        graph = FALSE)
-      
+                        graph = FALSE) # |> 
+        # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
+       
     }
-    
     
     })
   names(per_course_pca) <- common_courses
   return(per_course_pca)
 })
-names(base_pca) <- c((min(target_year)- no_of_years):(min(target_year)-1) )
-return(base_pca)
-})
-names(rolling_pca) <- 2006:2024
+names(rolling_pca) <- initial_year:final_year
+
+# Check sign flip
+# "Pass" centroid should always be higher than "Fail" along Dim.1
+
+# checkSign <- lapply(rolling_pca, function(loop_year){ 
+  
+#  if(!is.list(loop_year)) {return(NA)}
+  
+#  lapply(loop_year, function(loop_course){ 
+    
+#    if(is.logical(loop_course)){return(NA)}
+#    if (nrow(loop_course$quali.sup$coord) < 2) return(NA)
+    
+    #print(paste(loop_year, " ::: ", loop_course))    
+#    checkVal <- loop_course$quali.sup$coord[1,1] < loop_course$quali.sup$coord[2,1]
+#    return(checkVal)
+#    })
+  
+#  })
+
+# > checkSign |> unlist() |> table()
+
+# FALSE  TRUE 
+# 31   294
+
+# which(!unlist(checkSign))
+
+# invertedCentroids <- unlist(checkSign)[!unlist(checkSign) & !is.na(unlist(checkSign))] |> names()
+
+# [1] "2005.MATH_1030" "2005.MATH_1060" "2007.MATH_2210" "2007.MATH_1040" "2008.MATH_1100"
+# [6] "2008.MATH_1170" "2009.MATH_2210" "2009.MATH_1010" "2009.MATH_1090" "2010.MATH_1220"
+# [11] "2010.MATH_2250" "2010.MATH_1170" "2012.MATH_1210" "2013.MATH_1030" "2013.MATH_1321"
+# [16] "2014.MATH_1010" "2014.MATH_1080" "2014.MATH_1321" "2015.MATH_1311" "2015.MATH_1170"
+# [21] "2016.MATH_1090" "2016.MATH_1311" "2017.MATH_1170" "2019.MATH_2270" "2019.MATH_1320"
+# [26] "2020.MATH_1100" "2021.MATH_1100" "2021.MATH_1320" "2023.MATH_1040" "2024.MATH_2270"
+# [31] "2024.MATH_1035"
+
+# removing the function flipPCA didn't change this list.
+# So I'll continue without it
+
+# fviz_pca_biplot(rolling_pca[["2005"]][["MATH_1030"]], 
+#                label = "var",
+#                habillage = 4)
+
+# at least one of these ("2024.MATH_2270") is due to a single person failing out of a class of 18.
+# the first few puts the variables pointing upwards
+
+# rolling_pca[["2005"]][["MATH_1030"]]$quanti.sup
+
+# let's check the correlation
+
+# cor(x = rolling_pca[["2005"]][["MATH_1030"]]$ind$coord[,1],
+#    y = cleanData$HSGPA[cleanData$class_year == 2005 & cleanData$course == "MATH_1030" & actFilter & hsgpaFilter])
+   # ruh roh
+
+# do I care?
+
+# loop_course <- "MATH_1030"
+# loop_yr_filter <- cleanData$class_year == 2005
+# courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
+
+# course_data <- cleanData[
+#  loop_yr_filter & courseFilter & actFilter
+#  , c("ACTMATH","HSGPA", "GRADEGPA")] |> droplevels()
+
+#  course_data_check <- cleanData[
+#    loop_yr_filter & courseFilter & actFilter
+#    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
+
+# course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
+
+# course_pca <- PCA(course_data, 
+#                  quanti.sup = 3,
+#                  quali.sup = 4,
+#                  graph = FALSE)
+
+
+#  course_pca_flip <- PCA(course_data, 
+#                    quanti.sup = 3,
+#                    quali.sup = 4,
+#                    graph = FALSE) |> 
+#    flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
+  
+
+# fviz_pca_biplot(course_pca, 
+#                                     label = "var",
+#                                     habillage = 4,
+#                                     title = "2005 MATH_1030 (no flip)")  
+
+# fviz_pca_biplot(course_pca_flip, 
+#                label = "var",
+#                habillage = 4,
+#                title = "2005 MATH_1030 (flip)")  
+
+# I don't think I care, since I'm using the distance.  That doesn't have orientation.
+
+# I think I'll remove the sign flip function, and I'll keep track of the check failures
+
+  
+# names(rolling_pca) <- 2006:2024
 
 # I should save the PCA
-# I need to include the "align_sign" function for consistency
-# I need to adjust the rolling PCA targets to accomodate the number of years
+# I need to include the "align_sign" function for consistency # TESTED AND ABANDONED
+# I need to adjust the rolling PCA targets to accomodate the number of years # DONE
 # (like, only start with a number that includes that minimum)
 
 # I could incorporate the prediction in this loop
 # Or I could do it separately, and leave this "rolling_pca" as nicely self-contained ?
+# I'll do the prediction separately, even though it duplicates the loop structure
+
+
+# Save the difference between the centroids
+# C/should be an indicator of prediction accuracy for that course
+# Another one is the percentage of failures per course
+
+## CENTROID DIFF ##
+
+centroidDiff <- lapply(rolling_pca, function(loop_yr_list){
+  
+  lapply(loop_yr_list, function(loop_course){ 
+    
+    if(any(is.na(loop_course))) {return(NA)}
+    if(nrow(loop_course$quali.sup$coord) < 2 ) {return(NA)}
+    
+    # centroid_diff <- sqrt(sum((loop_course$quali.sup$coord["Pass",] - loop_course$quali.sup$coord["Fail",])^2))
+    
+    # for binary, the centroids are always collinear with 0, so I can use
+    centroid_diff <- sum(loop_course$quali.sup$dist)
+    
+    return(centroid_diff)
+    
+    })
+  
+})
+
+# unlist(centroidDiff) |> hist()
+
+
+
+
+
+
+
 
 rolling_pred <- lapply(2006:2024, function(loop_target){
 
