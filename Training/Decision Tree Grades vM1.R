@@ -477,6 +477,8 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 cleanData$course <- factor(cleanData$course)
 cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
 
+# stop("stop before PCA")
+
 ###############################
 ## SKIPPING Z-SCORE DISTANCE ##
 ###############################
@@ -492,16 +494,15 @@ hsgpaFilter <- !is.na(cleanData$HSGPA) & cleanData$HSGPA > 0
 
 # Rolling components
 
-no_of_years <- 1
-initial_year <- min(cleanData$class_year)+no_of_years - 1
-final_year <- max(cleanData$class_year)
-
-
 # rolling_pca <- lapply(2006:2025, function(loop_target) { 
 
 # target_year <- loop_target # 2024:2025
 
 set.seed(123) # to ensure consistent sign application
+
+no_of_years <- 1
+initial_year <- min(cleanData$class_year)+no_of_years - 1
+final_year <- max(cleanData$class_year)
 
 rolling_pca <- lapply(initial_year:final_year, function(loop_year){
  
@@ -514,7 +515,7 @@ rolling_pca <- lapply(initial_year:final_year, function(loop_year){
   
   per_course_pca <- lapply(common_courses, function(loop_course){ 
     
-    print(loop_course)
+    # print(loop_course)
     
     courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
     
@@ -543,6 +544,51 @@ rolling_pca <- lapply(initial_year:final_year, function(loop_year){
   return(per_course_pca)
 })
 names(rolling_pca) <- initial_year:final_year
+
+no_of_years <- 3
+initial_year <- min(cleanData$class_year)+no_of_years - 1
+final_year <- max(cleanData$class_year)
+
+rolling_pca_3 <- lapply(initial_year:final_year, function(loop_year){
+  
+  # Set filters
+  target_yr_filter <- (cleanData$class_year %in% (loop_year + 1)) & !is.na(cleanData$class_year)
+  loop_yr_filter <- cleanData$class_year %in% (loop_year - no_of_years +1 ):(loop_year) & !is.na(cleanData$class_year)
+  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter & hsgpaFilter])
+  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter & hsgpaFilter]) 
+  common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
+  
+  per_course_pca <- lapply(common_courses, function(loop_course){ 
+    
+    # print(loop_course)
+    
+    courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
+    
+    course_data <- cleanData[
+      loop_yr_filter & courseFilter & actFilter
+      , c("ACTMATH","HSGPA", "GRADEGPA")] |> droplevels()
+    
+    #  course_data_check <- cleanData[
+    #    loop_yr_filter & courseFilter & actFilter
+    #    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
+    
+    course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
+    
+    if(nrow(course_data) < 3){ return(NA) } else {
+      
+      course_pca <- PCA(course_data, 
+                        quanti.sup = 3,
+                        quali.sup = 4,
+                        graph = FALSE) # |> 
+      # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
+      
+    }
+    
+  })
+  names(per_course_pca) <- common_courses
+  return(per_course_pca)
+})
+names(rolling_pca_3) <- initial_year:final_year
 
 # Check sign flip
 # "Pass" centroid should always be higher than "Fail" along Dim.1
@@ -678,64 +724,223 @@ centroidDiff <- lapply(rolling_pca, function(loop_yr_list){
   
 })
 
+centroidDiff_3 <- lapply(rolling_pca_3, function(loop_yr_list){
+  
+  lapply(loop_yr_list, function(loop_course){ 
+    
+    if(any(is.na(loop_course))) {return(NA)}
+    if(nrow(loop_course$quali.sup$coord) < 2 ) {return(NA)}
+    
+    # centroid_diff <- sqrt(sum((loop_course$quali.sup$coord["Pass",] - loop_course$quali.sup$coord["Fail",])^2))
+    
+    # for binary, the centroids are always collinear with 0, so I can use
+    centroid_diff <- sum(loop_course$quali.sup$dist)
+    
+    return(centroid_diff)
+    
+  })
+  
+})
+
+
 # unlist(centroidDiff) |> hist()
 
+print("PCA complete")
 
+stop("stop after PCA") # crashes after here for some reason
 
+## PREDICTIONS ##
 
+# Pick the PCA list to use
+pca_list <- rolling_pca
 
+no_of_years <- 1
+initial_year <- min(cleanData$class_year)+no_of_years - 1
+final_year <- max(cleanData$class_year)
 
-
-
-rolling_pred <- lapply(2006:2024, function(loop_target){
-
-  target_year <- loop_target
+rolling_pred <- lapply(initial_year:(final_year-1), function(loop_year){
   
-  base_pred <- lapply(c((min(target_year)- no_of_years):(min(target_year)-1) ), function(loop_year){
+  # Set filters
+  target_yr_filter <- (cleanData$class_year %in% (loop_year + 1)) & !is.na(cleanData$class_year)
+  loop_yr_filter <- cleanData$class_year %in% (loop_year - no_of_years +1 ):(loop_year) & !is.na(cleanData$class_year)
+  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter & hsgpaFilter])
+  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter & hsgpaFilter]) 
+  common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
+  
+  per_course_pred <- lapply(common_courses, function(loop_course){ 
     
-    # Set filters
-    actFilter <- !is.na(cleanData$ACTMATH)
-    target_yr_filter <- cleanData$class_year %in% target_year & !is.na(cleanData$class_year)
-    loop_yr_filter <- cleanData$class_year %in% loop_year & !is.na(cleanData$class_year)
-    courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter])
-    courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter]) 
-    common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
+    # print(loop_course)
     
-    per_course_pred <- lapply(common_courses, function(loop_course){ 
+    courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
+    
+    course_data <- cleanData[
+      target_yr_filter & courseFilter & actFilter
+      , c("ACTMATH","HSGPA")] |> droplevels()
+    
+    #  course_data_check <- cleanData[
+    #    loop_yr_filter & courseFilter & actFilter
+    #    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
+    
+    #  course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
+    
+    if(nrow(course_data) < 1){ return(NA) }
+    if(any(is.na(pca_list[[as.character(loop_year)]][[loop_course]])) | any(is.null(pca_list[[as.character(loop_year)]][[loop_course]]))  ) {return(NA)}
       
-      print(loop_course)
+      # predict(perCourse_pca[[math_course]], cleanData[yrFilter_2024 & loop_course_filter, c("HSGPA","ACTMATH") ])
       
-      courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
+      course_pred <- predict(pca_list[[as.character(loop_year)]][[loop_course]],
+                        course_data) # |> 
+      # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
       
-      checkColumns <- c("ACTMATH","HSGPA", "GRADEGPA","class_year","course")
-      
-      course_data <- cleanData[
-        target_yr_filter & courseFilter & actFilter
-        , c("ACTMATH","HSGPA", "GRADEGPA")] |> droplevels()
-      
-      course_data_check <- cleanData[
-        target_yr_filter & courseFilter & actFilter
-        , checkColumns] |> droplevels()
-      
-      # course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
-      
-      if(any(is.na(rolling_pca[[as.character(loop_target)]][[loop_year]][[loop_course]]))) {return(NA)}
-        
-      course_pred <- predict(rolling_pca[[as.character(loop_target)]][[loop_year]][[loop_course]], course_data)
-      
-      return(course_pred)
-      
-    })
-    names(per_course_pred) <- common_courses
-    return(per_course_pred)
+    
+    
   })
-  names(base_pred) <- c((min(target_year)- no_of_years):(min(target_year)-1) )
-  return(base_pred)
+  names(per_course_pred) <- common_courses
+  return(per_course_pred)
 })
-names(rolling_pred) <- 2006:2024
+names(rolling_pred) <- (initial_year+1):final_year
+
+pca_list <- rolling_pca_3
+
+no_of_years <- 3
+initial_year <- min(cleanData$class_year)+no_of_years - 1
+final_year <- max(cleanData$class_year)
+
+rolling_pred_3 <- lapply(initial_year:(final_year-1), function(loop_year){
+  
+  # Set filters
+  target_yr_filter <- (cleanData$class_year %in% (loop_year + 1)) & !is.na(cleanData$class_year)
+  loop_yr_filter <- cleanData$class_year %in% (loop_year - no_of_years +1 ):(loop_year) & !is.na(cleanData$class_year)
+  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter & hsgpaFilter])
+  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter & hsgpaFilter]) 
+  common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
+  
+  per_course_pred <- lapply(common_courses, function(loop_course){ 
+    
+    # print(loop_course)
+    
+    courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
+    
+    course_data <- cleanData[
+      target_yr_filter & courseFilter & actFilter
+      , c("ACTMATH","HSGPA")] |> droplevels()
+    
+    #  course_data_check <- cleanData[
+    #    loop_yr_filter & courseFilter & actFilter
+    #    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
+    
+    #  course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
+    
+    if(nrow(course_data) < 1){ return(NA) }
+    if(any(is.na(pca_list[[as.character(loop_year)]][[loop_course]])) | any(is.null(pca_list[[as.character(loop_year)]][[loop_course]]))  ) {return(NA)}
+    
+    # predict(perCourse_pca[[math_course]], cleanData[yrFilter_2024 & loop_course_filter, c("HSGPA","ACTMATH") ])
+    
+    course_pred <- predict(pca_list[[as.character(loop_year)]][[loop_course]],
+                           course_data) # |> 
+    # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
+    
+    
+    
+  })
+  names(per_course_pred) <- common_courses
+  return(per_course_pred)
+})
+names(rolling_pred_3) <- (initial_year+1):final_year
+
+## EXTRACT COORDINATES ## 
+
+pred_coords <- lapply(rolling_pred, function(yr_pred){
+  
+  lapply(yr_pred, function(course_pred) {
+  
+  if(any(is.na(course_pred))) {NA} else {
+    cbind(course_pred$coord, dist = course_pred$dist)
+  }
+  
+    
+  })  
+    
+})
+
+pred_coords_3 <- lapply(rolling_pred_3, function(yr_pred){
+  
+  lapply(yr_pred, function(course_pred) {
+    
+    if(any(is.na(course_pred))) {NA} else {
+      cbind(course_pred$coord, dist = course_pred$dist)
+    }
+    
+    
+  })  
+  
+})
+
+## CALCULATE DISTANCES ##
+
+pred_dist <- lapply(pred_coords, function(year_coords){
+  
+  
+})
+  
+  
+  
+  lapply(common_courses, function(mathCourse){
+  
+  if(any(is.na(coords[[mathCourse]]))) {return(NA)} 
+  
+  dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  
+  dist_fail <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
+  )
+  
+  dist_pass <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
+  )
+  
+  
+  signed_dist <- dist_fail - dist_pass 
+  
+  return(cbind(fail_dist = dist_fail, pass_dist = dist_pass, rel_dist = signed_dist))
+  
+})
+names(pred_dist) <- common_courses
 
 
 
-stop("stop here")
+
+
+pred_dist <- lapply(common_courses, function(mathCourse){
+  
+  if(any(is.na(coords[[mathCourse]]))) {return(NA)} 
+  
+  dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
+  
+  dist_fail <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
+  )
+  
+  dist_pass <- sqrt(
+    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
+      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
+  )
+  
+  
+  signed_dist <- dist_fail - dist_pass 
+  
+  return(cbind(fail_dist = dist_fail, pass_dist = dist_pass, rel_dist = signed_dist))
+  
+})
+names(pred_dist) <- common_courses
+
+
+# stop("stop here")
+
 
 
