@@ -791,8 +791,38 @@ rolling_pred <- lapply(initial_year:(final_year-1), function(loop_year){
       course_pred <- predict(pca_list[[as.character(loop_year)]][[loop_course]],
                         course_data) # |> 
       # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
+   
+      # CALCULATE THE DISTANCE      
+      
+      prior_coord <- cbind(pca_list[[as.character(loop_year)]][[loop_course]]$ind$coord, pca_list[[as.character(loop_year)]][[loop_course]]$ind$dist, pca_list[[as.character(loop_year)]][[loop_course]]$call$X)
+      
+      dim1_med <- aggregate(Dim.1 ~ PassFail, data = prior_coord, FUN = median)
+      dim2_med <- aggregate(Dim.2 ~ PassFail, data = prior_coord, FUN = median)
+      
+      dist_fail <- sqrt( (course_pred$coord[,"Dim.1"] - dim1_med[1,2])^2 +
+                           (course_pred$coord[,"Dim.2"] - dim2_med[1,2])^2
+      )
+      
+      dist_pass <- sqrt(
+        (course_pred$coord[,"Dim.1"] - dim1_med[2,2])^2 + 
+          (course_pred$coord[,"Dim.2"] - dim2_med[2,2])^2
+      )
+      
+      
+      signed_dist <- dist_fail - dist_pass 
       
     
+
+      
+      return(
+        list(course_pred = course_pred,
+              distance = cbind(dist_fail, dist_pass, signed_dist),
+              prior_median = c(dim1_med, dim2_med),
+              target_yr = unique(cleanData$class_year[target_yr_filter]),
+              course = loop_course,
+              prior_coord = prior_coord
+              )
+      )
     
   })
   names(per_course_pred) <- common_courses
@@ -840,7 +870,37 @@ rolling_pred_3 <- lapply(initial_year:(final_year-1), function(loop_year){
                            course_data) # |> 
     # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
     
+    # CALCULATE THE DISTANCE      
     
+    prior_coord <- cbind(pca_list[[as.character(loop_year)]][[loop_course]]$ind$coord, pca_list[[as.character(loop_year)]][[loop_course]]$ind$dist, pca_list[[as.character(loop_year)]][[loop_course]]$call$X)
+    
+    dim1_med <- aggregate(Dim.1 ~ PassFail, data = prior_coord, FUN = median)
+    dim2_med <- aggregate(Dim.2 ~ PassFail, data = prior_coord, FUN = median)
+    
+    dist_fail <- sqrt( (course_pred$coord[,"Dim.1"] - dim1_med[1,2])^2 +
+                         (course_pred$coord[,"Dim.2"] - dim2_med[1,2])^2
+    )
+    
+    dist_pass <- sqrt(
+      (course_pred$coord[,"Dim.1"] - dim1_med[2,2])^2 + 
+        (course_pred$coord[,"Dim.2"] - dim2_med[2,2])^2
+    )
+    
+    
+    signed_dist <- dist_fail - dist_pass 
+    
+    
+    
+    
+    return(
+      list(course_pred = course_pred,
+           distance = cbind(dist_fail, dist_pass, signed_dist),
+           prior_median = c(dim1_med, dim2_med),
+           target_yr = unique(cleanData$class_year[target_yr_filter]),
+           course = loop_course,
+           prior_coord = prior_coord
+      )
+    )
     
   })
   names(per_course_pred) <- common_courses
@@ -849,6 +909,8 @@ rolling_pred_3 <- lapply(initial_year:(final_year-1), function(loop_year){
 names(rolling_pred_3) <- (initial_year+1):final_year
 
 ## EXTRACT COORDINATES ## 
+
+# I don't think I need this anymore
 
 pred_coords <- lapply(rolling_pred, function(yr_pred){
   
@@ -876,71 +938,73 @@ pred_coords_3 <- lapply(rolling_pred_3, function(yr_pred){
   
 })
 
-## CALCULATE DISTANCES ##
+## ASSEMBLE THE DATA ## 
 
-pred_dist <- lapply(pred_coords, function(year_coords){
+# essentially a lot of unlisting here 
+
+# and it's proving to be --very-- difficult
+
+# bob <- rep(NA, length(rolling_pred_3[["2012"]]))
+year_distance <- list()
+yr_inc <- 0
+for(year_name in names(rolling_pred_3)){ 
+yr_inc <- yr_inc + 1
+
+course_distances <- list()
+course_inc <- 0
+for(course_name in names(rolling_pred_3[[year_name]]) ) {
   
+course_inc <- course_inc + 1
+
+ #print(paste(i, inc))
+ 
+ if( all(is.na(rolling_pred_3[[year_name]][[course_inc]]) ) ) { 
+   
+ course_distances[[course_inc]] <- NA } else {
+ 
+ course_distances[[course_inc]] <- rolling_pred_3[[year_name]][[course_inc]][["distance"]] 
   
+ }
+
+names(course_distances)[[course_inc]] <- course_name
+
+}
+
+year_distance[[yr_inc]] <- course_distances
+names(year_distance)[[yr_inc]] <- year_name
+}
+
+# ok, looks fine.  FINALLY!
+
+# bob <- do.call(rbind, year_distance[[1]])
+
+distance_frame <- lapply(year_distance, function(x) {
+  
+  annual_frame <- do.call(rbind, x)
+  
+}) |>
+  (\(x){ do.call(rbind,x)})()
+
+
+
+
+extract_distance <- lapply(rolling_pred_3, function(yr_list){
+  lapply(yr_list, function(loop_course){
+    if(any(!is.na(loop_course["distance"])) | any(!is.null(loop_course["distance"]))  ){
+   return(unlist(loop_course["distance"]))
+    } else {return(NA)}
+    })
 })
+
+
+combine_courses <- lapply(extract_distance, function(yr_list){
   
-  
-  
-  lapply(common_courses, function(mathCourse){
-  
-  if(any(is.na(coords[[mathCourse]]))) {return(NA)} 
-  
-  dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
-  dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
-  
-  dist_fail <- sqrt(
-    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
-      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
-  )
-  
-  dist_pass <- sqrt(
-    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
-      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
-  )
-  
-  
-  signed_dist <- dist_fail - dist_pass 
-  
-  return(cbind(fail_dist = dist_fail, pass_dist = dist_pass, rel_dist = signed_dist))
-  
+  lapply(yr_list, function(loop_course){ 
+    
+    course_dist <- unlist(loop_course["distance"])
+    
+    })
+
 })
-names(pred_dist) <- common_courses
 
-
-
-
-
-pred_dist <- lapply(common_courses, function(mathCourse){
-  
-  if(any(is.na(coords[[mathCourse]]))) {return(NA)} 
-  
-  dim1_med = aggregate(coords[[mathCourse]][["Dim.1"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
-  dim2_med = aggregate(coords[[mathCourse]][["Dim.2"]], by = list(coords[[mathCourse]][["PassFail"]]), FUN = median)
-  
-  dist_fail <- sqrt(
-    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[1,2])^2 + 
-      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[1,2])^2
-  )
-  
-  dist_pass <- sqrt(
-    (coords_2024[[mathCourse]][, "Dim.1"] - dim1_med[2,2])^2 + 
-      (coords_2024[[mathCourse]][, "Dim.2"] - dim2_med[2,2])^2
-  )
-  
-  
-  signed_dist <- dist_fail - dist_pass 
-  
-  return(cbind(fail_dist = dist_fail, pass_dist = dist_pass, rel_dist = signed_dist))
-  
-})
-names(pred_dist) <- common_courses
-
-
-# stop("stop here")
-
-
-
+distanceFrame <- do.call(rbind, combine_courses)
