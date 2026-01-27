@@ -477,7 +477,7 @@ cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 cleanData$course <- factor(cleanData$course)
 cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
 
-# stop("stop before PCA")
+stop("stop before PCA")
 
 ###############################
 ## SKIPPING Z-SCORE DISTANCE ##
@@ -942,9 +942,7 @@ pred_coords_3 <- lapply(rolling_pred_3, function(yr_pred){
 
 # essentially a lot of unlisting here 
 
-# and it's proving to be --very-- difficult
 
-# bob <- rep(NA, length(rolling_pred_3[["2012"]]))
 year_distance <- list()
 yr_inc <- 0
 for(year_name in names(rolling_pred_3)){ 
@@ -976,7 +974,6 @@ names(year_distance)[[yr_inc]] <- year_name
 
 # ok, looks fine.  FINALLY!
 
-# bob <- do.call(rbind, year_distance[[1]])
 
 distance_frame <- lapply(year_distance, function(x) {
   
@@ -986,25 +983,40 @@ distance_frame <- lapply(year_distance, function(x) {
   (\(x){ do.call(rbind,x)})()
 
 
+# Merge back into cleanData
+
+cleanData2 <- merge(cleanData, distance_frame, by = "row.names",all.x = TRUE)
+
+# check
+
+checkRows <- sample(row.names(distance_frame),10)
+
+identical(cleanData[as.numeric(checkRows),c("course","EMPLID","class_year")],
+          cleanData2[as.numeric(checkRows),c("course","EMPLID","class_year")]
+) # FALSE
+# well that's hopelessly scrambled
+
+# I could figure out the cleanData unique ID, I guess, and pass that through the PCA
+
+cleanData$rowid <- paste(cleanData$TERM, cleanData$EMPLID, cleanData$CATNBR, sep = "_" )
+
+# identify dupes
+
+theDupes <- table(cleanData$rowid) |>
+  (\(x){x[order(x)]})() |>
+  (\(x){x[x>1]})() |>
+  names()
+
+View(cleanData[cleanData$rowid %in% theDupes,])
+
+# these five are all "Department of Science" but have multiple cohort dates
+# I have a couple of choices:
+  # Remove them (as there's only five)
+  # Filter according to a rule (remove the first or second date)
+
+# Since there are so few, and because I don't want to make a judgment call on the correct cohort date,
+# I am going to filter them out.
+
+# And I think I'll start vM2.
 
 
-extract_distance <- lapply(rolling_pred_3, function(yr_list){
-  lapply(yr_list, function(loop_course){
-    if(any(!is.na(loop_course["distance"])) | any(!is.null(loop_course["distance"]))  ){
-   return(unlist(loop_course["distance"]))
-    } else {return(NA)}
-    })
-})
-
-
-combine_courses <- lapply(extract_distance, function(yr_list){
-  
-  lapply(yr_list, function(loop_course){ 
-    
-    course_dist <- unlist(loop_course["distance"])
-    
-    })
-
-})
-
-distanceFrame <- do.call(rbind, combine_courses)
