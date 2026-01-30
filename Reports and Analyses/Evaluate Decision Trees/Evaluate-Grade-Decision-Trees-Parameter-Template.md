@@ -1,8 +1,10 @@
 ---
-title: "Evaluate Grade Decision Trees using vF0 models"
-date: "October 09, 2025"
+title: "Evaluate Grade Decision Trees using vM4 models"
+date: "January 29, 2026"
 params: 
-  version: "vF0"
+  version: "vM2"
+  target_classes: 
+    - GRADEGPA
 output:
   html_document:
     keep_md: true
@@ -19,22 +21,10 @@ output:
 
 
 ```
-## [1] "grade_binary"
-## missingFilter
-## FALSE  TRUE 
-##     2  6394 
-## [1] "grade_trinary"
-## missingFilter
-## FALSE  TRUE 
-##     5  6391 
-## [1] "grade_quad"
-## missingFilter
-## FALSE  TRUE 
-##     3  6393 
 ## [1] "GRADEGPA"
 ## missingFilter
 ## FALSE  TRUE 
-##     2  6147
+##    21  1947
 ```
 
 
@@ -68,7 +58,7 @@ output:
 
 ### Predictors  
 
-course, SEX, FIRST_GEN_STATUS_CD, ETHNICITY, RESSTAT, FA_PELL, AGE, APCREDIT, HSGPA, HSPRIVATE, HONORS, ACTCOMP, ACTENGL, ACTMATH, ACTSCI, load, cohort_year, class_year, yr_diff, season. 
+course, class_year, SEX, FIRST_GEN_STATUS_CD, ETHNICITY, RESSTAT, FA_PELL, APCREDIT, HSGPA, HSPRIVATE, HONORS, ACTCOMP, ACTENGL, ACTMATH, ACTSCI, cohort_year, yr_diff, season, course_level, age_cut, dist_fail, dist_pass, signed_dist. 
 
 "load" is the credit load per student per term. 
 "yr_diff" is the time (expressed as fractions of a year) between the cohort date and the end of term date for the course.  
@@ -76,6 +66,22 @@ course, SEX, FIRST_GEN_STATUS_CD, ETHNICITY, RESSTAT, FA_PELL, AGE, APCREDIT, HS
 The other variables are either self-explanatory or taken directly from OBIA tables.  
 
 # Results
+
+
+```
+## [1] "GRADEGPA"
+## [1] "GRADEGPA"
+## missingFilter
+## FALSE  TRUE 
+##    21  1947
+```
+
+```
+## [1] "GRADEGPA"
+## missingFilter
+## FALSE  TRUE 
+##    21  1947
+```
 
 <table class=" lightable-classic" style="color: black; font-family: Calibri; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>Normalized Regression Results Across Grading Buckets</caption>
@@ -89,7 +95,7 @@ The other variables are either self-explanatory or taken directly from OBIA tabl
    <th style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;">  </th>
    <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> RMSE </th>
    <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> MAE </th>
-   <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> R² </th>
+   <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> R-sq </th>
    <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> NRMSE (Range) </th>
    <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> NMAE (Range) </th>
    <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> NRMSE (SD) </th>
@@ -98,54 +104,24 @@ The other variables are either self-explanatory or taken directly from OBIA tabl
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;background-color: rgba(255, 255, 255, 255) !important;"> grade_binary </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.39 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.30 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.11 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.39 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.30 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 1.11 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.85 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: rgba(255, 255, 255, 255) !important;"> grade_trinary </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.73 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.59 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.18 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.37 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.30 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 1.00 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.81 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;background-color: rgba(255, 255, 255, 255) !important;"> grade_quad </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.89 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.72 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.28 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.30 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.24 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.88 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.71 </td>
-  </tr>
-  <tr>
    <td style="text-align:left;background-color: rgba(255, 255, 255, 255) !important;"> GRADEGPA </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 1.10 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.90 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.27 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.28 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.23 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.91 </td>
-   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.75 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 1.04 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.82 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.26 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.26 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.2 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.9 </td>
+   <td style="text-align:center;background-color: rgba(255, 255, 255, 255) !important;"> 0.71 </td>
   </tr>
 </tbody>
 </table>
 
 
-![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-6-2.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-6-3.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-6-4.png)<!-- -->
+![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 # Variable importance
 
-![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-7-3.png)<!-- -->![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-7-4.png)<!-- -->
+![](Evaluate-Grade-Decision-Trees-Parameter-Template_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 
 
@@ -156,9 +132,6 @@ Presentation order:
 
 
 ```
-## [1] "grade_binary"
-## [1] "grade_trinary"
-## [1] "grade_quad"
 ## [1] "GRADEGPA"
 ```
 
@@ -167,220 +140,68 @@ Presentation order:
 ## ── Data Summary ────────────────────────
 ##                            Values                      
 ## Name                       data_list[[x]][["training...
-## Number of rows             25616                       
-## Number of columns          21                          
+## Number of rows             36569                       
+## Number of columns          24                          
 ## _______________________                                
 ## Column type frequency:                                 
-##   character                7                           
-##   numeric                  14                          
+##   character                5                           
+##   factor                   3                           
+##   numeric                  16                          
 ## ________________________                               
 ## Group variables            None                        
 ## 
 ## ── Variable type: character ────────────────────────────────────────────────────
 ##   skim_variable       n_missing complete_rate min max empty n_unique whitespace
-## 1 course                      0             1   7   9     0       59          0
-## 2 SEX                         0             1   1   1     0        2          0
-## 3 FIRST_GEN_STATUS_CD         0             1   1   1     0        3          0
-## 4 ETHNICITY                   0             1   1   1     0        9          0
-## 5 RESSTAT                     0             1   1   1     0        2          0
-## 6 HSPRIVATE                   0             1   1   1     0        2          0
-## 7 season                      0             1   4   6     0        3          0
+## 1 SEX                         0             1   1   1     0        2          0
+## 2 FIRST_GEN_STATUS_CD         0             1   1   1     0        3          0
+## 3 RESSTAT                     0             1   1   1     0        2          0
+## 4 HSPRIVATE                   0             1   1   1     0        2          0
+## 5 season                      0             1   4   6     0        3          0
+## 
+## ── Variable type: factor ───────────────────────────────────────────────────────
+##   skim_variable n_missing complete_rate ordered n_unique
+## 1 course                0             1 FALSE         24
+## 2 ETHNICITY             0             1 FALSE          9
+## 3 age_cut               0             1 FALSE          5
+##   top_counts                                 
+## 1 MAT: 8827, MAT: 6016, MAT: 4829, MAT: 3291 
+## 2 C: 26313, H: 4521, A: 2617, M: 1724        
+## 3 (17: 29854, (18: 3123, (19: 1820, (0,: 1478
 ## 
 ## ── Variable type: numeric ──────────────────────────────────────────────────────
-##    skim_variable n_missing complete_rate     mean     sd       p0      p25
-##  1 grade_binary          0             1    0.856  0.352    0        1    
-##  2 FA_PELL               0             1    0.211  0.408    0        0    
-##  3 AGE                   0             1   18.2    0.762    1       18    
-##  4 APCREDIT              0             1    9.69  13.6      0        0    
-##  5 HSGPA                 0             1    3.62   0.360    1.2      3.4  
-##  6 HONORS                0             1    0.187  0.390    0        0    
-##  7 ACTCOMP               0             1   25.3    4.51    10       22    
-##  8 ACTENGL               0             1   25.1    5.39     5       21    
-##  9 ACTMATH               0             1   24.6    4.92     1       21    
-## 10 ACTSCI                0             1   25.1    4.76     2       22    
-## 11 load                  0             1   13.6    2.44     0       12    
-## 12 cohort_year           0             1 2013.     5.22  2005     2009    
-## 13 class_year            0             1 2013.     5.18  2005     2009    
-## 14 yr_diff               0             1    0.539  0.899   -0.397    0.240
-##         p50      p75   p100 hist 
-##  1    1        1        1   ▂▁▁▁▇
-##  2    0        0        1   ▇▁▁▁▂
-##  3   18       18       37   ▁▁▇▁▁
-##  4    3       16       88   ▇▂▁▁▁
-##  5    3.72     3.92     4   ▁▁▁▂▇
-##  6    0        0        1   ▇▁▁▁▂
-##  7   25       29       36   ▁▃▇▇▃
-##  8   25       29       36   ▁▂▇▇▅
-##  9   25       28       36   ▁▁▅▇▂
-## 10   25       28       36   ▁▁▅▇▃
-## 11   14       15       19   ▁▁▁▇▂
-## 12 2012     2017     2024   ▇▇▇▅▃
-## 13 2013     2017     2025   ▇▇▆▅▂
-## 14    0.241    0.260   16.6 ▇▁▁▁▁
-## 
-## [[2]]
-## ── Data Summary ────────────────────────
-##                            Values                      
-## Name                       data_list[[x]][["training...
-## Number of rows             25616                       
-## Number of columns          21                          
-## _______________________                                
-## Column type frequency:                                 
-##   character                7                           
-##   numeric                  14                          
-## ________________________                               
-## Group variables            None                        
-## 
-## ── Variable type: character ────────────────────────────────────────────────────
-##   skim_variable       n_missing complete_rate min max empty n_unique whitespace
-## 1 course                      0             1   7   9     0       57          0
-## 2 SEX                         0             1   1   1     0        2          0
-## 3 FIRST_GEN_STATUS_CD         0             1   1   1     0        3          0
-## 4 ETHNICITY                   0             1   1   1     0        9          0
-## 5 RESSTAT                     0             1   1   1     0        2          0
-## 6 HSPRIVATE                   0             1   1   1     0        2          0
-## 7 season                      0             1   4   6     0        3          0
-## 
-## ── Variable type: numeric ──────────────────────────────────────────────────────
-##    skim_variable n_missing complete_rate     mean     sd       p0      p25
-##  1 grade_trinary         0             1    1.56   0.732    0        1    
-##  2 FA_PELL               0             1    0.210  0.407    0        0    
-##  3 AGE                   0             1   18.2    0.756    1       18    
-##  4 APCREDIT              0             1    9.71  13.6      0        0    
-##  5 HSGPA                 0             1    3.62   0.360    1.2      3.4  
-##  6 HONORS                0             1    0.188  0.391    0        0    
-##  7 ACTCOMP               0             1   25.3    4.53    10       22    
-##  8 ACTENGL               0             1   25.1    5.41     5       21    
-##  9 ACTMATH               0             1   24.6    4.94     1       21    
-## 10 ACTSCI                0             1   25.1    4.77     2       22    
-## 11 load                  0             1   13.6    2.44     0       12    
-## 12 cohort_year           0             1 2013.     5.23  2005     2009    
-## 13 class_year            0             1 2013.     5.19  2005     2009    
-## 14 yr_diff               0             1    0.543  0.894   -0.397    0.240
-##         p50      p75   p100 hist 
-##  1    2        2        2   ▂▁▂▁▇
-##  2    0        0        1   ▇▁▁▁▂
-##  3   18       18       29   ▁▁▁▇▁
-##  4    3       16       89   ▇▂▁▁▁
-##  5    3.72     3.93     4   ▁▁▁▂▇
-##  6    0        0        1   ▇▁▁▁▂
-##  7   25       29       36   ▁▃▇▇▃
-##  8   25       29       36   ▁▂▇▇▅
-##  9   25       28       36   ▁▁▅▇▂
-## 10   25       28       36   ▁▁▅▇▃
-## 11   14       15       19   ▁▁▁▇▂
-## 12 2012     2017     2024   ▇▇▇▅▃
-## 13 2013     2017     2025   ▇▇▆▅▂
-## 14    0.241    0.260   14.2 ▇▁▁▁▁
-## 
-## [[3]]
-## ── Data Summary ────────────────────────
-##                            Values                      
-## Name                       data_list[[x]][["training...
-## Number of rows             25616                       
-## Number of columns          21                          
-## _______________________                                
-## Column type frequency:                                 
-##   character                7                           
-##   numeric                  14                          
-## ________________________                               
-## Group variables            None                        
-## 
-## ── Variable type: character ────────────────────────────────────────────────────
-##   skim_variable       n_missing complete_rate min max empty n_unique whitespace
-## 1 course                      0             1   7   9     0       58          0
-## 2 SEX                         0             1   1   1     0        2          0
-## 3 FIRST_GEN_STATUS_CD         0             1   1   1     0        3          0
-## 4 ETHNICITY                   0             1   1   1     0        9          0
-## 5 RESSTAT                     0             1   1   1     0        2          0
-## 6 HSPRIVATE                   0             1   1   1     0        2          0
-## 7 season                      0             1   4   6     0        3          0
-## 
-## ── Variable type: numeric ──────────────────────────────────────────────────────
-##    skim_variable n_missing complete_rate     mean     sd       p0      p25
-##  1 grade_quad            0             1    1.88   1.02     0        1    
-##  2 FA_PELL               0             1    0.210  0.408    0        0    
-##  3 AGE                   0             1   18.2    0.755    1       18    
-##  4 APCREDIT              0             1    9.65  13.6      0        0    
-##  5 HSGPA                 0             1    3.62   0.361    1.18     3.4  
-##  6 HONORS                0             1    0.187  0.390    0        0    
-##  7 ACTCOMP               0             1   25.3    4.53    10       22    
-##  8 ACTENGL               0             1   25.1    5.42     5       21    
-##  9 ACTMATH               0             1   24.6    4.93     1       21    
-## 10 ACTSCI                0             1   25.1    4.77     2       22    
-## 11 load                  0             1   13.6    2.45     0       12    
-## 12 cohort_year           0             1 2013.     5.22  2005     2009    
-## 13 class_year            0             1 2013.     5.18  2005     2009    
-## 14 yr_diff               0             1    0.539  0.899   -0.397    0.240
-##         p50      p75   p100 hist 
-##  1    2        3        3   ▃▃▁▇▆
-##  2    0        0        1   ▇▁▁▁▂
-##  3   18       18       26   ▁▁▁▇▁
-##  4    3       16       89   ▇▂▁▁▁
-##  5    3.72     3.93     4   ▁▁▁▂▇
-##  6    0        0        1   ▇▁▁▁▂
-##  7   25       29       36   ▁▃▇▇▃
-##  8   25       29       36   ▁▂▇▇▅
-##  9   25       28       36   ▁▁▅▇▂
-## 10   25       28       36   ▁▁▅▇▃
-## 11   14       15       19   ▁▁▁▇▂
-## 12 2012     2017     2024   ▇▇▇▅▃
-## 13 2013     2017     2025   ▇▇▆▃▂
-## 14    0.241    0.260   16.6 ▇▁▁▁▁
-## 
-## [[4]]
-## ── Data Summary ────────────────────────
-##                            Values                      
-## Name                       data_list[[x]][["training...
-## Number of rows             24632                       
-## Number of columns          21                          
-## _______________________                                
-## Column type frequency:                                 
-##   character                7                           
-##   numeric                  14                          
-## ________________________                               
-## Group variables            None                        
-## 
-## ── Variable type: character ────────────────────────────────────────────────────
-##   skim_variable       n_missing complete_rate min max empty n_unique whitespace
-## 1 course                      0             1   7   9     0       58          0
-## 2 SEX                         0             1   1   1     0        2          0
-## 3 FIRST_GEN_STATUS_CD         0             1   1   1     0        3          0
-## 4 ETHNICITY                   0             1   1   1     0        9          0
-## 5 RESSTAT                     0             1   1   1     0        2          0
-## 6 HSPRIVATE                   0             1   1   1     0        2          0
-## 7 season                      0             1   4   6     0        3          0
-## 
-## ── Variable type: numeric ──────────────────────────────────────────────────────
-##    skim_variable n_missing complete_rate     mean     sd       p0      p25
-##  1 GRADEGPA              0             1    2.91   1.21     0        2.3  
-##  2 FA_PELL               0             1    0.203  0.402    0        0    
-##  3 AGE                   0             1   18.2    0.751   14       18    
-##  4 APCREDIT              0             1   10.1   13.8      0        0    
-##  5 HSGPA                 0             1    3.64   0.352    1.18     3.43 
-##  6 HONORS                0             1    0.194  0.396    0        0    
-##  7 ACTCOMP               0             1   25.6    4.38    11       22    
-##  8 ACTENGL               0             1   25.4    5.28     7       22    
-##  9 ACTMATH               0             1   24.9    4.72     1       22    
-## 10 ACTSCI                0             1   25.3    4.68     2       22    
-## 11 load                  0             1   13.7    2.27     2       13    
-## 12 cohort_year           0             1 2013.     5.29  2005     2009    
-## 13 class_year            0             1 2013.     5.25  2005     2009    
-## 14 yr_diff               0             1    0.536  0.894   -0.397    0.240
-##         p50      p75   p100 hist 
-##  1    3.3      4        4   ▂▁▂▃▇
-##  2    0        0        1   ▇▁▁▁▂
-##  3   18       18       37   ▇▁▁▁▁
-##  4    3       16       89   ▇▂▁▁▁
-##  5    3.74     3.93     4   ▁▁▁▂▇
-##  6    0        0        1   ▇▁▁▁▂
-##  7   25       29       36   ▁▃▇▆▂
-##  8   25       29       36   ▁▂▇▇▅
-##  9   25       28       36   ▁▁▅▇▂
-## 10   25       28       36   ▁▁▅▇▃
-## 11   14       15       19   ▁▁▃▇▂
-## 12 2012     2017     2024   ▇▇▇▅▃
-## 13 2013     2017     2025   ▇▇▇▅▃
-## 14    0.241    0.260   16.6 ▇▁▁▁▁
+##    skim_variable n_missing complete_rate     mean     sd        p0      p25
+##  1 GRADEGPA              0             1    2.85   1.22     0         2    
+##  2 class_year            0             1 2015.     4.99  2006      2011    
+##  3 FA_PELL               0             1    0.220  0.414    0         0    
+##  4 APCREDIT              0             1    7.06  12.2      0         0    
+##  5 HSGPA                 0             1    3.62   0.341    1.07      3.41 
+##  6 HONORS                0             1    0.161  0.367    0         0    
+##  7 ACTCOMP               0             1   25.0    4.30    11        22    
+##  8 ACTENGL               0             1   24.8    5.26     7        21    
+##  9 ACTMATH               0             1   24.4    4.56     1        21    
+## 10 ACTSCI                0             1   24.9    4.52     2        22    
+## 11 cohort_year           0             1 2015.     5.08  2005      2010    
+## 12 yr_diff               0             1    0.503  0.795   -0.397     0.241
+## 13 course_level          0             1    1.03   0.162    1         1    
+## 14 dist_fail             0             1    1.45   0.758    0         0.918
+## 15 dist_pass             0             1    1.29   0.826    0.0141    0.702
+## 16 signed_dist           0             1    0.158  0.688   -2.91     -0.414
+##         p50      p75    p100 hist 
+##  1    3.3      4        4    ▂▁▂▃▇
+##  2 2015     2019     2023    ▆▆▇▇▇
+##  3    0        0        1    ▇▁▁▁▂
+##  4    0       11       85    ▇▁▁▁▁
+##  5    3.71     3.91     4.42 ▁▁▁▇▇
+##  6    0        0        1    ▇▁▁▁▂
+##  7   25       28       36    ▁▅▇▅▂
+##  8   24       28       36    ▁▂▇▆▃
+##  9   24       27       36    ▁▁▅▇▂
+## 10   24       27       36    ▁▁▅▇▂
+## 11 2015     2019     2023    ▅▆▅▇▆
+## 12    0.260    0.260   16.6  ▇▁▁▁▁
+## 13    1        1        2    ▇▁▁▁▁
+## 14    1.37     1.83     8.23 ▇▃▁▁▁
+## 15    1.10     1.68     9.85 ▇▂▁▁▁
+## 16    0.220    0.685    4.02 ▁▅▇▁▁
 ```
 

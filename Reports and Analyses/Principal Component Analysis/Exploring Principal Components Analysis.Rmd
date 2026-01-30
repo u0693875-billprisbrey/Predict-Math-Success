@@ -1,55 +1,46 @@
-# DECISION TREE GRADES vM2
+---
+title: "Exploring Principal Components Analysis"
+author: "Bill Prisbrey"
+date: "2026-01-29"
+output:
+  html_document:
+    keep_md: true
+---
 
-model_version <- "vM2"
-
-# PURPOSE:
-# Finally accomplished a model where I incorporate principal components.
-# Although vM0 and vM1 weren't completed, this one is.
-
-# This model adds three features -- "dist_fail", "dist_pass", and "signed_dist", which
-# are the differences between the pass/fail medoid (separated at 2.4 GPA) and the predicted
-# principal component coordinates of the following year.  "Signed_dist" is the difference 
-# between these distances. These distances were meant to improve on the z-score distances.
-
-# This model used three prior years to calculate the PCA that is used to predict the next year.
-
-# Although the new features are prominently used, R-squared reduced from 0.26 to 0.24.
-# This suggests over-fitting and redundancy.  For the next model, I'll trim out the highly
-# correlated measures.  This result means the extra work in calculating the PCA's 
-# is not paying off.
-
-# Note the brief investigation into the features after the model is trained (below).
-
-# This script will not complete when sourced.  I suspect the package "FactoMiner" is not updated.
+**PURPOSE:** This report describes using principal components analysis in training predictive models (xgboost) to estimate math grades.  
 
 
-# I will attempt again but remove the z-scores and the z-score distance and see where that gets me.
+```{r include=FALSE}
 
-# This improves on vM1 in that I add a row ID to the clean data, and I filter out 
-# a few students who had multiple cohort dates.
+############
+## SET UP ##
+############
 
-# It calculates the PCA per course per year, and per course 
-# for a rolling three years
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
 
-# This should follow the previous steps:
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
 
-# Add a cleaning step (remove five students with multiple cohort dates)
-# Create a row identifier for clean data
-# Derive the principal components for 1 or 3 previous years. (DONE)
-#   Align the signage so the dimensions are consistent (ABANDON)
-#   Extract one PCA per course per "x" years (DONE)
-#   Calculate the centers for passing and failing (DONE)
-# Identify outliers (ABANDON; too few data points in most classes)
-# Predict the principal components for the next year (DONE)
-# Calculate the distances  (DONE)
-# MERGE ON the ROWID (DONE)
-# Train the model (xgboost) (DONE)
-
+library(here)
+library(skimr)
 library(caret)
 library(xgboost)
 library(lubridate)
+#library(ggplot2)
+#library(patchwork)
+#library(kableExtra)
 library(factoextra)
 library(FactoMineR)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+```
+
+```{r}
 
 ##########
 ## LOAD ##
@@ -59,7 +50,13 @@ ftfData <- readRDS(here::here("Data", "Freshman_data.rds"))
 mathCourses <- readRDS(here::here("Data", "FTF_math_data.rds"))
 creditLoad <- readRDS(here::here("Data", "Freshman_career_credit_load.rds"  ))
 
-print("You made it past loading")
+# print("You made it past loading")
+
+
+```
+
+```{r}
+
 
 ##########
 ## PREP ##
@@ -199,7 +196,12 @@ firstCourses$age_cut <- cut(firstCourses$AGE, breaks = c(0,17,18,19,21,100))
 # Age filter
 ageFilter <- firstCourses$AGE > 11
 
-print("Prep complete")
+# print("Prep complete")
+
+
+```
+
+```{r}
 
 ## GRADE TRANSFORMATIONS ## 
 
@@ -282,7 +284,11 @@ firstCourses$grade_quad[loFilter] <-0 # "low_grade"
 
 firstCourses$APCREDIT[is.na(firstCourses$APCREDIT)] <- 0
 
-print("Transformations complete")
+# print("Transformations complete")
+
+```
+
+```{r}
 
 ###########
 ## CLEAN ##
@@ -313,8 +319,11 @@ cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
 cleanData$rowid <- paste("ID",cleanData$TERM, cleanData$EMPLID, cleanData$CATNBR, sep = "_" )
 
 # stop("Stop after cleaning")
-print("Clean complete")
+# print("Clean complete")
 
+```
+
+```{r}
 #############################################  
 ## DISTANCE FROM MEDIAN SUCCESSFUL STUDENT ##  
 #############################################  
@@ -372,8 +381,12 @@ cleanData$dist <- sqrt(
 #    ((courseProximity$HSGPA - courseProximity$HSGPA.median)/courseProximity$HSGPA.stdev)^2
 # )
 
-print("Z-scores added")
-stop("Starting principal components")
+# print("Z-scores added")
+# stop("Starting principal components")
+
+```
+
+```{r}
 
 ##########################  
 ## PRINCIPAL COMPONENTS ##  
@@ -479,7 +492,11 @@ rolling_pca_3 <- lapply(initial_year:final_year, function(loop_year){
 })
 names(rolling_pca_3) <- initial_year:final_year
 
-print("PCA complete")
+# print("PCA complete")
+
+```
+
+```{r}
 
 ## CENTROID DIFF ##
 
@@ -519,7 +536,11 @@ centroidDiff_3 <- lapply(rolling_pca_3, function(loop_yr_list){
   
 })
 
-print(rep("CENTROID DIFF COMPLETE\n",3))
+# print("CENTROID DIFF COMPLETE")
+
+```
+
+```{r}
 
 ## PREDICTIONS ## 
 
@@ -602,8 +623,7 @@ rolling_pred <- lapply(initial_year:(final_year-1), function(loop_year){
 })
 names(rolling_pred) <- (initial_year+1):final_year
 
-print(rep("PREDICTION 1 COMPLETE\n",3))
-
+# print(rep("PREDICTION 1 COMPLETE\n",3))
 
 pca_list <- rolling_pca_3
 
@@ -683,30 +703,35 @@ rolling_pred_3 <- lapply(initial_year:(final_year-1), function(loop_year){
 })
 names(rolling_pred_3) <- (initial_year+1):final_year
 
-print("PCA predictions complete") 
 
-print(rep("PREDICTION 2 COMPLETE\n",3))
+# print("PCA predictions complete") 
 
-## EXTRACTING AND MERGING DATA ## 
+```
+
+```{r}
+
+#####################################
+## EXTRACTING AND MERGING DISTANCE ##
+#####################################
 
 year_distance <- list()
 yr_inc <- 0
-for(year_name in names(rolling_pred_3)){ 
+for(year_name in names(rolling_pred)){ 
   yr_inc <- yr_inc + 1
   
   course_distances <- list()
   course_inc <- 0
-  for(course_name in names(rolling_pred_3[[year_name]]) ) {
+  for(course_name in names(rolling_pred[[year_name]]) ) {
     
     course_inc <- course_inc + 1
     
     #print(paste(i, inc))
     
-    if( all(is.na(rolling_pred_3[[year_name]][[course_inc]]) ) ) { 
+    if( all(is.na(rolling_pred[[year_name]][[course_inc]]) ) ) { 
       
       course_distances[[course_inc]] <- NA } else {
         
-        course_distances[[course_inc]] <- rolling_pred_3[[year_name]][[course_inc]][["distance"]] 
+        course_distances[[course_inc]] <- rolling_pred[[year_name]][[course_inc]][["distance"]] 
         
       }
     
@@ -720,7 +745,6 @@ for(year_name in names(rolling_pred_3)){
 
 # ok, looks fine.  FINALLY!
 
-print(rep("DISTANCE EXTRACTED\n",3))
 
 distance_frame <- lapply(year_distance, function(x) {
   
@@ -730,353 +754,217 @@ distance_frame <- lapply(year_distance, function(x) {
   (\(x){ do.call(rbind,x)})() |>
   as.data.frame()
 
+# print("DISTANCE EXTRACTED")
+
 # stop("Distance extracted")
 
 # Merge back into cleanData
-cleanData_orig <- cleanData
+# cleanData_orig <- cleanData
 
 cleanData <- merge(cleanData, as.data.frame(distance_frame), by = "row.names",all.x = TRUE)
 row.names(cleanData) <- cleanData$Row.names
 cleanData$Row.names <- NULL
 
-####################
-## SELECT COLUMNS ##
-####################
+```
 
-# > colnames(cleanData)
+# EXECUTIVE SUMMARY 
+
+In order to improve predictive accuracy, transforming the data and engineering new features using principal components was attempted.  This was expected to improve on the previous best model due to de-correlating the main variables.
+
+It worked by extracting the principal components in prior years, projecting the target year data onto the prior principal components, and then calculating several distance metrics.
+
+The approach did not improve model accuracy.  Using distances calculated from z-scores resulted in an R-squared value of 0.26, and using distances calculated from principal components also resulted in an R-squared value of 0.26.  Due to the increased computational complexity of extracting principal components for no improvement, the approach is abandoned.
+
+However, the graphical representation from principal components may be instructive.  As well, a comparison in model accuracy between calculating principal components from just one prior year, or from three prior years, found that one prior year was more predictive. This suggests a trend in the data or gradual change over time as opposed to stability.  
 
 
-keepColumns <- c(
- "course"              ,                      
- "class_year"           ,       
-# "TERM"                  ,      
- "EMPLID"                 ,     
-# "class"                ,       
-# "CATNBR"               ,       
-# "TITLE"                ,       
-# "SECTION"              ,       
-# "UNITS"                ,       
-# "GRADE"                ,       
-# "GRADEGPA"             ,       
-# "INSTEMPLID"           ,       
-# "INSTNAME"             ,       
-# "EOTDATE"              ,       
-# "ACADYR"               ,       
-# "TERMEXTRACT"          ,       
-# "MAX_SNAP"             ,       
-# "CENSUSDATE"           ,       
-# "ALT_ID"               ,       
-# "FULLNAME"             ,       
-# "STUDENTCAREER"        ,       
-# "SUBJECT_CD"           ,       
-# "SUBJECT_NAME"         ,       
-# "SUBJECT_LONG"         ,       
-# "SUBJECT_ACAD_ORG_CD"  ,       
-# "CATNBR2"              ,       
-# "CLASSNBR"             ,       
-# "OFFERINGNBR"          ,       
-# "SESSIONCODE"          ,       
-# "COURSECAREER"         ,       
-# "SCHEDFLAG"            ,       
-# "WAUTOENRL"            ,       
-# "AUTOENROLL"           ,       
-# "COMPONENT"            ,       
-# "GENED"                ,       
-# "VARCREDIT"            ,       
-# "CONTRACT"             ,       
-# "DIRECTPAY"            ,       
-# "CORRESPONDENCE"       ,       
-# "ONLINECOURSE"         ,       
-# "IVC"                  ,       
-# "IVC_HYBRID"           ,       
-# "COURSE_MODALITY"      ,       
-# "INSTRUCTION_MODE"     ,       
-# "TELECOURSE"           ,       
-# "STUDYABROAD"          ,       
-# "EDNET"                ,       
-# "HYBRIDCOURSE"         ,       
-# "COURSE_LEVEL"         ,       
-# "USHE_COURSE_LEVEL"    ,       
-# "FISCAL_YEAR_OF_STARTDT" ,       
-# "VP"                     ,     
-# "VP_SHORT"               ,     
-# "VP_FORMAL"              ,     
-# "ACAD_COLLEGE_CD"        ,     
-# "COLLEGE"                ,     
-# "COLLEGE_SHORT"          ,     
-# "COLLEGE_FORMAL"         ,     
-# "ACAD_COLLEGE_REG_SUPP"  ,     
-# "ACAD_COLLEGE_TYPE"           ,    
-# "ACAD_COLLEGE_CIP_CD"         ,
-# "ACAD_DEPARTMENT_CD"          ,
-# "DEPARTMENT"                  ,
-# "DEPARTMENT_SHORT"            ,
-# "DEPARTMENT_FORMAL"           ,
-# "ACAD_DEPARTMENT_REG_SUPP"    ,
-# "ACAD_DEPARTMENT_TYPE"        ,
-# "ACAD_DEPARTMENT_CIP_CD"      ,
-# "ACAD_DIVISION_CD"            ,
-# "DIVISION"                    ,
-# "DIVISION_SHORT"              ,
-# "DIVISION_FORMAL"             ,
-# "ACAD_DIVISION_REG_SUPP"      ,
-# "ACAD_DIVISION_TYPE"          ,
-# "ACAD_DIVISION_CIP_CD"        ,
-# "VP_CD"                       ,
-# "COLLEGE_CD"                  ,
-# "DEPARTMENT_CD"               ,
-# "DIVISION_CD"                 ,
-# "ROLLUP_SORT_ORDER"           ,
-# "PS_ACAD_ORG"                 ,
-# "PS_ACAD_GROUP"               ,
-# "CAMPUS"                      ,
-# "COURSE_CAMPUS"               ,
-# "USHE_SITE_TYPE_CD"           ,
-# "USHE_SITE_TYPE"              ,
-# "ONOFFCAMPUS"                 ,
-# "COURSELOCATION"              ,
-# "CONTACTMINUTES"              ,
-# "TEAMTAUGHT"                  ,
-# "XLIST"                       ,
-# "BEGTIME1"                    ,
-# "BEGTIME2"                    ,
-# "BEGTIME3"                    ,
-# "DAYS1"                       ,
-# "DAYS2"                       ,
-# "DAYS3"                       ,
-# "ENDTIME1"                    ,
-# "ENDTIME2"                    ,
-# "ENDTIME3"                    ,
-# "CLASSLOC1"                   ,
-# "CLASSLOC2"                   ,
-# "CLASSLOC3"                   ,
-# "CLASSLOCBUILDNAME1"          ,
-# "CLASSLOCBUILDROOM1"          ,
-# "CLASSLOCBUILDNAME2"          ,
-# "CLASSLOCBUILDROOM2"          ,
-# "CLASSLOCBUILDNAME3"          ,
-# "CLASSLOCBUILDROOM3"          ,
-# "STARTDT"                     ,
-# "ENDDT"                       ,
-# "BUDGETCODE"                  ,
-# "LINEITEM"                    ,
-# "SERVICELEARNING"             ,
-# "XLIST_ID"                    ,
-# "COMBINEDID"                  ,
-# "USHE_ACADYR"                 ,
-# "USHE_TERM"                   ,
-# "TERM2"                       ,
-# "ORG_EFFDT"                   ,
-# "CLASSENROLLMENTCAPACITY"     ,
-# "ROOM_MAX_1"                  ,
-# "ROOM_MAX_2"                  ,
-# "ROOM_MAX_3"                  ,
-# "TERM_NBR"                    ,
-# "CLASS_ATTR_LIST"             ,
-# "EXCLUDE_BUDGET_SCH"             ,
-# "SPR_CORRECTION_NOT_USHE_FLAG"   ,
-# "Section Divider: OLD"           ,
-# "SUBJECTCOLL"                    ,
-# "SUBJECT"                     ,
-# "class.1"                     ,
-# "minTerm"                     ,
-# "COHORT_DT"                   ,
- "SEX"                         ,
- "FIRST_GEN_STATUS_CD"         ,
- "ETHNICITY"                   ,
- "RESSTAT"                     ,
- "FA_PELL"                     ,
-# "AGE"                         ,
- "APCREDIT"                    ,
- "HSGPA"                       ,
- "HSPRIVATE"                   ,
- "HONORS"                      ,
- "ACTCOMP"                     ,
- "ACTENGL"                     ,
- "ACTMATH"                     ,
- "ACTSCI"                      ,
-# "load"                        ,
- "cohort_year"                 ,
- "yr_diff"                     ,
- "season"                      ,
- "course_level"                ,
-# "vol_cluster"                 ,
- "age_cut"                     ,
- "cleanGrade"                  ,
-# "wdraw_binary"                ,
-# "grade_binary"                ,
-# "grade_trinary"               ,
-# "grade_quad"                  ,
-# "rowid"                       ,
-# "class_year.y"                ,
-# "ACTMATH.median"              ,
-# "ACTMATH.stdev"               ,
-# "HSGPA.median"                ,
-# "HSGPA.stdev"                 ,
-# "HSGPA.count"                 ,
- "ACTMATH.z"                   ,
- "HSGPA.z"                     ,
- "dist"                        ,
- "dist_fail"                   ,
- "dist_pass"                   ,
- "signed_dist"
+# APPROACH  
+
+The two leading predictors for math grades are the high school GPA and the ACT math test scores.  Previously, these scores were first filtered to just the values for "successful" students (a grade greater than 2.4), next standardized to derive a z-score centered on that filtered median, and finally a Euclidean distance was calculated.  The median-centered z-score was calculated for the prior year, and the distance was calculated for the upcoming year.
+
+However, although the two scores are correlated, the z-scores were calculated independently.  By both de-correlating the variables, and constructing additional features, an improvement on the predictive model accuracy was anticipated. 
+
+The following steps were observed:
+
+  * An additional cleaning step was added (where a few dozen students were removed due to having multiple cohort dates).
+  * Principal components were derived per course from ACT Math test scores and high school GPA.
+    - Components were derived on a rolling basis of one or three years  
+  * Component medians for passing or failing were calculated, where passing was a math grade of 2.4 or higher  
+  * Data for the following year were projected onto the principal components derived from prior data. 
+  * The Euclidean distance for values in that following year and the prior component medians was calculated.
+  * The difference in the distances was calculated.
+  
+This resulted in three new variables: dist_pass (the distance to the component medians of prior successful students), dist_fail (the distance to the component medians of prior failed students), and the difference (signed_dist, calculated as dist_fail - dist_pass).
+
+These new variables were then passed into a training model (extreme gradient boosting) where data from years less than the year 2024 were used for training, and data from the year 2024 were used for testing. R-squared and mean absolute error were compared. 
+
+# DESCRIPTION 
+
+### Original values compared to principal components
+
+```{r}
+
+plotCourseFilter <- cleanData$course == "MATH_1090" & !is.na(cleanData$course )
+plotYearFilter <- cleanData$class_year == 2023 & !is.na(cleanData$class_year)
+actPlotFilter <- !is.na(cleanData$ACTMATH)
+  
+plotFilter <- plotCourseFilter & plotYearFilter & actPlotFilter
+
+plot(y=cleanData$ACTMATH[plotFilter],
+     x = cleanData$HSGPA[plotFilter],
+     pch = ifelse(cleanData$GRADEGPA[plotFilter] > 2.4, 17, 16 ),
+     col = ifelse(cleanData$GRADEGPA[plotFilter] > 2.4, "darkturquoise", "firebrick" ),
+     main = "Raw Data\nMath 1090 from 2023 (where 'Pass' is >2.4 GPA)",
+     ylab = "ACT MATH",
+     xlab = "High school GPA"
+     )
+legend("topleft",
+       legend = c("Pass", "Fail"),
+       pch = c(17,16),
+       col = c("darkturquoise","firebrick"))
+
+
+p <- fviz_pca_biplot(rolling_pca[["2023"]][["MATH_1090"]], 
+                label = "var",
+                habillage = 4,
+              #  addEllipses = TRUE,
+                mean.point = TRUE,
+                mean.point.size = 5,
+                title = "Principal Components\nMath 1090 from 2023 (where 'Pass' is >2.4 GPA)")
+
+p$layers[[5]] <- NULL
+p
+
+```
+   
+### 2024 data projected onto the prior principal components   
+   
+```{r}
+
+plot(x = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]] [["coord"]][,"Dim.1"],
+     y = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]][["coord"]][,"Dim.2"],
+col = "gray35",
+ pch = 16,
+ylab = "Dim.2",
+xlab = "Dim.1",
+main = "Predicted incoming 2024 components for Math 1090")
+
+library(RColorBrewer)
+vals <- rolling_pred[["2024"]][["MATH_1090"]][["distance"]][,"signed_dist"]
+cols <- colorRampPalette((brewer.pal(11, "RdYlBu")))(100)[
+  cut(vals, breaks = quantile(vals, probs = seq(0, 1, length.out = 101)), 
+      labels = FALSE, include.lowest = TRUE)
+]
+
+#cols <- colorRampPalette(c("firebrick", "darkturquoise"))(100)[
+#  cut(rolling_pred[["2024"]][["MATH_1090"]][["distance"]][,"signed_dist"],
+#      breaks = 100, labels = FALSE)
+#]
+
+plot(x = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]] [["coord"]][,"Dim.1"],
+     y = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]][["coord"]][,"Dim.2"],
+col = cols,
+ pch = 16,
+ylab = "Dim.2",
+xlab = "Dim.1",
+main = "2024 data projected onto prior components for Math 1090\ncolored by signed distance")
+
+
+# It would be nice to plot the "actual" now, with maybe a square or circle around each point that is bright red or bright green
+
+# that would take a little data wrangling though
+
+
+
+```
+    
+### Components from different rolling periods 
+
+```{r}
+
+plot(x = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]] [["coord"]][,"Dim.1"],
+     y = rolling_pred[["2024"]][["MATH_1090"]][["course_pred"]][["coord"]][,"Dim.2"],
+col = "darkorange3",
+ pch = 16,
+ylab = "Dim.2",
+xlab = "Dim.1",
+main = "2024 data projected onto prior components for Math 1090\nwith different rolling periods")
+
+points(
+  x = rolling_pred_3[["2024"]][["MATH_1090"]][["course_pred"]] [["coord"]][,"Dim.1"],
+     y = rolling_pred_3[["2024"]][["MATH_1090"]][["course_pred"]][["coord"]][,"Dim.2"],
+col = "purple",
+ pch = 1,
+  
 )
 
-###########
-## TRAIN ##
-###########
+legend("topright",
+       legend = c("Rolling 1 yr period", "Rolling 3 yr period"),
+       pch = c(16,1),
+       col = c("darkorange3", "purple"),
+       pt.cex = 2)
+
+legend("bottomright",
+       legend = NA,
+       bty = "n",
+       title = "Projections are slightly different.",
+       title.font = 3)
+
+```
 
 
-# Initially take a subset
-set.seed(123)
-# subIndex <- createDataPartition(cleanData$cleanGrade, p = 0.7, list = FALSE)
+### Correlations
 
-# No subset
+```{r}
 
-# popSample <- cleanData[subIndex, keepColumns]
-
-# No missing values
-# popSample <- popSample[complete.cases(popSample),]
-
-# stop("Work on sampling")
-
-# let's loop through this 
-
-xgb.set.config(verbosity = 0)   # 0 = silent, 1 = warning, 2 = info, 3 = debug
-
-target_classes <- "GRADEGPA"
-
-lapply(target_classes,
-       
-      
-       function(target){
-         
-         # establish sample of complete cases
-         popSample <- cleanData[  , c(target,keepColumns)] |> # no sampling index 
-           (\(x){x[complete.cases(x),]})()
-         
-         ## SPLIT ##  
-         
-         # Use cleanGrade to partition on, but drop it for the test and train data
-         # trainIndex <- createDataPartition(popSample$cleanGrade, p = 0.8, list = FALSE)
-         
-         # Use class_year 2024 and 2025 as the test set
-         trainIndex <- which(popSample$class_year < 2024)
-         
-         trainData <- popSample[trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade","EMPLID") )])]
-         testData  <- popSample[-trainIndex, c(target, keepColumns[-which(keepColumns %in% c("cleanGrade", "EMPLID") )])]
-         
-         #       return(list(training = trainData, testing = testData))
-         
-         theData <- list(training = trainData, testing = testData, trainID = popSample$EMPLID[trainIndex], testID = popSample$EMPLID[-trainIndex] )
-         
-         #     })
-         
-         
-         saveRDS(theData, here::here("Data", paste("Decision Tree", model_version, target, "Data.rds")))
-         
-         
-         ## TRAIN ##  
-         
-         startTime <- Sys.time()
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         print(paste("STARTING", target, "AT", startTime,"\n"))
-         
-         # Establish weighting
-         
-         targetCol <- trainData[[target]]
-         
-         # Compute inverse-frequency weights automatically
-         weights_map <- 1 / prop.table(table(targetCol))
-         weights_map <- weights_map / mean(weights_map)  # normalize around 1
-         weights <- weights_map[as.character(targetCol)]
-         
-         # regression
-         ctrl <- trainControl(
-           method = "cv",
-           number = 5,
-           summaryFunction = defaultSummary
-         )
-         
-         xgb_grid <- expand.grid(
-           nrounds = 600,          # scale boosting rounds for dataset size
-           eta = c(0.05, 0.1),     # conservative learning rates
-           max_depth = c(4, 6),    # tree depth
-           gamma = 0,              # minimal regularization
-           colsample_bytree = 0.8, # prevent overfitting
-           min_child_weight = 1,
-           subsample = 0.8
-         )
-         
-         
-         #   if (is.numeric(targetCol)) {
-         #     # regression
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       summaryFunction = defaultSummary
-         #     );
-         #   } else if (is.factor(targetCol) && nlevels(targetCol) == 2) {
-         #     # binary classification
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       classProbs = TRUE,
-         #       sampling = "smote",
-         #       summaryFunction = twoClassSummary
-         #     )
-         #   } else {
-         #     # multiclass classification
-         #     ctrl <- trainControl(
-         #       method = "cv",
-         #       number = 5,
-         #       classProbs = TRUE,
-         #       summaryFunction = multiClassSummary
-         #     )
-         #   }
-         
-         
-         
-         fit <- 
-           suppressWarnings(
-             train(
-               reformulate(".", response = target), 
-               data = trainData,
-               method = "xgbTree",
-               trControl = ctrl,
-               preProcess = c("zv", "nzv", "center", "scale", "knnImpute"),
-               tuneGrid = xgb_grid,
-               weights = weights            
-             )
-           )
-         
-         endTime <- Sys.time()
-         
-         print(endTime-startTime)
-         print(endTime-startTime)
-         print(endTime-startTime)
-         
-         saveRDS(fit, here::here("Models", paste("Decision Tree", model_version, target, "model.rds")))
-         
-         library(beepr)
-         beep(8); Sys.sleep(6); #beep(0); Sys.sleep(3); beep(0)
-         
-       })
-
-# Feature investigation
-
-cor_matrix <- cor(cleanData[,c("dist_fail","dist_pass","signed_dist","dist","HSGPA.z", "ACTMATH.z", "HSGPA", "ACTMATH")], use = "pairwise.complete.obs")
+cor_matrix <- cor(cleanData[actFilter,c("dist_fail","dist_pass","signed_dist","dist","HSGPA.z", "ACTMATH.z", "HSGPA", "ACTMATH")], use = "pairwise.complete.obs")
 high_cors <- which(abs(cor_matrix) > 0.7 & cor_matrix < 1, arr.ind = TRUE)
-heatmap(cor_matrix)
+heatmap(cor_matrix, main = "Correlation between distance variables")
 
-# > cor_matrix
-#              dist_fail  dist_pass signed_dist        dist     HSGPA.z   ACTMATH.z       HSGPA     ACTMATH
-# dist_fail   1.00000000  0.6333184   0.3290889  0.47233140  0.05139733  0.25937993  0.11426550  0.21878621
-# dist_pass   0.63331842  1.0000000  -0.5223667  0.89230111 -0.52440183 -0.10814657 -0.49713293 -0.14789398
-# signed_dist 0.32908886 -0.5223667   1.0000000 -0.56190007  0.71009871  0.42527763  0.73802148  0.42508158
-# dist        0.47233140  0.8923011  -0.5619001  1.00000000 -0.73283340 -0.09684426 -0.54942159 -0.08039409
-# HSGPA.z     0.05139733 -0.5244018   0.7100987 -0.73283340         NaN  0.11627569         NaN  0.03684143
-# ACTMATH.z   0.25937993 -0.1081466   0.4252776 -0.09684426  0.11627569  1.00000000  0.08852948  0.63570368
-# HSGPA       0.11426550 -0.4971329   0.7380215 -0.54942159         NaN  0.08852948  1.00000000  0.33290744
-# ACTMATH     0.21878621 -0.1478940   0.4250816 -0.08039409  0.03684143  0.63570368  0.33290744  1.00000000
+# cor_matrix |> 
+#  round(2) |>
+#  kbl()
+
+```
+
+
+
+```{r}
+
+plot(y = cleanData$dist_pass, 
+     x= cleanData$dist,
+     col = "gray40",
+     ylab = "Distance to 'pass' medoid using Principal component 1",
+     xlab = "Distance to 'pass' medoid using z-scores",
+     main = "As expected, 'successful' distance calculated from principal components\nis highly correlated with distance calculated from z-scores",
+     xlim = c(0,20))
+
+corVal <- cor(cleanData$dist_pass, cleanData$dist, use = "complete.obs")
+
+text(y = 8,
+     x = 30,
+     labels = paste("Correlation of ", 100*round(corVal,2), "%", sep = ""),
+     font = 3)
+
+legend("topright",
+       title = paste("Correlation of ", 100*round(corVal,2), "%", sep = ""),
+       legend = c(NA),
+       bty = "n",
+       title.font = 4,
+       title.cex = 1.1)
+
+```
+
+
+# MODEL TRAINING RESULTS 
+
+Model | Variable Set | Rolling Period | R-squared | Mean Absolute Error
+------|--------------|----------------|-----------|--------------------
+vH3 | Z-scores | 1 yr | 0.26 | 0.81
+vM2 | Both | 3 yrs | 0.24  | 0.81
+vM3 | PCA | 3 yrs | 0.23 | 0.84 
+vM4 | PCA | 1 yr | 0.26 | 0.82
+
+
+Due to an inability to improve on predictive accuracy using z-scores, deriving a "distance" measure from principal components is abandoned.
+

@@ -2,10 +2,9 @@
 title: "Evaluate Grade Decision Trees using `r params$version` models"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 params: 
-  version: "vH0"
+  version: "vM2"
   target_classes: 
     - GRADEGPA
-    - grade_quad
 output:
   html_document:
     keep_md: true

@@ -1,49 +1,31 @@
-# DECISION TREE GRADES vM2
+# DECISION TREE GRADES vM4
 
-model_version <- "vM2"
+model_version <- "vM4"
 
 # PURPOSE:
-# Finally accomplished a model where I incorporate principal components.
-# Although vM0 and vM1 weren't completed, this one is.
+# Perform a model that only uses the principal component derivatives and 
+# removes the z-score derivatives
 
-# This model adds three features -- "dist_fail", "dist_pass", and "signed_dist", which
+# This model uses a rolling PCA calculated from one prior year.
+
+# This model includes three features -- "dist_fail", "dist_pass", and "signed_dist", which
 # are the differences between the pass/fail medoid (separated at 2.4 GPA) and the predicted
 # principal component coordinates of the following year.  "Signed_dist" is the difference 
 # between these distances. These distances were meant to improve on the z-score distances.
 
-# This model used three prior years to calculate the PCA that is used to predict the next year.
+# This model removes z-scores and their derivative: "ACTMATH.z", "HSGPA.z", and "dist"
 
-# Although the new features are prominently used, R-squared reduced from 0.26 to 0.24.
-# This suggests over-fitting and redundancy.  For the next model, I'll trim out the highly
-# correlated measures.  This result means the extra work in calculating the PCA's 
-# is not paying off.
+# This model matched the z-scores (vH3) (R^2 of 0.26 for both.)
+# It improved on the model that used three rolling years.
 
-# Note the brief investigation into the features after the model is trained (below).
+# The superiority of one year over three years suggests a system under change,
+# or a system that is not stable.   It could be useful to use both predictions
+# as a kind of range, except I'm probably not accurate enough for that to matter.
+
 
 # This script will not complete when sourced.  I suspect the package "FactoMiner" is not updated.
 
 
-# I will attempt again but remove the z-scores and the z-score distance and see where that gets me.
-
-# This improves on vM1 in that I add a row ID to the clean data, and I filter out 
-# a few students who had multiple cohort dates.
-
-# It calculates the PCA per course per year, and per course 
-# for a rolling three years
-
-# This should follow the previous steps:
-
-# Add a cleaning step (remove five students with multiple cohort dates)
-# Create a row identifier for clean data
-# Derive the principal components for 1 or 3 previous years. (DONE)
-#   Align the signage so the dimensions are consistent (ABANDON)
-#   Extract one PCA per course per "x" years (DONE)
-#   Calculate the centers for passing and failing (DONE)
-# Identify outliers (ABANDON; too few data points in most classes)
-# Predict the principal components for the next year (DONE)
-# Calculate the distances  (DONE)
-# MERGE ON the ROWID (DONE)
-# Train the model (xgboost) (DONE)
 
 library(caret)
 library(xgboost)
@@ -519,7 +501,7 @@ centroidDiff_3 <- lapply(rolling_pca_3, function(loop_yr_list){
   
 })
 
-print(rep("CENTROID DIFF COMPLETE\n",3))
+print("CENTROID DIFF COMPLETE")
 
 ## PREDICTIONS ## 
 
@@ -605,108 +587,29 @@ names(rolling_pred) <- (initial_year+1):final_year
 print(rep("PREDICTION 1 COMPLETE\n",3))
 
 
-pca_list <- rolling_pca_3
-
-no_of_years <- 3
-initial_year <- min(cleanData$class_year)+no_of_years - 1
-final_year <- max(cleanData$class_year)
-
-rolling_pred_3 <- lapply(initial_year:(final_year-1), function(loop_year){
-  
-  # Set filters
-  target_yr_filter <- (cleanData$class_year %in% (loop_year + 1)) & !is.na(cleanData$class_year)
-  loop_yr_filter <- cleanData$class_year %in% (loop_year - no_of_years +1 ):(loop_year) & !is.na(cleanData$class_year)
-  courses_in_loop_yr <- unique(cleanData$course[loop_yr_filter & actFilter & hsgpaFilter])
-  courses_in_target_yr <- unique(cleanData$course[target_yr_filter & actFilter & hsgpaFilter]) 
-  common_courses <- intersect(courses_in_loop_yr, courses_in_target_yr) |> as.character()
-  
-  per_course_pred <- lapply(common_courses, function(loop_course){ 
-    
-    # print(loop_course)
-    
-    courseFilter <- cleanData$course == loop_course & !is.na(cleanData$course)  
-    
-    course_data <- cleanData[
-      target_yr_filter & courseFilter & actFilter
-      , c("ACTMATH","HSGPA")] |> droplevels()
-    
-    #  course_data_check <- cleanData[
-    #    loop_yr_filter & courseFilter & actFilter
-    #    , c("ACTMATH","HSGPA", "GRADEGPA", "class_year","course")] |> droplevels()
-    
-    #  course_data$PassFail <- ifelse(course_data$GRADEGPA >= 2.4, "Pass", "Fail")
-    
-    if(nrow(course_data) < 1){ return(NA) }
-    if(any(is.na(pca_list[[as.character(loop_year)]][[loop_course]])) | any(is.null(pca_list[[as.character(loop_year)]][[loop_course]]))  ) {return(NA)}
-    
-    # predict(perCourse_pca[[math_course]], cleanData[yrFilter_2024 & loop_course_filter, c("HSGPA","ACTMATH") ])
-    
-    course_pred <- predict(pca_list[[as.character(loop_year)]][[loop_course]],
-                           course_data) # |> 
-    # flipPCA(vars_to_check = c("HSGPA", "ACTMATH")) # to ensure consistent sign application
-    
-    # CALCULATE THE DISTANCE      
-    
-    prior_coord <- cbind(pca_list[[as.character(loop_year)]][[loop_course]]$ind$coord, pca_list[[as.character(loop_year)]][[loop_course]]$ind$dist, pca_list[[as.character(loop_year)]][[loop_course]]$call$X)
-    
-    dim1_med <- aggregate(Dim.1 ~ PassFail, data = prior_coord, FUN = median)
-    dim2_med <- aggregate(Dim.2 ~ PassFail, data = prior_coord, FUN = median)
-    
-    dist_fail <- sqrt( (course_pred$coord[,"Dim.1"] - dim1_med[1,2])^2 +
-                         (course_pred$coord[,"Dim.2"] - dim2_med[1,2])^2
-    )
-    
-    dist_pass <- sqrt(
-      (course_pred$coord[,"Dim.1"] - dim1_med[2,2])^2 + 
-        (course_pred$coord[,"Dim.2"] - dim2_med[2,2])^2
-    )
-    
-    
-    signed_dist <- dist_fail - dist_pass 
-    
-    
-    
-    
-    return(
-      list(course_pred = course_pred,
-           distance = cbind(dist_fail, dist_pass, signed_dist),
-           prior_median = c(dim1_med, dim2_med),
-           target_yr = unique(cleanData$class_year[target_yr_filter]),
-           course = loop_course,
-           prior_coord = prior_coord
-      )
-    )
-    
-  })
-  names(per_course_pred) <- common_courses
-  return(per_course_pred)
-})
-names(rolling_pred_3) <- (initial_year+1):final_year
 
 print("PCA predictions complete") 
-
-print(rep("PREDICTION 2 COMPLETE\n",3))
 
 ## EXTRACTING AND MERGING DATA ## 
 
 year_distance <- list()
 yr_inc <- 0
-for(year_name in names(rolling_pred_3)){ 
+for(year_name in names(rolling_pred)){ 
   yr_inc <- yr_inc + 1
   
   course_distances <- list()
   course_inc <- 0
-  for(course_name in names(rolling_pred_3[[year_name]]) ) {
+  for(course_name in names(rolling_pred[[year_name]]) ) {
     
     course_inc <- course_inc + 1
     
     #print(paste(i, inc))
     
-    if( all(is.na(rolling_pred_3[[year_name]][[course_inc]]) ) ) { 
+    if( all(is.na(rolling_pred[[year_name]][[course_inc]]) ) ) { 
       
       course_distances[[course_inc]] <- NA } else {
         
-        course_distances[[course_inc]] <- rolling_pred_3[[year_name]][[course_inc]][["distance"]] 
+        course_distances[[course_inc]] <- rolling_pred[[year_name]][[course_inc]][["distance"]] 
         
       }
     
@@ -720,7 +623,6 @@ for(year_name in names(rolling_pred_3)){
 
 # ok, looks fine.  FINALLY!
 
-print(rep("DISTANCE EXTRACTED\n",3))
 
 distance_frame <- lapply(year_distance, function(x) {
   
@@ -730,10 +632,12 @@ distance_frame <- lapply(year_distance, function(x) {
   (\(x){ do.call(rbind,x)})() |>
   as.data.frame()
 
+print("DISTANCE EXTRACTED")
+
 # stop("Distance extracted")
 
 # Merge back into cleanData
-cleanData_orig <- cleanData
+# cleanData_orig <- cleanData
 
 cleanData <- merge(cleanData, as.data.frame(distance_frame), by = "row.names",all.x = TRUE)
 row.names(cleanData) <- cleanData$Row.names
@@ -747,179 +651,179 @@ cleanData$Row.names <- NULL
 
 
 keepColumns <- c(
- "course"              ,                      
- "class_year"           ,       
-# "TERM"                  ,      
- "EMPLID"                 ,     
-# "class"                ,       
-# "CATNBR"               ,       
-# "TITLE"                ,       
-# "SECTION"              ,       
-# "UNITS"                ,       
-# "GRADE"                ,       
-# "GRADEGPA"             ,       
-# "INSTEMPLID"           ,       
-# "INSTNAME"             ,       
-# "EOTDATE"              ,       
-# "ACADYR"               ,       
-# "TERMEXTRACT"          ,       
-# "MAX_SNAP"             ,       
-# "CENSUSDATE"           ,       
-# "ALT_ID"               ,       
-# "FULLNAME"             ,       
-# "STUDENTCAREER"        ,       
-# "SUBJECT_CD"           ,       
-# "SUBJECT_NAME"         ,       
-# "SUBJECT_LONG"         ,       
-# "SUBJECT_ACAD_ORG_CD"  ,       
-# "CATNBR2"              ,       
-# "CLASSNBR"             ,       
-# "OFFERINGNBR"          ,       
-# "SESSIONCODE"          ,       
-# "COURSECAREER"         ,       
-# "SCHEDFLAG"            ,       
-# "WAUTOENRL"            ,       
-# "AUTOENROLL"           ,       
-# "COMPONENT"            ,       
-# "GENED"                ,       
-# "VARCREDIT"            ,       
-# "CONTRACT"             ,       
-# "DIRECTPAY"            ,       
-# "CORRESPONDENCE"       ,       
-# "ONLINECOURSE"         ,       
-# "IVC"                  ,       
-# "IVC_HYBRID"           ,       
-# "COURSE_MODALITY"      ,       
-# "INSTRUCTION_MODE"     ,       
-# "TELECOURSE"           ,       
-# "STUDYABROAD"          ,       
-# "EDNET"                ,       
-# "HYBRIDCOURSE"         ,       
-# "COURSE_LEVEL"         ,       
-# "USHE_COURSE_LEVEL"    ,       
-# "FISCAL_YEAR_OF_STARTDT" ,       
-# "VP"                     ,     
-# "VP_SHORT"               ,     
-# "VP_FORMAL"              ,     
-# "ACAD_COLLEGE_CD"        ,     
-# "COLLEGE"                ,     
-# "COLLEGE_SHORT"          ,     
-# "COLLEGE_FORMAL"         ,     
-# "ACAD_COLLEGE_REG_SUPP"  ,     
-# "ACAD_COLLEGE_TYPE"           ,    
-# "ACAD_COLLEGE_CIP_CD"         ,
-# "ACAD_DEPARTMENT_CD"          ,
-# "DEPARTMENT"                  ,
-# "DEPARTMENT_SHORT"            ,
-# "DEPARTMENT_FORMAL"           ,
-# "ACAD_DEPARTMENT_REG_SUPP"    ,
-# "ACAD_DEPARTMENT_TYPE"        ,
-# "ACAD_DEPARTMENT_CIP_CD"      ,
-# "ACAD_DIVISION_CD"            ,
-# "DIVISION"                    ,
-# "DIVISION_SHORT"              ,
-# "DIVISION_FORMAL"             ,
-# "ACAD_DIVISION_REG_SUPP"      ,
-# "ACAD_DIVISION_TYPE"          ,
-# "ACAD_DIVISION_CIP_CD"        ,
-# "VP_CD"                       ,
-# "COLLEGE_CD"                  ,
-# "DEPARTMENT_CD"               ,
-# "DIVISION_CD"                 ,
-# "ROLLUP_SORT_ORDER"           ,
-# "PS_ACAD_ORG"                 ,
-# "PS_ACAD_GROUP"               ,
-# "CAMPUS"                      ,
-# "COURSE_CAMPUS"               ,
-# "USHE_SITE_TYPE_CD"           ,
-# "USHE_SITE_TYPE"              ,
-# "ONOFFCAMPUS"                 ,
-# "COURSELOCATION"              ,
-# "CONTACTMINUTES"              ,
-# "TEAMTAUGHT"                  ,
-# "XLIST"                       ,
-# "BEGTIME1"                    ,
-# "BEGTIME2"                    ,
-# "BEGTIME3"                    ,
-# "DAYS1"                       ,
-# "DAYS2"                       ,
-# "DAYS3"                       ,
-# "ENDTIME1"                    ,
-# "ENDTIME2"                    ,
-# "ENDTIME3"                    ,
-# "CLASSLOC1"                   ,
-# "CLASSLOC2"                   ,
-# "CLASSLOC3"                   ,
-# "CLASSLOCBUILDNAME1"          ,
-# "CLASSLOCBUILDROOM1"          ,
-# "CLASSLOCBUILDNAME2"          ,
-# "CLASSLOCBUILDROOM2"          ,
-# "CLASSLOCBUILDNAME3"          ,
-# "CLASSLOCBUILDROOM3"          ,
-# "STARTDT"                     ,
-# "ENDDT"                       ,
-# "BUDGETCODE"                  ,
-# "LINEITEM"                    ,
-# "SERVICELEARNING"             ,
-# "XLIST_ID"                    ,
-# "COMBINEDID"                  ,
-# "USHE_ACADYR"                 ,
-# "USHE_TERM"                   ,
-# "TERM2"                       ,
-# "ORG_EFFDT"                   ,
-# "CLASSENROLLMENTCAPACITY"     ,
-# "ROOM_MAX_1"                  ,
-# "ROOM_MAX_2"                  ,
-# "ROOM_MAX_3"                  ,
-# "TERM_NBR"                    ,
-# "CLASS_ATTR_LIST"             ,
-# "EXCLUDE_BUDGET_SCH"             ,
-# "SPR_CORRECTION_NOT_USHE_FLAG"   ,
-# "Section Divider: OLD"           ,
-# "SUBJECTCOLL"                    ,
-# "SUBJECT"                     ,
-# "class.1"                     ,
-# "minTerm"                     ,
-# "COHORT_DT"                   ,
- "SEX"                         ,
- "FIRST_GEN_STATUS_CD"         ,
- "ETHNICITY"                   ,
- "RESSTAT"                     ,
- "FA_PELL"                     ,
-# "AGE"                         ,
- "APCREDIT"                    ,
- "HSGPA"                       ,
- "HSPRIVATE"                   ,
- "HONORS"                      ,
- "ACTCOMP"                     ,
- "ACTENGL"                     ,
- "ACTMATH"                     ,
- "ACTSCI"                      ,
-# "load"                        ,
- "cohort_year"                 ,
- "yr_diff"                     ,
- "season"                      ,
- "course_level"                ,
-# "vol_cluster"                 ,
- "age_cut"                     ,
- "cleanGrade"                  ,
-# "wdraw_binary"                ,
-# "grade_binary"                ,
-# "grade_trinary"               ,
-# "grade_quad"                  ,
-# "rowid"                       ,
-# "class_year.y"                ,
-# "ACTMATH.median"              ,
-# "ACTMATH.stdev"               ,
-# "HSGPA.median"                ,
-# "HSGPA.stdev"                 ,
-# "HSGPA.count"                 ,
- "ACTMATH.z"                   ,
- "HSGPA.z"                     ,
- "dist"                        ,
- "dist_fail"                   ,
- "dist_pass"                   ,
- "signed_dist"
+  "course"              ,                      
+  "class_year"           ,       
+  # "TERM"                  ,      
+  "EMPLID"                 ,     
+  # "class"                ,       
+  # "CATNBR"               ,       
+  # "TITLE"                ,       
+  # "SECTION"              ,       
+  # "UNITS"                ,       
+  # "GRADE"                ,       
+  # "GRADEGPA"             ,       
+  # "INSTEMPLID"           ,       
+  # "INSTNAME"             ,       
+  # "EOTDATE"              ,       
+  # "ACADYR"               ,       
+  # "TERMEXTRACT"          ,       
+  # "MAX_SNAP"             ,       
+  # "CENSUSDATE"           ,       
+  # "ALT_ID"               ,       
+  # "FULLNAME"             ,       
+  # "STUDENTCAREER"        ,       
+  # "SUBJECT_CD"           ,       
+  # "SUBJECT_NAME"         ,       
+  # "SUBJECT_LONG"         ,       
+  # "SUBJECT_ACAD_ORG_CD"  ,       
+  # "CATNBR2"              ,       
+  # "CLASSNBR"             ,       
+  # "OFFERINGNBR"          ,       
+  # "SESSIONCODE"          ,       
+  # "COURSECAREER"         ,       
+  # "SCHEDFLAG"            ,       
+  # "WAUTOENRL"            ,       
+  # "AUTOENROLL"           ,       
+  # "COMPONENT"            ,       
+  # "GENED"                ,       
+  # "VARCREDIT"            ,       
+  # "CONTRACT"             ,       
+  # "DIRECTPAY"            ,       
+  # "CORRESPONDENCE"       ,       
+  # "ONLINECOURSE"         ,       
+  # "IVC"                  ,       
+  # "IVC_HYBRID"           ,       
+  # "COURSE_MODALITY"      ,       
+  # "INSTRUCTION_MODE"     ,       
+  # "TELECOURSE"           ,       
+  # "STUDYABROAD"          ,       
+  # "EDNET"                ,       
+  # "HYBRIDCOURSE"         ,       
+  # "COURSE_LEVEL"         ,       
+  # "USHE_COURSE_LEVEL"    ,       
+  # "FISCAL_YEAR_OF_STARTDT" ,       
+  # "VP"                     ,     
+  # "VP_SHORT"               ,     
+  # "VP_FORMAL"              ,     
+  # "ACAD_COLLEGE_CD"        ,     
+  # "COLLEGE"                ,     
+  # "COLLEGE_SHORT"          ,     
+  # "COLLEGE_FORMAL"         ,     
+  # "ACAD_COLLEGE_REG_SUPP"  ,     
+  # "ACAD_COLLEGE_TYPE"           ,    
+  # "ACAD_COLLEGE_CIP_CD"         ,
+  # "ACAD_DEPARTMENT_CD"          ,
+  # "DEPARTMENT"                  ,
+  # "DEPARTMENT_SHORT"            ,
+  # "DEPARTMENT_FORMAL"           ,
+  # "ACAD_DEPARTMENT_REG_SUPP"    ,
+  # "ACAD_DEPARTMENT_TYPE"        ,
+  # "ACAD_DEPARTMENT_CIP_CD"      ,
+  # "ACAD_DIVISION_CD"            ,
+  # "DIVISION"                    ,
+  # "DIVISION_SHORT"              ,
+  # "DIVISION_FORMAL"             ,
+  # "ACAD_DIVISION_REG_SUPP"      ,
+  # "ACAD_DIVISION_TYPE"          ,
+  # "ACAD_DIVISION_CIP_CD"        ,
+  # "VP_CD"                       ,
+  # "COLLEGE_CD"                  ,
+  # "DEPARTMENT_CD"               ,
+  # "DIVISION_CD"                 ,
+  # "ROLLUP_SORT_ORDER"           ,
+  # "PS_ACAD_ORG"                 ,
+  # "PS_ACAD_GROUP"               ,
+  # "CAMPUS"                      ,
+  # "COURSE_CAMPUS"               ,
+  # "USHE_SITE_TYPE_CD"           ,
+  # "USHE_SITE_TYPE"              ,
+  # "ONOFFCAMPUS"                 ,
+  # "COURSELOCATION"              ,
+  # "CONTACTMINUTES"              ,
+  # "TEAMTAUGHT"                  ,
+  # "XLIST"                       ,
+  # "BEGTIME1"                    ,
+  # "BEGTIME2"                    ,
+  # "BEGTIME3"                    ,
+  # "DAYS1"                       ,
+  # "DAYS2"                       ,
+  # "DAYS3"                       ,
+  # "ENDTIME1"                    ,
+  # "ENDTIME2"                    ,
+  # "ENDTIME3"                    ,
+  # "CLASSLOC1"                   ,
+  # "CLASSLOC2"                   ,
+  # "CLASSLOC3"                   ,
+  # "CLASSLOCBUILDNAME1"          ,
+  # "CLASSLOCBUILDROOM1"          ,
+  # "CLASSLOCBUILDNAME2"          ,
+  # "CLASSLOCBUILDROOM2"          ,
+  # "CLASSLOCBUILDNAME3"          ,
+  # "CLASSLOCBUILDROOM3"          ,
+  # "STARTDT"                     ,
+  # "ENDDT"                       ,
+  # "BUDGETCODE"                  ,
+  # "LINEITEM"                    ,
+  # "SERVICELEARNING"             ,
+  # "XLIST_ID"                    ,
+  # "COMBINEDID"                  ,
+  # "USHE_ACADYR"                 ,
+  # "USHE_TERM"                   ,
+  # "TERM2"                       ,
+  # "ORG_EFFDT"                   ,
+  # "CLASSENROLLMENTCAPACITY"     ,
+  # "ROOM_MAX_1"                  ,
+  # "ROOM_MAX_2"                  ,
+  # "ROOM_MAX_3"                  ,
+  # "TERM_NBR"                    ,
+  # "CLASS_ATTR_LIST"             ,
+  # "EXCLUDE_BUDGET_SCH"             ,
+  # "SPR_CORRECTION_NOT_USHE_FLAG"   ,
+  # "Section Divider: OLD"           ,
+  # "SUBJECTCOLL"                    ,
+  # "SUBJECT"                     ,
+  # "class.1"                     ,
+  # "minTerm"                     ,
+  # "COHORT_DT"                   ,
+  "SEX"                         ,
+  "FIRST_GEN_STATUS_CD"         ,
+  "ETHNICITY"                   ,
+  "RESSTAT"                     ,
+  "FA_PELL"                     ,
+  # "AGE"                         ,
+  "APCREDIT"                    ,
+  "HSGPA"                       ,
+  "HSPRIVATE"                   ,
+  "HONORS"                      ,
+  "ACTCOMP"                     ,
+  "ACTENGL"                     ,
+  "ACTMATH"                     ,
+  "ACTSCI"                      ,
+  # "load"                        ,
+  "cohort_year"                 ,
+  "yr_diff"                     ,
+  "season"                      ,
+  "course_level"                ,
+  # "vol_cluster"                 ,
+  "age_cut"                     ,
+  "cleanGrade"                  ,
+  # "wdraw_binary"                ,
+  # "grade_binary"                ,
+  # "grade_trinary"               ,
+  # "grade_quad"                  ,
+  # "rowid"                       ,
+  # "class_year.y"                ,
+  # "ACTMATH.median"              ,
+  # "ACTMATH.stdev"               ,
+  # "HSGPA.median"                ,
+  # "HSGPA.stdev"                 ,
+  # "HSGPA.count"                 ,
+#  "ACTMATH.z"                   ,
+#  "HSGPA.z"                     ,
+#  "dist"                        ,
+  "dist_fail"                   ,
+  "dist_pass"                   ,
+  "signed_dist"
 )
 
 ###########
@@ -948,7 +852,7 @@ target_classes <- "GRADEGPA"
 
 lapply(target_classes,
        
-      
+       
        function(target){
          
          # establish sample of complete cases
@@ -1064,19 +968,3 @@ lapply(target_classes,
          
        })
 
-# Feature investigation
-
-cor_matrix <- cor(cleanData[,c("dist_fail","dist_pass","signed_dist","dist","HSGPA.z", "ACTMATH.z", "HSGPA", "ACTMATH")], use = "pairwise.complete.obs")
-high_cors <- which(abs(cor_matrix) > 0.7 & cor_matrix < 1, arr.ind = TRUE)
-heatmap(cor_matrix)
-
-# > cor_matrix
-#              dist_fail  dist_pass signed_dist        dist     HSGPA.z   ACTMATH.z       HSGPA     ACTMATH
-# dist_fail   1.00000000  0.6333184   0.3290889  0.47233140  0.05139733  0.25937993  0.11426550  0.21878621
-# dist_pass   0.63331842  1.0000000  -0.5223667  0.89230111 -0.52440183 -0.10814657 -0.49713293 -0.14789398
-# signed_dist 0.32908886 -0.5223667   1.0000000 -0.56190007  0.71009871  0.42527763  0.73802148  0.42508158
-# dist        0.47233140  0.8923011  -0.5619001  1.00000000 -0.73283340 -0.09684426 -0.54942159 -0.08039409
-# HSGPA.z     0.05139733 -0.5244018   0.7100987 -0.73283340         NaN  0.11627569         NaN  0.03684143
-# ACTMATH.z   0.25937993 -0.1081466   0.4252776 -0.09684426  0.11627569  1.00000000  0.08852948  0.63570368
-# HSGPA       0.11426550 -0.4971329   0.7380215 -0.54942159         NaN  0.08852948  1.00000000  0.33290744
-# ACTMATH     0.21878621 -0.1478940   0.4250816 -0.08039409  0.03684143  0.63570368  0.33290744  1.00000000
