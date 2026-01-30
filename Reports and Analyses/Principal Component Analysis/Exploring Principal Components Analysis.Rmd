@@ -847,7 +847,7 @@ col = "gray35",
  pch = 16,
 ylab = "Dim.2",
 xlab = "Dim.1",
-main = "Predicted incoming 2024 components for Math 1090")
+main = "2024 data projected onto prior components for Math 1090")
 
 library(RColorBrewer)
 vals <- rolling_pred[["2024"]][["MATH_1090"]][["distance"]][,"signed_dist"]
