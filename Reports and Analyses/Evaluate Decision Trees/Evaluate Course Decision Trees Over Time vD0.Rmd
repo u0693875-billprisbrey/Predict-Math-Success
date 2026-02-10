@@ -1,0 +1,937 @@
+---
+title: "Evaluate Course Decision Trees Over Time vD0"
+author: "Bill Prisbrey"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+params: 
+  version: "vD0"
+output:
+  html_document:
+    keep_md: true
+    toc: true
+---
+
+# NEED TO CHANGE TEXT TO REFLECT vD0
+
+I think there's something to be said for declaration of major and product mix.  For example, what if formerly 1010 was now gated by major, and people who used to go to 1010 go to 1090 if they are Business major?  If that's the case, then the model would push all the 1090 people to 1010.  So I can add "addl info, like major-dedicated courses."
+
+I also wonder if I kept the model, and just grouped the course options into my four buckets, if I would have improved my accuracy.
+
+I also wonder what courses are getting confused for each other.  Where do all of the 1090 misses go?  Randomly assigned amongst all courses?  Is 1010 the default assignment, and since it's declined, it just has no idea where to go with them?
+
+I need to interpret this alongside the grade predictions, and the variable predictors.  Maybe create an over-all "over time" summary in addition to these individual reports.  
+
+
+I am also thinking that the model used to be able to accurately predict 1010, but now that there are many choices it can't pick any. Or, as the proportion of students in 1010 declined, the model accuracy declined.  Or, when looking at the model accuracy we're essentially seeing the decline of 1010 in popularity.
+
+
+The decline in Math 1010 proportion lines up pretty well with the decline in model accuracy
+
+
+
+
+```{r include=FALSE}
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+library(stringr)
+library(purrr)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+
+# Build file paths
+testYears <- 2007:2024
+grid <- expand.grid(params$version, testYears)
+
+model_files <- here::here("Models", "Over Time", paste0("Decision Tree Courses ", grid$Var1, " ", grid$Var2, " model.rds"))
+
+# Read this into a list
+
+model_list <-
+  lapply(testYears, function(tYr){
+    files <- model_files[grep(tYr, model_files)]
+    readRDS(files)
+  })
+names(model_list) <- testYears
+
+# Build file paths
+data_files <- here::here("Data", "Over Time", paste0("Decision Tree Courses ", grid$Var1, " ", grid$Var2, " Data.rds"))
+
+# Read each data into a named list
+data_list <-
+  lapply(testYears, function(tYr){
+    files <- data_files[grep(tYr, data_files)]
+    readRDS(files)
+  })
+names(data_list) <- testYears
+
+
+```
+
+
+```{r}
+
+# Extract all training data
+# (Recombine the training data)
+
+# trainData <- do.call(rbind, unique(map(data_list, "training")))
+
+trainData <- data_list[["2024"]][["training"]]
+
+trainData$course_option <- droplevels(trainData$course_option) # oops, though I did that already
+
+# optionsData_top90[optionsData_top90$enroll == "enroll", c("class_year","course_option")] |> table() |> as.data.frame.matrix() |> apply(MARGIN = 1, proportions)
+
+# looks like the decline in accuracy falls off a cliff when the Math 1010 proportion declines
+
+
+
+courseProportion <- trainData[trainData$enroll == "enroll", c("class_year","course_option")] |> table() |> as.data.frame.matrix() |> apply(MARGIN = 1, proportions) 
+
+plot(x = mean(courseProportion),
+     ylim = range(courseProportion),
+     xlim = c(0,ncol(courseProportion)),
+     ylab = "",
+     xlab = "",
+     type = "n")
+
+cols <- RColorBrewer::brewer.pal(9, "Set1")
+
+lapply(1:nrow(courseProportion), function(ln){ 
+  
+  lines(courseProportion[ln,], col = cols[ln]  )
+  
+  })
+
+# I don't know why I'm doing this.  It's in "predictors over time"
+# I guess it might be sharper in this filtered data set ?
+
+```
+
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply(as.character(testYears), function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+#  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missingCourse <- setdiff(data_list[[x]][["testing"]][["enroll"]],data_list[[x]][["training"]][["enroll"]])
+  
+  if (length(missingCourse) == 0) {
+  # no missing values — keep everything
+  missingCourseFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingCourseFilter <- !data_list[[x]][["testing"]][["enroll"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+  
+        missingEthnicity <- setdiff(data_list[[x]] [["testing"]][["ETHNICITY"]],data_list[[x]][["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[x]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missingFilter <- missingCourseFilter & missingEthnicityFilter  
+
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter,])
+  
+} )
+names(thePredictions) <- as.character(testYears)
+
+```
+
+
+
+```{r eval=FALSE}
+
+## CHECK ##
+
+sapply(thePredictions, length)
+sapply(data_list, function(x){ nrow(x[["testing"]])  })
+
+# I should dig into those discrepancies a little more
+# looks like we added math courses or ethnicity levels;
+# I need to be consistent in filtering them out # DONE
+
+
+```
+
+```{r}
+
+theResults <- lapply(as.character(testYears), function(x) {
+
+#    missingCourse <- setdiff(data_list[[x]][["testing"]][["enroll"]],data_list[[x]][["training"]][["enroll"]])
+  
+#  if (length(missingCourse) == 0) {
+#  # no missing values — keep everything
+#  missingCourseFilter <- rep(TRUE,  nrow(data_list[[x]][["testing"]]))
+# } else {
+#  # normal case — exclude the missing courses
+#  missingCourseFilter <- !data_list[[x]][["testing"]][["enroll"]] %in% missingCourse
+  
+#  print(x)
+#  print(table(missingFilter))
+# }
+  
+  
+        missingEthnicity <- setdiff(data_list[[x]] [["testing"]][["ETHNICITY"]],data_list[[x]][["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[x]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missingFilter <- missingEthnicityFilter # missingCourseFilter &   
+
+  
+  
+cm <- confusionMatrix(data =  thePredictions[[x]], reference =data_list[[x]][["testing"]][["enroll"]][missingFilter] , mode = "everything" )
+
+})
+names(theResults) <- as.character(testYears)
+
+nameMatrix <- cbind("original" = c(
+  "MATH_1010", "MATH_1030", "MATH_1050", "MATH_1060", "MATH_1070", "MATH_1080", "MATH_1090", "MATH_1100", "MATH_1210", "MATH_1220", "MATH_1250", "MATH_1310", "MATH_2210", "MATH_990",  "other"
+), "display" = c(
+  "1010", "1030", "1050", "1060", "1070", "1080", "1090", "1100", "1210", "1220", "1250", "1310", "2210", "990", "other"
+))
+
+
+
+
+```
+
+
+```{r}
+
+########################
+## RESULTS PER COURSE ##
+########################
+
+theCourses <- levels(data_list[["2024"]][["testing"]][["course_option"]])
+
+# check
+# theCourses <- sapply(data_list, function(dl){
+  
+#  levels(dl[["testing"]][["course_option"]])
+  
+#})
+# all(apply(theCourses, 2, identical, theCourses[,1])) # TRUE
+# all identical, as expected
+
+courseResults <- lapply(theCourses, function(loop_course){ 
+
+  # print(loop_course)
+  
+  
+year_results <- lapply(as.character(testYears), function(loop_year) {
+
+ #  print(loop_year)
+  
+  
+          missingEthnicity <- setdiff(data_list[[loop_year]] [["testing"]][["ETHNICITY"]],data_list[[loop_year]][["training"]][["ETHNICITY"]])
+    
+      if (length(missingEthnicity) == 0) {
+  # no missingCourse values — keep everything
+  missingEthnicityFilter <- rep(TRUE, nrow(data_list[[loop_year]][["testing"]]))
+} else {
+  # normal case — exclude the missingCourse courses
+  missingEthnicityFilter <- !data_list[[loop_year]][["testing"]][["ETHNICITY"]] %in% missingEthnicity
+  
+}
+      
+missingFilter <- missingEthnicityFilter # missingCourseFilter &   
+
+  results_frame <- data.frame(pred = thePredictions[[loop_year]],
+                              ref = data_list[[loop_year]][["testing"]][["enroll"]][missingFilter],
+                              course_option = data_list[[loop_year]][["testing"]][["course_option"]][missingFilter] )
+  
+courseCM <- 
+  
+  confusionMatrix(
+    data =  results_frame$pred[results_frame$course_option == loop_course],
+    reference = results_frame$ref[results_frame$course_option == loop_course], 
+    mode = "everything" )
+  
+return(courseCM)
+
+})
+names(year_results) <- testYears
+return(year_results)
+
+})
+names(courseResults) <- theCourses
+
+
+
+
+```
+
+
+### SUMMARY
+
+In order to examine trends in initial math course selection by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen.  
+
+Nineteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's course selection was predicted. 
+
+The predictive model found a moderate relationship between math course selection and predictors early on (Kappa of ~0.35), but that relationship eroded to a very weak relationship by 2024 (when the Kappa value declined to 0.17).   
+
+The most important predictor in every year was the ACT test scores.  Distantly, the number of AP credits, cohort year, and class year were next highest in model importance.  
+
+Some courses such as Math 2210 bucked the trend and increased in accuracy metrics over time.  
+
+The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores, high school GPA, and AP credits, and math course selection.  Instead, it suggests something like a new free-for-all where historical guidelines have been abandoned, or the introduction of new guidelines that do not align with historical practices.  
+
+### METHODOLOGY 
+
+All math courses taken by first time freshmen were identified. Each student's first math courses were identified (or multiple courses if taken in the same term.)   Grade performance for these math courses was queried.  These are called the initial math courses.   
+
+Predictive models were trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2); colsample_bytree(0.8); subsample(0.8).)    
+
+An expanding window of historical data was used, where one model was trained per year for nineteen models.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2010 was trained on data from the years 2005 to 2009.  The predicted course selection for the year 2024 was trained on data from the years 2005 to 2023.  
+
+A value for math course was predicted.  
+
+#### Variables 
+
+The variables included: 
+
+*Demographics:* 
+
+  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
+  * Sex (male or female)
+  * First generation status
+  * Ethnicity 
+  
+*High school information and performance:*  
+
+  * High school GPA 
+  * Number of AP credits
+  * Whether the high school was public or private   
+  * Honors achievement
+
+*Test scores:*    
+
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT comprehensive
+
+*University information:*  
+
+  * Residence status  
+  * Pell grant eligibility  
+  * Cohort year (2005 to 2024)
+  * Class year (2005 to 2025)
+  * Years from the cohort date (always fall of the year) until the first term with math courses 
+  * Season (spring, summer, or fall)  
+
+#### Filters  
+
+The following filters were applied: 
+
+ * Math labs are filtered out.  
+ * Courses higher than 3000 level were removed. 
+ * Students younger than 11 yrs old were removed. 
+ * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
+ * Students with high school GPA values of zero were removed. 
+ * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
+ * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
+ * All records with incomplete information were removed.  
+
+#### Transformations    
+
+The following transformations were applied: 
+
+  * AP credit values of "NA" were converted to zero.  
+  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
+  
+#### Target values    
+
+Each model predicted a value for a math course out of the following possibilities:  
+
+MATH_1010, MATH_1050, MATH_1210, MATH_1030, MATH_1090, MATH_1070, MATH_1220, MATH_1080, MATH_1060, MATH_1310, MATH_2210, MATH_990, MATH_1100, MATH_1250 or "other".
+ 
+The following math courses were combined into "other":  
+
+MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180.
+  
+### DISCUSSION  
+
+The relationship between early information and course selection was moderately predictive for many years, with Kappa values around 0.35 from 2013 to 2017, when it rapidly started eroding to a Kappa value of 0.17 in 2024. 
+
+Kappa values also dipped in 2011 and 2012, suggesting a change in practices or guidelines or expectations for course selection.
+
+The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most influential variable of these in course selection today.
+
+Some notable courses include: 
+
+  - *Math 1010:*  The model was able to correctly identify participants in Math 1010 until the year 2022 with reasonably high precision and recall scores (except for the 2011-12 dip), but declined steeply to precision and recall scores of about only 0.16 in 2024.  
+  - *Math 1310:*  The model's precision in identifying Math 1310 has improved, but the recall numbers are very low (with a high of 0.03.)  
+  - *Math 1030:* The model's recall has improved since 2018 until it had comparatively high recall in 2024 (0.42) with relatively moderate precision as well (0.28). 
+  - *Math 2210:* The model's recall has improved since 2015 until it has relatively high recall and precision in 2024.
+  
+It might be useful to cluster the courses to separate courses with rising, declining, or stable trends.  
+  
+Taken together, the overall decline in model accuracy (Kappa, precision, and recall) over the years suggests several possibilities:  
+
+  (1) A collapse of guidelines and a free-for-all in selecting courses
+  (2) The introduction of some new guideline or mechanism that aligns weakly with prior practices.    
+  (3) At the same time, some courses with improving accuracy (such as Math 2210 with improving precision and recall) suggest more rigid course selection.  
+
+
+### CONCLUSIONS  
+
+Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is almost completely determined by variables other than early available information in 2024.
+
+Predictive models had Kappa values as high as 0.4, indicating a moderate degree of determinism between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2016 until Kappa values were as low as 0.13 by 2024, indicating a near-random or weak relationship between prior information and course selection. 
+
+All models in all years used ACT Math scores as the most important predictor of course selection.  AP credit increased in importance in predicting math course selection, as did information about the class year and cohort year.  
+
+Some courses have run counter to the general trend, as precision and recall scores have improved over the years.
+
+### RESULTS 
+
+
+```{r}
+
+# extract overall Kappa, precision, and recall
+
+theKappas <- sapply(theResults, function(x) {x[["overall"]]["Kappa"]})
+names(theKappas) <- names(theResults)  
+
+thePrecisions <- lapply(theResults, function(results) {
+    results[["byClass"]]["Precision"]
+})
+thePrecisions <- do.call(cbind, thePrecisions)  
+  
+theRecalls <- lapply(theResults, function(results) {
+    results[["byClass"]]["Recall"]
+})
+theRecalls <- do.call(cbind, theRecalls)    
+
+
+
+```
+
+```{r}
+
+# extract Kappa, precision, and recall by course
+
+courseKappas <- lapply(courseResults, function(loop_course) {
+  
+  sapply(loop_course, function(x){
+  
+    x[["overall"]]["Kappa"]  
+    
+  })
+
+  })
+
+coursePrecision <- lapply(courseResults, function(loop_course) {
+  
+  sapply(loop_course, function(x){
+  
+    x[["byClass"]]["Precision"]  
+    
+  })
+
+  })
+
+courseRecall <- lapply(courseResults, function(loop_course) {
+  
+  sapply(loop_course, function(x){
+  
+    x[["byClass"]]["Recall"]  
+    
+  })
+
+  })
+
+
+```
+
+
+
+```{r}
+
+# plot overall Kappa
+
+# plot Kappa
+# plot(y = theKappas,
+#     x= as.numeric(names(theKappas)),
+#     type = "b",
+#     col = "firebrick",
+#     las = 2,
+#     ylab = "Kappa",
+#     xlab = ""
+#     )
+
+# This would make a good plotly
+
+# library(plotly)
+
+years <- as.numeric(names(theKappas))
+kappa_values <- as.numeric(round(theKappas,3))
+
+plot_ly(x = years, #[-length(years)], 
+        y = kappa_values, #[-length(kappa_values)], 
+        type = 'scatter', 
+        mode = 'lines+markers',
+        line = list(color = 'firebrick', width = 2),
+        marker = list(color = 'firebrick', size = 8)) %>%
+  layout(title = 'Model Performance (Kappa) Over Time',
+         xaxis = list(title = '', dtick = 1, tickangle = -45),
+         yaxis = list(title = 'Kappa'),
+         hovermode = 'closest')
+
+```
+
+
+
+
+```{r}
+
+# plot overall precision
+
+plotData <- thePrecisions
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(plotData)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(thePrecisions)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Precision: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Precision Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Precision"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+```
+
+
+```{r}
+
+# plot overall recall
+
+plotData <- theRecalls
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(theRecalls)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(theRecalls)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Recall: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Recall Over Time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Recall"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+```
+
+```{r}
+
+# Plot kappa by course  
+
+plotData <- do.call(rbind, courseKappas)
+colnames(plotData) <- gsub(".Kappa", "", colnames(plotData))
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(plotData)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(plotData)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Kappa: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Kappa by course over time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Kappa"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+
+
+```
+
+
+
+```{r}
+
+# Plot Recall by course  
+
+plotData <- do.call(rbind, courseRecall)
+colnames(plotData) <- gsub(".Recall", "", colnames(plotData))
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(plotData)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(plotData)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Recall: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Recall by course over time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Recall"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+
+
+```
+
+```{r}
+
+# Plot Precision by course  
+
+plotData <- do.call(rbind, coursePrecision)
+colnames(plotData) <- gsub(".Precision", "", colnames(plotData))
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = gsub("Class: MATH_","", rownames(plotData)[i]), #     plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", gsub("Class: MATH_","", rownames(plotData)[i]), "</b><br>",
+        "Year: %{x}<br>",
+        "Precision: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Precision by course over time',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Precision"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Course"))
+  )
+
+p
+
+
+
+
+```
+
+```{r}
+
+# Variable importance over time
+
+importance_over_time <- lapply(names(model_list), function(tYr){
+  
+  imp <- varImp(model_list[[tYr]])$importance
+  imp$var <- row.names(imp)
+  colnames(imp)[colnames(imp) %in% "Overall"] <- tYr # rename "Overall" column
+  return(imp)
+  
+})
+
+importance_over_time <- Reduce(function(m1,m2){merge(m1,m2, by = "var", all = TRUE)}, importance_over_time)
+importance_over_time <- importance_over_time[order(importance_over_time[,2], decreasing = TRUE),] 
+
+# why do I have NA values for ACTMATH.z ? 
+# I guess it was just collinear with ACTMATH and dropped
+# But wouldn't HSGPA mean the same ?
+
+
+
+```
+
+
+
+```{r eval=FALSE}
+
+# Apparently I don't need this
+
+# Metrics per course (one dataframe per course)
+target_math_courses <- sapply(thePredictions, unique) |> unlist() |> as.character()  |> unique()
+
+perCourse <- lapply(target_math_courses, function(math_course){
+  
+  course_over_time_list <- lapply(theResults, function(result){ 
+   result[["byClass"]][grepl(math_course, row.names(result[["byClass"]])),]
+    })
+  
+  course_over_time <- do.call(rbind, course_over_time_list)
+  row.names(course_over_time) <- names(theResults)
+  return(course_over_time)
+  
+})
+names(perCourse) <- target_math_courses 
+
+```
+
+
+
+
+
+```{r}
+
+# Plotly graphic of all predictors that have an importance value over 10 in any model
+
+varFilter <- apply(importance_over_time[,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time$var[varFilter & !is.na(varFilter)]
+
+# Filter to selected variables
+plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection, ]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Variable Importance Over Time (all variables)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
+
+```{r}
+
+# Plotly graphic of all predictors that have an importance value less than fifty and over 10 in any model
+
+
+varFilter <- apply(importance_over_time[,-1],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time$var[varFilter & !is.na(varFilter)]
+
+# Filter to selected variables
+plotData <- importance_over_time[importance_over_time[,"var"] %in% varSelection[!varSelection %in% c("ACTMATH", "course_level")], ]
+
+# Initialize plot
+p <- plot_ly()
+
+# Add a line for each variable
+for(i in 1:nrow(plotData)) {
+  p <- p %>%
+    add_lines(
+      x = testYears,
+      y = as.numeric(plotData[i, as.character(testYears)]),
+      name = plotData[i, "var"],
+      hovertemplate = paste0(
+        "<b>", plotData[i, "var"], "</b><br>",
+        "Year: %{x}<br>",
+        "Importance: %{y:.2f}<br>",
+        "<extra></extra>"
+      )
+    )
+}
+
+# Customize layout
+p <- p %>%
+  layout(
+    title = 'Variable Importance Over Time (low importance variables)',
+    xaxis = list(title = "Test Year"),
+    yaxis = list(title = "Variable Importance"),
+    hovermode = "closest",
+    legend = list(title = list(text = "Variable"))
+  )
+
+p
+
+
+```
+
+
+```{r fig.height=5, eval=FALSE}
+
+# This shows variable importance with a separate graph for each year.
+
+# It's not a bad appendix item, though
+
+
+invisible(
+
+    lapply(testYears, function(tYear){
+       print(plot(  
+           varImp(model_list[[as.character(tYear)]]),
+           15, main = paste(tYear, sep = ": ")
+       ))
+           })
+)
+
+# course is a lot harder.
+
+# let's pull in what we have
+
+
+```
+
+
+```{r}
+
+# An example confusion matrix
+
+drawCM(theResults[["2024"]], title = "2024 Results")
+
+#,nameMatrix = nameMatrix, metricsClass = "2210", title = "2024 Results") 
+
+# precision color is screwed up
+
+```  
+
+```{r}
+
+skim(data_list[["2024"]][["training"]])
+
+```
