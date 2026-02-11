@@ -61,15 +61,25 @@ Many small courses that consist of less than 5% of the total enrollment combined
 
 ![](Predictors-over-time_files/figure-html/unnamed-chunk-7-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-7-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
 
+# Grade distribution over time
+
+### *The proportion of students receiving an 'A' has increased.*  
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+
+
 # ACT test scores
 ### *Submission of ACT test scores has steeply declined, especially for high volume courses.  Only a third of students in some courses (like Math 1090) have submitted ACT test scores.*
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-9-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-11-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
 
 
 
@@ -84,18 +94,18 @@ Many small courses that consist of less than 5% of the total enrollment combined
 
 ### *Students who submit test scores are a self-selected elite, with better high school GPAs and more AP credits, a rising median ACT score, and consequent better math performance.*   
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-14-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
 
 On average, test submitters' high school GPA is 0.26 higher than non-test submitters. 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-15-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-2.png)<!-- -->
 
 Test score submitters' median AP credit was three credits higher than non-test submitters' median.
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-18-2.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-17-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-19-2.png)<!-- -->
 
 Math grades have diverged until test score submitters have a median math grade 0.7 points higher than non-submitters in 2024 (3.7 compared to 3.0.) 
 
@@ -104,9 +114,9 @@ Math grades have diverged until test score submitters have a median math grade 0
 
 ###  *Courses are distinguished by ACT math scores with heavy overlap.*
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-20-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-20-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-22-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-22-2.png)<!-- -->
 
 
 
@@ -114,44 +124,67 @@ Math grades have diverged until test score submitters have a median math grade 0
 # High school GPA
 ### *Median high school GPA has increased over the years, with the courses mildly distinguished by high school GPA with heavy overlap.* 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-22-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-22-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-22-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-22-4.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-24-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-24-2.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-24-3.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-24-4.png)<!-- -->
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
 
 
 # Math grades 
 ### *The median math grade fluctuates over time without a clear trend, while above-median grades shift higher:  the 70th percentile shifts from a B+ to an A in 2016.*  
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-24-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-24-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-26-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-26-2.png)<!-- -->
 
 ### *Low-volume classes have maintained a higher median GPA than high-volume classes, and seem to have recently stabilized at their twenty-year high.* 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-26-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-26-2.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-28-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-28-2.png)<!-- -->
 
 Math 1090 peaked with a median grade of 4.0 in 2020.
  
 ### *Courses are not distinguished by grade distribution.*   
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
+
+
+
+
+# Z-scores
+
+### *Successful students are closer to the prior year's median successful student.*  
+
+
+
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-31-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-31-2.png)<!-- -->
+
+
+
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-32-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-32-2.png)<!-- -->
+
+
+
+![](Predictors-over-time_files/figure-html/unnamed-chunk-33-1.png)<!-- -->![](Predictors-over-time_files/figure-html/unnamed-chunk-33-2.png)<!-- -->
+
+
+
+
 
 # Additional comparison graphics  
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-34-1.png)<!-- -->
 
 
 
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
+![](Predictors-over-time_files/figure-html/unnamed-chunk-36-1.png)<!-- -->
 
-![](Predictors-over-time_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
-
-
+![](Predictors-over-time_files/figure-html/unnamed-chunk-37-1.png)<!-- -->
 

@@ -1,7 +1,7 @@
 ---
 title: "Predictors over time"
 author: "Bill Prisbrey"
-date: "2025-11-05"
+date: "2026-02-11"
 output:
   html_document:
     keep_md: true
@@ -465,6 +465,7 @@ cleanData <- cleanData[!is.na(cleanData$cleanGrade),]
 cleanData$cleanGrade <- droplevels(cleanData$cleanGrade)
 
 cleanData$course <- factor(cleanData$course)
+cleanData$ETHNICITY <- factor(cleanData$ETHNICITY)
 
 # Combine math courses
 topCourses <- table(cleanData$course, useNA = "always") |> 
@@ -482,6 +483,63 @@ cleanData$course_target <- factor(cleanData$course_target)
 
 # stop("Next step is the training")
 
+#############################################  
+## DISTANCE FROM MEDIAN SUCCESSFUL STUDENT ##  
+#############################################  
+
+hiGrades <- aggregate(cbind(HSGPA,ACTMATH) ~ course + class_year, 
+                      data = cleanData[cleanData$GRADEGPA > 2.4,], function(x){
+                        c(median = median(x),
+                          IQR = IQR(x),
+                          stdev = sd(x),
+                          Q = quantile(x, probs = c(0.1,0.25,0.5,0.75,0.9), na.rm = TRUE),
+                          count = length(x)
+                        ) 
+                      }) |>
+  (\(x){
+    do.call(data.frame,x)
+  })()  
+
+# stop("Good to here")
+
+# Merge to cleanData 
+# ADJUSTMENT -- I need to shift this by one year! 
+
+hiGrades$class_year_shift <- hiGrades$class_year + 1
+
+# saveRDS(hiGrades, here::here("Data", "hiGrades from vH4.rds"))
+
+cleanData <- merge(cleanData, hiGrades[,c("course", "class_year", "class_year_shift", "ACTMATH.median", "ACTMATH.stdev", "HSGPA.median", "HSGPA.stdev", "HSGPA.count")], by.x = c("course", "class_year"), by.y = c("course","class_year_shift"),  all.x=TRUE)
+
+# Calculate distance as a z-score
+
+# I need to take care to shift this in my training data
+# 
+
+cleanData$ACTMATH.z <- (cleanData$ACTMATH - cleanData$ACTMATH.median)/cleanData$ACTMATH.stdev
+cleanData$HSGPA.z <- (cleanData$HSGPA - cleanData$HSGPA.median)/cleanData$HSGPA.stdev
+
+  
+
+cleanData$dist <- sqrt(
+  ((cleanData$ACTMATH - cleanData$ACTMATH.median)/cleanData$ACTMATH.stdev)^2 +
+    ((cleanData$HSGPA - cleanData$HSGPA.median)/cleanData$HSGPA.stdev)^2
+)
+
+# Check
+# View(cleanData[cleanData$HSGPA.z < -20 & !is.na(cleanData$HSGPA.z) & !is.na(cleanData$ACTMATH), c(keepColumns,"HSGPA.z", "HSGPA.median", "HSGPA.stdev", "HSGPA.count", "class_year.y" )])
+
+# recall that the aggregate used in hiGrades uses complete cases for both columns 
+
+# Calcualte the distance  
+# courseProximity$dist <- sqrt(
+#  ((courseProximity$ACTMATH - courseProximity$ACTMATH.median)/courseProximity$ACTMATH.stdev)^2 +
+#    ((courseProximity$HSGPA - courseProximity$HSGPA.median)/courseProximity$HSGPA.stdev)^2
+# )
+
+
+# stop("Next step is the training loop")
+
 
 
 ```
@@ -494,7 +552,19 @@ cleanData$course_target <- factor(cleanData$course_target)
 
 # Discussion  
 
-This report finds that a decreasing number of students submit ACT test scores.  Only one-third of students in high volume courses submitted math test scores in 2024, compared to about 90% submission until 2016.  These students are increasingly elite, with better high school GPA's, test scores, and grade performance in initial math courses.
+This report finds many changes over time.  Most notably, grades have increased; test score submission rates have decreased;  and the mix of courses selected has changed. 
+
+***Grades have increased.***  This report finds that the proportion of students earning an 4.0 ("A") has steadily increased from ~20% to ~30% since 2005.  Conversely, the proportion of students achieving a 2.3 ("C+") or worse has declined from ~40% to ~30% in the same time span.  
+
+***Test score submission rates have decreased.***  This report finds that a decreasing number of students submit ACT test scores.  Only one-third of students in high volume courses submitted math test scores in 2024, compared to about 90% submission until 2016.  These students are increasingly elite, with better high school GPA's, test scores, and grade performance in initial math courses.
+
+***Mix of courses selected has changed.***  This report finds that overall enrollment has steadily increased, and that enrollment has increased more in high volume courses (1010, 1050, 1210, 1030, and 1090.)  Among these, Math 1010 and Math 1090 have shifted positions as highest and lowest enrolled classes.  Where Math 1010 used to be the highest enrolled course by a large margin, it is now the lowest enrolled course by a large margin. 
+
+Transforming
+
+
+Although transforming incoming qualifications of ACT Math test scores and high school GPA into z-scores per course is much more stable, these also show a notable change in the last few years.  Over time, students on track for success (or who achieve a grade of 2.7 (B-minus) or better) tend to have higher z-scores than students who fail or are close to failing (who achieve a grade of 2.3 (C-plus) or worse.)  These z-scores can be combined into a single distance measure that show that at-risk students are farther away than students on track to succeed.  While the median distance for on track students is stable, the median distance for at risk students has greatly increased in the last few years.  This aligns with the grade compression, as the proportion of failed students decreases.    
+
 
 Courses are consistently at least mildly distinguished by both ACT math test scores and high school GPA over time. Low-volume classes have higher test scores and high school GPA.  Among the high volume classes, Math 1010 has students with the lowest median test scores and high school GPA, and Math 1210 has the highest.
 
@@ -791,6 +861,222 @@ mtext(side = 2,
 #         variable = "EMPLID", agg = length, by = "all")
 
 ```
+
+# Grade distribution over time
+
+### *The proportion of students receiving an 'A' has increased.*  
+
+```{r}
+
+# Proportion of grades over time
+
+grades_per_year <- aggregate(GRADEGPA ~ class_year,  data = cleanData, table) |>
+  (\(x){ do.call(data.frame,x) })()
+
+grade_proportions_per_year <- apply(grades_per_year[,-1], 1, proportions)
+colnames(grade_proportions_per_year) <- as.character(grades_per_year[,1])
+
+
+gradeValues <- unique(cleanData$GRADEGPA[!is.na(cleanData$GRADEGPA)]) |>
+  (\(x){x[order(x,decreasing = FALSE)]})() # |>
+#  (\(x){x+0.1})()
+
+# plot grade proportions per year
+
+plot(x = 5,
+     y = 0.5,
+     type = "n",
+     xlim = c(-2,ncol(grade_proportions_per_year)-1),
+     ylim = c(0,0.4),
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+     las = 1)
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col = "gray93"
+     )
+
+grid(col = "gray87", lty = 2, lwd = 3)
+
+# number of grades
+grade_value_count <- nrow(grade_proportions_per_year)
+
+invisible(
+lapply(1:grade_value_count, function(plot_row){
+  
+  lines(grade_proportions_per_year[plot_row, -which(colnames(grade_proportions_per_year) %in% "2025")  ], col = viridis::viridis(n = grade_value_count , option = "C", end = 0.7)[plot_row])
+  
+})
+)
+
+axis(side = 1, at = 1:(ncol(grade_proportions_per_year) - 1) , labels = colnames(grade_proportions_per_year[,-which(colnames(grade_proportions_per_year) %in% "2025")]))
+
+legend("topleft",
+       legend = rev(gradeValues),
+       lwd = 2,
+      # type = "line",
+       lty = 1,
+       col = viridis::viridis(n = grade_value_count , option = "C", end = 0.7, direction = -1)
+      )
+
+mtext("Proportion of students per grade over time",
+      side = 3,
+      line = 2,
+      font = 2,
+      cex = 2)
+
+mtext("An increasing proportion of students earn an 'A'",
+      line = 0.3,
+      side = 3,
+      font = 3,
+      cex = 1.3)
+
+mtext("Proportion of grades awarded",
+      side = 2,
+      line = 2.6,
+      cex = 1.2)
+
+``` 
+
+```{r}
+
+# Establishing where to draw the binary value 
+
+# Surely there's a better way than this nested loop, but it works 
+
+annual_binaries <- lapply(2005:2024, function(loop_year){ 
+
+binaries <- lapply(gradeValues + 0.1,
+       
+       function(x){ 
+         
+         cut(cleanData$GRADEGPA[cleanData$class_year == loop_year],
+             breaks = c(0,x,4),
+             include.lowest = TRUE,
+             right = FALSE) |>
+           table() |>
+           proportions()
+         
+         })
+
+ names(binaries) <- as.character(gradeValues + 0.1)
+ return(binaries)  
+  
+})
+names(annual_binaries) <- as.character(2005:2024)
+
+byMids <- lapply(as.character(gradeValues + 0.1), function(mid){ 
+  
+  midRow <- sapply(annual_binaries, function(x){x[[mid]][1]})
+  return(midRow)
+  
+})
+names(byMids) <- as.character(gradeValues + 0.1)
+
+plot(x = 5,
+     y = 1,
+     type = "n",
+     xlim = c(-2,ncol(grade_proportions_per_year)+2),
+     ylim = c(0,.8),
+     xlab = "",
+     ylab = "",
+     xaxt = "n",
+     las = 1)
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col = "gray93"
+     )
+
+grid(col = "gray87", lty = 2, lwd = 3)
+
+
+invisible(
+  
+  lapply(1:length(byMids), function(mid){
+    
+    lines(byMids[[mid]],
+          
+          col = viridis::viridis(n = length(byMids), option = "C", end = 0.7)[mid]
+          
+          )
+    
+    
+  })
+  
+)
+
+axis(side = 1, at = 1:(ncol(grade_proportions_per_year) - 1) , labels = colnames(grade_proportions_per_year[,-which(colnames(grade_proportions_per_year) %in% "2025")]))
+
+text(x = c(19.9),
+     y = c(byMids[[6]][[20]], byMids[[9]][[20]]), 
+     labels = c("2.0", "3.0"),
+     pos = 4
+       )
+
+
+legend("topleft",
+       legend = c(paste( "<", rev( as.character(gradeValues[12])), sep = "   " ) , paste( "<=", rev( as.character(gradeValues[-12])) )),
+       lwd = 3,
+      # type = "line",
+       lty = 1,
+       col = viridis::viridis(n = grade_value_count , option = "C", end = 0.7, direction = -1)
+      )
+
+mtext("Proportion of students receiving\nless than various grade thresholds",
+      side = 3,
+      line = 0.75,
+      font = 2,
+      cex = 1.9)
+
+# mtext("Large gaps between thresholds increases model ability",
+#      line = 0.3,
+#      side = 3,
+#      font = 3,
+#      cex = 1.3)
+
+mtext("Proportion less than grade threshold",
+      side = 2,
+      line = 2.6,
+      cex = 1.2)
+
+lines(x = c(19, 22),
+      y = rep(mean(c(byMids[[7]][[20]], byMids[[8]][[20]])),2),
+      lty = 3,
+      lwd = 4,
+      col = "gray20"
+      )
+
+# text(x=20.9,
+#     y = mean(c(byMids[[7]][[20]], byMids[[8]][[20]])),
+#     pos = 4,
+#     labels = "On track\nAt risk",
+#     xpd = TRUE
+# )
+
+text(x=21.9,
+     y = mean(c(byMids[[7]][[20]], byMids[[8]][[20]])),
+     pos = 3,
+     labels = "On track",
+     xpd = TRUE
+)
+
+text(x=21.9,
+     y = mean(c(byMids[[7]][[20]], byMids[[8]][[20]])),
+     pos = 1,
+     labels = "At risk",
+     xpd = TRUE
+)
+
+```
+
+
 
 # ACT test scores
 ### *Submission of ACT test scores has steeply declined, especially for high volume courses.  Only a third of students in some courses (like Math 1090) have submitted ACT test scores.*
@@ -1300,6 +1586,242 @@ mtext(side = 2,
 
 ```
 
+
+
+
+# Z-scores
+
+### *Successfully on track students are closer to the prior year's median successful student.*  
+
+```{r}
+
+# Z-score distance prep
+
+successMap <- data.frame(color = c("deeppink3","darkslategray4"), by = c("At Risk", "On Track"), lty = c(1,1), lwd = c(3,3) )
+
+cleanData$success_cut <- cut(cleanData$GRADEGPA, breaks = c(0,2.4,4), include.lowest = TRUE,
+                             right = FALSE) |>
+  (\(x){ifelse(as.character(x) == "[0,2.4)","At Risk","On Track" )})()
+
+
+```
+
+
+```{r}
+
+# ACT MATH z-scores
+
+boxplot(ACTMATH.z ~ success_cut, 
+        data = cleanData[remove2025,], 
+        col = successMap$color, 
+        outline = FALSE,
+        ylab = "",
+        xlab = "")
+
+
+mtext(side = 3, 
+      text = "ACT math converted to z-scores per course",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Students at risk of failing are below the prior year's class median.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Median-centered z-score",
+      line = 3,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "Grade outcome",
+      line = 2.6,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "where 'at risk' is <=2.3",
+      line = 4,
+      cex = yCex,
+      font = 3
+      )
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "ACTMATH.z", agg = median, by = "success_cut",
+         title = "",
+         featureMap = successMap)
+
+mtext(side = 3, 
+      text = "Median ACT math z-score per course over time",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Students at risk of failing have ACT math test scores below the prior year's course median.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Median-centered z-score",
+      line = 3,
+      cex = yCex
+      )
+
+
+
+```
+
+
+
+
+```{r}
+
+# HSGPA z-scores
+
+boxplot(HSGPA.z ~ success_cut, 
+        data = cleanData[remove2025,], 
+        col = successMap$color, 
+        outline = FALSE,
+        ylab = "",
+        xlab = "")
+
+
+mtext(side = 3, 
+      text = "High school GPA converted to z-scores",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Students at risk of failing are below the prior year's class median.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Median-centered z-score",
+      line = 3,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "Grade outcome",
+      line = 2.6,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "where 'at risk' is <=2.3",
+      line = 4,
+      cex = yCex,
+      font = 3
+      )
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "HSGPA.z", agg = median, by = "success_cut",
+         title = "",
+         featureMap = successMap)
+
+mtext(side = 3, 
+      text = "Median high school GPA z-score per course over time",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Students at risk of failing have a high school GPA below the prior year's course median.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Median-centered z-score",
+      line = 3,
+      cex = yCex
+      )
+
+
+```
+
+
+
+```{r}
+
+# DISTANCE OVER TIME
+
+# Maybe I want to break these graphs further into hi/low volume courses (one graph per volume cluster), or look at the high volume courses 
+
+boxplot(dist ~ success_cut, 
+        data = cleanData[remove2025,], 
+        col = successMap$color, 
+        outline = FALSE,
+        ylab = "",
+        xlab = "")
+
+
+mtext(side = 3, 
+      text = "Combined distance to prior median student qualifications",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Successful students are closer to the prior year's median successful student.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Standardized distance",
+      line = 3,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "Grade outcome",
+      line = 2.8,
+      cex = yCex
+      )
+
+mtext(side = 1,
+      text = "where 'at risk' is <=2.3",
+      line = 4,
+      cex = yCex,
+      font = 3
+      )
+
+
+# Distance over time
+
+
+overTime(data= cleanData[remove2025,],
+         variable = "dist", agg = median, by = "success_cut",
+         title = "",
+         featureMap = successMap)
+
+
+mtext(side = 3, 
+      text = "Median combined distance to prior median student qualifications",
+      line = 2.6,
+      font = 2, 
+      cex=mainCex)
+mtext(side = 3, 
+      text = "Distance to prior median successful student is stable.", 
+      line = 1.2, 
+      font = 3,
+      cex = subCex)
+mtext(side = 2,
+      text = "Standardized distance",
+      line = 3,
+      cex = yCex
+      )
+
+
+
+```
+
+
+
+
+
 # Additional comparison graphics  
 
 ```{r fig.width = 4.5, fig.height = 9}
@@ -1380,6 +1902,4 @@ ggplot(cleanData[cleanData$vol_cluster == "hi_vol" &
 
 
 ```
-
-
 
