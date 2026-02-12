@@ -6,7 +6,7 @@ output:
     keep_md: true
 ---
 
-**PURPOSE:** This report describes the data sources, cleaning, and preparation used to recommend courses and predict grades. 
+**PURPOSE:** This report describes the data sources, cleaning, variables, and preparation used to recommend courses and predict grades. 
 
 
 ```{r include=FALSE}
@@ -148,8 +148,50 @@ Data sets were joined:
 
 New features were engineered: 
 
-  * The median and standard deviation values for high school GPA and ACT math test scores were calculated per course per year for students who achieved a grade higher than 2.4 (or at least a B-minus.)   
-  * A new field *"dist"* was calculated as the Euclidean distance in median-centered z-scores, using the medians from the prior year's 'successful' students.  It is the square root of the squared ACT math difference plus the squared high school GPA difference.  
+  * The median and standard deviation values for high school GPA and ACT math test scores were calculated per course per year for students who achieved a grade higher than 2.4 (in other words, at least a B-minus.)  
+  * The z-scores for high school GPA and ACT math test scores were calculated using the prior year's median and standard deviation for these 'successful' students. 
+  * A new field *"dist"* was calculated as the Euclidean distance in these median-centered z-scores.  It is the square root of the squared ACT math difference plus the squared high school GPA difference.  
+
+# Variables Described 
+
+*Demographics:* 
+
+  * Age (bucketed as less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
+  * Sex (male or female)
+  * First generation status
+  * Ethnicity 
+  
+*High school:*  
+
+  * High school GPA 
+  * Number of AP credits
+  * Whether the high school was public or private   
+
+*Test scores:*    
+
+  * ACT Math
+  * ACT English
+  * ACT Science
+  * ACT Comprehensive
+
+*University information:*  
+
+  * Math course taken 
+  * Course level (as 1000 or 2000)
+  * Residence status  
+  * Pell grant eligibility  
+  * Cohort year (2005 to 2024)
+  * Class year (2005 to 2025)
+  * Years from the cohort date (always fall of the year) until the first term with math courses (as yr_diff)
+  * Season (spring, summer, or fall)  
+  * Honors status
+
+*Derived features:* 
+
+  * The high school GPA converted to a z-score using the prior year's course median successful student  
+  * The ACT math test scores converted to a z-score using the prior year's course median successful student  
+  * The combined Euclidean distance of these z-scores 
+
   
 # Code Detail 
 

@@ -259,48 +259,6 @@ An expanding window of historical data was used, where one model was trained per
 
 A value for math grade was predicted, and evaluated with root mean square error, mean absolute error, and r-squared values.
 
-#### Variables 
-
-The following variables were included: 
-
-*Demographics:* 
-
-  * Age (bucketed as less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
-  * Sex (male or female)
-  * First generation status
-  * Ethnicity 
-  
-*High school:*  
-
-  * High school GPA 
-  * Number of AP credits
-  * Whether the high school was public or private   
-
-*Test scores:*    
-
-  * ACT Math
-  * ACT English
-  * ACT Science
-  * ACT comprehensive
-
-*University information:*  
-
-  * Math course taken 
-  * Course level (as 1000 or 2000)
-  * Residence status  
-  * Pell grant eligibility  
-  * Cohort year (2005 to 2024)
-  * Class year (2005 to 2025)
-  * Years from the cohort date (always fall of the year) until the first term with math courses (as yr_diff)
-  * Season (spring, summer, or fall)  
-  * Honors status
-
-*Derived features:* 
-
-  * The high school GPA converted to a z-score distance from the prior year's course median successful student  
-  * The ACT math test scores converted to a z-score distance from the prior year's course median successful student  
-  * The combined Euclidean distance of these z-scores 
-
 ### DISCUSSION  
 
 ### CONCLUSIONS  

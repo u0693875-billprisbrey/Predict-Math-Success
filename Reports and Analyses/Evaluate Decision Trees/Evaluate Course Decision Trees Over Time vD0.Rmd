@@ -90,7 +90,7 @@ names(data_list) <- testYears
 
 trainData <- data_list[["2024"]][["training"]]
 
-trainData$course_option <- droplevels(trainData$course_option) # oops, though I did that already
+trainData$course_option <- droplevels(trainData$course_option) # oops, thought I did that already
 
 # optionsData_top90[optionsData_top90$enroll == "enroll", c("class_year","course_option")] |> table() |> as.data.frame.matrix() |> apply(MARGIN = 1, proportions)
 
@@ -99,6 +99,13 @@ trainData$course_option <- droplevels(trainData$course_option) # oops, though I 
 
 
 courseProportion <- trainData[trainData$enroll == "enroll", c("class_year","course_option")] |> table() |> as.data.frame.matrix() |> apply(MARGIN = 1, proportions) 
+
+```
+
+
+```{r eval=FALSE}
+
+# plotting the course proportion
 
 plot(x = mean(courseProportion),
      ylim = range(courseProportion),
@@ -301,13 +308,13 @@ names(courseResults) <- theCourses
 
 ### SUMMARY
 
-In order to examine trends in initial math course selection by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen.  
+In order to examine trends in initial math course selection by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen. 
 
 Eighteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's course selection was predicted. 
 
 The predictive model found a moderate relationship between math course selection and predictors early on (Kappa of ~0.3 to 0.45), but that relationship eroded to a non-existent relationship by 2024 (when the Kappa value declined to 0.06).   
 
-Kappa and precision started to abruptly declined in 2017, when enrollment in Math 1010 began declining and enrollment in other courses increased.
+Kappa and precision started to abruptly declined in 2017, when enrollment in Math 1010 began declining and enrollment in other courses began increasing. 
 
 The most important predictor of course selection in every year was the ACT test scores, followed by the combined standardized distance to the prior year's median successful student.  Distantly, high school GPA and the high school GPA z-score were next highest in model importance.  
 
@@ -315,131 +322,78 @@ Some courses such as Math 1220 increased in accuracy, peaking at a Kappa of 0.24
 
 The alignment between model accuracy and the decline in Math 1010 enrollment suggests that Math 1010 may have had stronger guidelines in directing students to select it, or was otherwise preferred at the expense of the other courses.    
 
-The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores, high school GPA, and math course selection.  Some possible explanations include: 
+Several conclusions are reasonable:
 
-  * Data not used in the model influences course selection, such as the choice of major influencing the choice of math course. 
-  * The model is unable to identify and account for trends in the changing course selection mix, suggesting a cause that is not captured in the data.   
-  * The equivalency, or similarity, or overlap of predictors between courses that the model can't distinguish.   
-  * A new free-for-all in course selection absent of historical guidelines   
-  * The introduction of new guidelines that do not align with historical practices 
+  * Until 2020, pre-University data (especially ACT math test scores) had a moderate to weak relationship with course selection.  
+  * After 2020, pre-University data had a weak to no relationship with course selection.  
+  * That the models are unable to identify and account for trends in the changing course selection mix, suggesting a cause that is not captured in the data.   
+  * That some courses are too equivalent, or similar, or overlap with respect to the predictors that the model can't distinguish them.     
 
-### POSSIBLE NEXT STEPS 
+The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores and high school GPA, and math course selection.  Some possible explanations include: 
 
-If the model can't distinguish between highly similar courses (in terms of incoming student qualifications), then the model might be able to distinguish between clusters of similar courses.  Repeating this analysis but with course clusters may improve model accuracy and clarify the importance of data available at the time of admittance. 
-
+  * A new free-for-all in course selection absent of historical guidelines.    
+  * The introduction of new guidelines that do not align with historical practices.  
+  * The possibility of additional data that might influence course selection after admission, such as the choice of major influencing the choice of math course. 
+  
 ### METHODOLOGY 
 
 Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation."
 
-[[Examine additional filter and subset of courses.]]
+Data was additionally filtered to the top 90th cumulative percentile in course enrollment over the full time period. The courses selected were Math 1010, 1030, 1050, 1060, 1070, 1080, 1090, 1210, and 1220.
 
-Predictive models were trainied with the package "xgboost." 
+Predictive models were trained with the package "xgboost." 
 
 An expanding window of historical data was used, where one model was trained per year from 2007 to 2024.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2020 was trained data from the years 2005 to 2019.
 
-Each row consisted of one of nine possible course selections, the student's data duplicated, and the z-scores and combined distance per student per course calculated (relative to the prior year's median 'successful' or 'on track' student.)  The target column consisted of the values "enroll" or "not enroll", with one value of "enroll" per student identifying the course they actually enrolled in.    
+Each row consisted of one of nine possible course selections, the student's data duplicated nine times, and the z-scores and combined distance per student per course calculated (relative to the prior year's median 'successful' or 'on track' student.)  The target column consisted of the values "enroll" or "not enroll", with one value of "enroll" per student identifying the course actually enrolled in.     
+
+The models were evaluated with Kappa, precision, and recall. 
 
 
-All math courses taken by first time freshmen were identified. Each student's first math courses were identified (or multiple courses if taken in the same term.)   Grade performance for these math courses was queried.  These are called the initial math courses.   
-
-
-#### Variables 
-
-The variables included: 
-
-*Demographics:* 
-
-  * Age (less than 17 yrs old/17/18/19 or 20/greater than 21 years old)
-  * Sex (male or female)
-  * First generation status
-  * Ethnicity 
-  
-*High school information and performance:*  
-
-  * High school GPA 
-  * Number of AP credits
-  * Whether the high school was public or private   
-  * Honors achievement
-
-*Test scores:*    
-
-  * ACT Math
-  * ACT English
-  * ACT Science
-  * ACT comprehensive
-
-*University information:*  
-
-  * Residence status  
-  * Pell grant eligibility  
-  * Cohort year (2005 to 2024)
-  * Class year (2005 to 2025)
-  * Years from the cohort date (always fall of the year) until the first term with math courses 
-  * Season (spring, summer, or fall)  
-
-#### Filters  
-
-The following filters were applied: 
-
- * Math labs are filtered out.  
- * Courses higher than 3000 level were removed. 
- * Students younger than 11 yrs old were removed. 
- * Withdraw and "rare" grades of V, I, NC, and CR were removed.  
- * Students with high school GPA values of zero were removed. 
- * Courses from students with unusually high credits taken that semester (greater than 99th percentile) were removed.  
- * Courses taken more than half a year prior to the cohort date (where all cohort dates are in the fall) were removed   
- * All records with incomplete information were removed.  
-
-#### Transformations    
-
-The following transformations were applied: 
-
-  * AP credit values of "NA" were converted to zero.  
-  * Math courses with ordered enrollment above the 95th percentile of cumulative total were combined as "other"  
-  
-#### Target values    
-
-Each model predicted a value for a math course out of the following possibilities:  
-
-MATH_1010, MATH_1050, MATH_1210, MATH_1030, MATH_1090, MATH_1070, MATH_1220, MATH_1080, MATH_1060, MATH_1310, MATH_2210, MATH_990, MATH_1100, MATH_1250 or "other".
- 
-The following math courses were combined into "other":  
-
-MATH_1040, MATH_1311, MATH_1260, MATH_950, MATH_1270, MATH_1320, MATH_1321, MATH_1215, MATH_1170, MATH_2270, MATH_2250, MATH_1035, MATH_2000, MATH_1280, MATH_2200, MATH_1105, MATH_2271, MATH_2015, MATH_2280, MATH_2160, UC_1000, MATH_1180.
-  
 ### DISCUSSION  
 
-The relationship between early information and course selection was moderately predictive for many years, with Kappa values around 0.35 from 2013 to 2017, when it rapidly started eroding to a Kappa value of 0.17 in 2024. 
+The relationship between early information and course selection was moderately predictive for many years, with Kappa values above 0.20 until 2019, and as high as 0.46 in 2009.  It began steeply declining in 2017 when it rapidly eroded to a Kappa value of 0.06 in 2024, or essentially no predictive ability or no relationship between the predictors and course selection.  
 
 Kappa values also dipped in 2011 and 2012, suggesting a change in practices or guidelines or expectations for course selection.
 
-The most important predictor over all years, by far, was test scores for ACT math.  This suggests the test score may have been explicitly used as a guideline in the past and remains the most influential variable of these in course selection today.
+The most important predictor over all years was the test scores for ACT math, followed by the combined standardized distance per course in ACT math and high school GPA.  This suggests the test score may have been explicitly used as a guideline in the past and remained an influential variable of course selection until 2023, when the model accuracy dipped below a Kappa value of 0.1 and found no relationship between the predictors and course selection.   
 
 Some notable courses include: 
 
-  - *Math 1010:*  The model was able to correctly identify participants in Math 1010 until the year 2022 with reasonably high precision and recall scores (except for the 2011-12 dip), but declined steeply to precision and recall scores of about only 0.16 in 2024.  
-  - *Math 1310:*  The model's precision in identifying Math 1310 has improved, but the recall numbers are very low (with a high of 0.03.)  
-  - *Math 1030:* The model's recall has improved since 2018 until it had comparatively high recall in 2024 (0.42) with relatively moderate precision as well (0.28). 
-  - *Math 2210:* The model's recall has improved since 2015 until it has relatively high recall and precision in 2024.
-  
-It might be useful to cluster the courses to separate courses with rising, declining, or stable trends.  
+  - *Math 1010:*  The model was able to correctly identify participants in Math 1010 until the year 2020 with relatively high precision and recall scores (except for the 2011 dip), but declined steeply to Kappa and recall scores near zero in 2024.  
+  - *Math 1210:*  The model correctly identified selection of Math 1210 with the second highest Kappa, ranging between a low of 0.06 in 2017 and a high of 0.39 in 2010.  In 2024, it had the third highest Kappa value of 0.12
+  - *Math 1220:*  The course bucked the trend and started to increased in accuracy starting in 2015 and peaking in 2020 with a Kappa of 0.24.  In 2024, it had the second highest Kappa value of 0.16.   
   
 Taken together, the overall decline in model accuracy (Kappa, precision, and recall) over the years suggests several possibilities:  
 
   (1) A collapse of guidelines and a free-for-all in selecting courses
-  (2) The introduction of some new guideline or mechanism that aligns weakly with prior practices.    
-  (3) At the same time, some courses with improving accuracy (such as Math 2210 with improving precision and recall) suggest more rigid course selection.  
+  (2) The introduction of new guidelines or mechanisms that aligned weakly with prior practices. (At the same time, some courses with improving accuracy (such as Math 1220 with improving precision and recall) suggest (slightly) more rigid course selection.)  
+  (3) The possibility of additional data that might influence course selection after admission, such as the choice of major influencing the choice of math course.
+    
 
 
 ### CONCLUSIONS  
 
-Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is almost completely determined by variables other than early available information in 2024.
+Initial math course selection for first time freshmen is decreasingly determined by variables known at the time of enrollment, until it is completely determined by variables other than pre-University information in 2024.
 
-Predictive models had Kappa values as high as 0.4, indicating a moderate degree of determinism between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2016 until Kappa values were as low as 0.13 by 2024, indicating a near-random or weak relationship between prior information and course selection. 
+Predictive models had Kappa values as high as 0.46, indicating a moderate relationship between early information (such as high school performance and test scores) and course selection.  However, that relationship eroded rapidly starting in 2017 until Kappa values were as low as 0.06 by 2024, indicating an essentially random or no relationship between prior information and course selection. 
 
-All models in all years used ACT Math scores as the most important predictor of course selection.  AP credit increased in importance in predicting math course selection, as did information about the class year and cohort year.  
+ACT math scores were the most important predictor of course selection, followed by the standardized distance in ACT math scores and high school GPA, until 2020 when the model declined to find a relationship.    
 
-Some courses have run counter to the general trend, as precision and recall scores have improved over the years.
+In summary:
+
+  * Until 2020, pre-University data (especially ACT math test scores) had a moderate to weak relationship with course selection.  
+  * After 2020, pre-University data had a weak to no relationship with course selection.  
+  * The models are unable to identify and account for trends in the changing course selection mix, suggesting a cause that is not captured in the data.   
+  * Some courses are possibly too equivalent, or similar, or overlap with respect to the predictors enough that the model can't distinguish them.
+
+### POSSIBLE NEXT STEPS 
+
+If the model can't distinguish between highly similar courses (in terms of incoming student qualifications), then the model might be able to distinguish between clusters of similar courses.  Repeating this analysis but with course clusters usefulness of data available at the time of admittance.   
+
+A closer inspection of the confusion matrix for Math 1010, investigating which courses the model confused for Math 1010, could inform knowledge of the similarities between courses with respect to the model variables.  
+
+A conversation with math instructors familiar with departmental history could inform the experiences suggested by these models.  
 
 ### RESULTS 
 
@@ -941,18 +895,3 @@ skim(data_list[["2024"]][["training"]])
 
 ```
 
-# Old text to delete
-
-I think there's something to be said for declaration of major and product mix.  For example, what if formerly 1010 was now gated by major, and people who used to go to 1010 go to 1090 if they are Business major?  If that's the case, then the model would push all the 1090 people to 1010.  So I can add "addl info, like major-dedicated courses."
-
-I also wonder if I kept the model, and just grouped the course options into my four buckets, if I would have improved my accuracy.
-
-I also wonder what courses are getting confused for each other.  Where do all of the 1090 misses go?  Randomly assigned amongst all courses?  Is 1010 the default assignment, and since it's declined, it just has no idea where to go with them?
-
-I need to interpret this alongside the grade predictions, and the variable predictors.  Maybe create an over-all "over time" summary in addition to these individual reports.  
-
-
-I am also thinking that the model used to be able to accurately predict 1010, but now that there are many choices it can't pick any. Or, as the proportion of students in 1010 declined, the model accuracy declined.  Or, when looking at the model accuracy we're essentially seeing the decline of 1010 in popularity.
-
-
-The decline in Math 1010 proportion lines up pretty well with the decline in model accuracy
