@@ -1,5 +1,5 @@
 ---
-title: "Summary of findings from predicting math success"
+title: "Accessible overview on predicting initial math success for first time freshmen"
 author: "Bill Prisbrey"
 date: "2025-11-07"
 output: html_document
@@ -16,6 +16,38 @@ loadfonts()
 
 ```
 
+# EXECUTIVE SUMMARY 
+
+### ***PURPOSE:*** **This document describes recent efforts to predict and describe grade performance in initial math courses for first time freshmen based on data available at the time of admission.**  
+
+### ***EXECUTIVE SUMMARY:*** 
+
+Recently,
+
+Key findings include the 
+
+
+# DATA 
+
+# ANALYSES CONDUCTED
+
+  * Logistic regression, extreme gradient boosting, and categorical boosting all found that ACT Math test scores and high school GPA were mildly predictive of grade performance in initial math courses for first time freshmen (r squared values of [[0.24 to 0.26.]])  
+  * An extreme gradient boosting that derived features from ACT Math test scores and high school GPA improved the r-squared value to [[0.28.]]  
+  * An analysis over time found that the derived distance feature was stable over time. 
+  * Another analysis over time 
+  
+  
+# NOTED FINDINGS
+
+  * Changes over
+  
+
+
+  
+  * Two analyses conducted over time found that the derived "distance" feature was important for both course selection and grade performance. 
+
+
+# Old Stuff
 
 - Historically, roughly ACT Math test would determine the course and HSGPA would determine the grade.
   - I am thinking of this as math ability and study ability.

@@ -10,21 +10,6 @@ output:
     toc: true
 ---
 
-# NEED TO CHANGE TEXT TO REFLECT vD0
-
-I think there's something to be said for declaration of major and product mix.  For example, what if formerly 1010 was now gated by major, and people who used to go to 1010 go to 1090 if they are Business major?  If that's the case, then the model would push all the 1090 people to 1010.  So I can add "addl info, like major-dedicated courses."
-
-I also wonder if I kept the model, and just grouped the course options into my four buckets, if I would have improved my accuracy.
-
-I also wonder what courses are getting confused for each other.  Where do all of the 1090 misses go?  Randomly assigned amongst all courses?  Is 1010 the default assignment, and since it's declined, it just has no idea where to go with them?
-
-I need to interpret this alongside the grade predictions, and the variable predictors.  Maybe create an over-all "over time" summary in addition to these individual reports.  
-
-
-I am also thinking that the model used to be able to accurately predict 1010, but now that there are many choices it can't pick any. Or, as the proportion of students in 1010 declined, the model accuracy declined.  Or, when looking at the model accuracy we're essentially seeing the decline of 1010 in popularity.
-
-
-The decline in Math 1010 proportion lines up pretty well with the decline in model accuracy
 
 
 
@@ -318,25 +303,45 @@ names(courseResults) <- theCourses
 
 In order to examine trends in initial math course selection by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen.  
 
-Nineteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's course selection was predicted. 
+Eighteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's course selection was predicted. 
 
-The predictive model found a moderate relationship between math course selection and predictors early on (Kappa of ~0.35), but that relationship eroded to a very weak relationship by 2024 (when the Kappa value declined to 0.17).   
+The predictive model found a moderate relationship between math course selection and predictors early on (Kappa of ~0.3 to 0.45), but that relationship eroded to a non-existent relationship by 2024 (when the Kappa value declined to 0.06).   
 
-The most important predictor in every year was the ACT test scores.  Distantly, the number of AP credits, cohort year, and class year were next highest in model importance.  
+Kappa and precision started to abruptly declined in 2017, when enrollment in Math 1010 began declining and enrollment in other courses increased.
 
-Some courses such as Math 2210 bucked the trend and increased in accuracy metrics over time.  
+The most important predictor of course selection in every year was the ACT test scores, followed by the combined standardized distance to the prior year's median successful student.  Distantly, high school GPA and the high school GPA z-score were next highest in model importance.  
 
-The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores, high school GPA, and AP credits, and math course selection.  Instead, it suggests something like a new free-for-all where historical guidelines have been abandoned, or the introduction of new guidelines that do not align with historical practices.  
+Some courses such as Math 1220 increased in accuracy, peaking at a Kappa of 0.24 in 2020, while 1210 fluctuated between Kappa values of 0.06 (2017) and 0.39 (2010.)
+
+The alignment between model accuracy and the decline in Math 1010 enrollment suggests that Math 1010 may have had stronger guidelines in directing students to select it, or was otherwise preferred at the expense of the other courses.    
+
+The overall decline in the model's ability to predict course selection suggests a weakening relationship between predictors like test scores, high school GPA, and math course selection.  Some possible explanations include: 
+
+  * Data not used in the model influences course selection, such as the choice of major influencing the choice of math course. 
+  * The model is unable to identify and account for trends in the changing course selection mix, suggesting a cause that is not captured in the data.   
+  * The equivalency, or similarity, or overlap of predictors between courses that the model can't distinguish.   
+  * A new free-for-all in course selection absent of historical guidelines   
+  * The introduction of new guidelines that do not align with historical practices 
+
+### POSSIBLE NEXT STEPS 
+
+If the model can't distinguish between highly similar courses (in terms of incoming student qualifications), then the model might be able to distinguish between clusters of similar courses.  Repeating this analysis but with course clusters may improve model accuracy and clarify the importance of data available at the time of admittance. 
 
 ### METHODOLOGY 
 
+Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation."
+
+[[Examine additional filter and subset of courses.]]
+
+Predictive models were trainied with the package "xgboost." 
+
+An expanding window of historical data was used, where one model was trained per year from 2007 to 2024.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2020 was trained data from the years 2005 to 2019.
+
+Each row consisted of one of nine possible course selections, the student's data duplicated, and the z-scores and combined distance per student per course calculated (relative to the prior year's median 'successful' or 'on track' student.)  The target column consisted of the values "enroll" or "not enroll", with one value of "enroll" per student identifying the course they actually enrolled in.    
+
+
 All math courses taken by first time freshmen were identified. Each student's first math courses were identified (or multiple courses if taken in the same term.)   Grade performance for these math courses was queried.  These are called the initial math courses.   
 
-Predictive models were trained with package "xgboost" (extreme gradient boosting) with five-fold cross validation and a grid search pattern (nrounds = (100,200); max_depth(3,6); eta(0.05,0.2); colsample_bytree(0.8); subsample(0.8).)    
-
-An expanding window of historical data was used, where one model was trained per year for nineteen models.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2010 was trained on data from the years 2005 to 2009.  The predicted course selection for the year 2024 was trained on data from the years 2005 to 2023.  
-
-A value for math course was predicted.  
 
 #### Variables 
 
@@ -846,7 +851,7 @@ p
 
 
 
-```{r}
+```{r eval=FALSE}
 
 # Plotly graphic of all predictors that have an importance value less than fifty and over 10 in any model
 
@@ -935,3 +940,19 @@ drawCM(theResults[["2024"]], title = "2024 Results")
 skim(data_list[["2024"]][["training"]])
 
 ```
+
+# Old text to delete
+
+I think there's something to be said for declaration of major and product mix.  For example, what if formerly 1010 was now gated by major, and people who used to go to 1010 go to 1090 if they are Business major?  If that's the case, then the model would push all the 1090 people to 1010.  So I can add "addl info, like major-dedicated courses."
+
+I also wonder if I kept the model, and just grouped the course options into my four buckets, if I would have improved my accuracy.
+
+I also wonder what courses are getting confused for each other.  Where do all of the 1090 misses go?  Randomly assigned amongst all courses?  Is 1010 the default assignment, and since it's declined, it just has no idea where to go with them?
+
+I need to interpret this alongside the grade predictions, and the variable predictors.  Maybe create an over-all "over time" summary in addition to these individual reports.  
+
+
+I am also thinking that the model used to be able to accurately predict 1010, but now that there are many choices it can't pick any. Or, as the proportion of students in 1010 declined, the model accuracy declined.  Or, when looking at the model accuracy we're essentially seeing the decline of 1010 in popularity.
+
+
+The decline in Math 1010 proportion lines up pretty well with the decline in model accuracy
