@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2026-01-12" />
+<meta name="date" content="2026-02-12" />
 
 <title>Source data, cleaning, and preparation</title>
 
@@ -350,14 +350,14 @@ display: none;
 
 
 <h1 class="title toc-ignore">Source data, cleaning, and preparation</h1>
-<h4 class="date">January 12, 2026</h4>
+<h4 class="date">February 12, 2026</h4>
 
 </div>
 
 
 <p><strong>PURPOSE:</strong> This report describes the data sources,
-cleaning, and preparation used to recommend courses and predict
-grades.</p>
+cleaning, variables, and preparation used to recommend courses and
+predict grades.</p>
 <div id="original-sql" class="section level1">
 <h1>Original SQL</h1>
 <p>Math courses taken by first time freshmen were queried as follows.
@@ -420,9 +420,9 @@ course per year for successful students who achieved a GPA greater than
 <p>A new feature was engineered. The distance (or <em>“dist”</em>)
 between a student’s high school GPA and ACT math test scores and the
 prior year’s median qualifications for successful students was
-calculated as a Euclidean distance susing the median-centered z-score.
-(A possible improvement could calculate a Mahalanobis distance instead,
-as the two values are correlated.)</p>
+calculated as a Euclidean distance using the median-centered z-score.
+(Using principal components in order to de-correlate the variables was
+investigated and not found beneficial.)</p>
 <p>A variety of filters and transformations were applied as described
 below. Most notably, only complete cases were used in modeling, or all
 records missing a value were removed. This excluded the majority of
@@ -470,6 +470,8 @@ out.<br />
 <li>“Withdraw” grades (“W”) are removed.</li>
 <li>Courses that were not taught after the year 2021 were removed.<br />
 </li>
+<li>37 students with multiple cohort dates were removed.<br />
+</li>
 <li>All records with missing or ‘NA’ values were removed (only complete
 cases were used.)</li>
 </ul>
@@ -502,17 +504,65 @@ this data set.</li>
 <ul>
 <li>The median and standard deviation values for high school GPA and ACT
 math test scores were calculated per course per year for students who
-achieved a grade higher than 2.4 (or at least a B-minus.)<br />
+achieved a grade higher than 2.4 (in other words, at least a
+B-minus.)<br />
 </li>
-<li>The distance per student per qualification per course was calculated
-as the student’s score minus the prior year’s course median (for
-successful students) divided by the prior year’s course standard
-deviation (for successful students), resulting in a median-centered
-z-score for the high school GPA and the ACT math test scores .<br />
-</li>
+<li>The z-scores for high school GPA and ACT math test scores were
+calculated using the prior year’s median and standard deviation for
+these ‘successful’ students.</li>
 <li>A new field <em>“dist”</em> was calculated as the Euclidean distance
-in median-centered z-scores, or the square root of the ACT math test and
-high school GPA test scores first squared then added.</li>
+in these median-centered z-scores. It is the square root of the squared
+ACT math difference plus the squared high school GPA difference.</li>
+</ul>
+</div>
+<div id="variables-described" class="section level1">
+<h1>Variables Described</h1>
+<p><em>Demographics:</em></p>
+<ul>
+<li>Age (bucketed as less than 17 yrs old/17/18/19 or 20/greater than 21
+years old)</li>
+<li>Sex (male or female)</li>
+<li>First generation status</li>
+<li>Ethnicity</li>
+</ul>
+<p><em>High school:</em></p>
+<ul>
+<li>High school GPA</li>
+<li>Number of AP credits</li>
+<li>Whether the high school was public or private</li>
+</ul>
+<p><em>Test scores:</em></p>
+<ul>
+<li>ACT Math</li>
+<li>ACT English</li>
+<li>ACT Science</li>
+<li>ACT Comprehensive</li>
+</ul>
+<p><em>University information:</em></p>
+<ul>
+<li>Math course taken</li>
+<li>Course level (as 1000 or 2000)</li>
+<li>Residence status<br />
+</li>
+<li>Pell grant eligibility<br />
+</li>
+<li>Cohort year (2005 to 2024)</li>
+<li>Class year (2005 to 2025)</li>
+<li>Years from the cohort date (always fall of the year) until the first
+term with math courses (as yr_diff)</li>
+<li>Season (spring, summer, or fall)<br />
+</li>
+<li>Honors status</li>
+</ul>
+<p><em>Derived features:</em></p>
+<ul>
+<li>The high school GPA converted to a z-score using the prior year’s
+course median successful student<br />
+</li>
+<li>The ACT math test scores converted to a z-score using the prior
+year’s course median successful student<br />
+</li>
+<li>The combined Euclidean distance of these z-scores</li>
 </ul>
 </div>
 <div id="code-detail" class="section level1">
@@ -555,6 +605,15 @@ mathLabFilter &lt;-
   mathCourses$UNITS == 0
 
 firstCourses &lt;- mathCourses[firstTermFilter &amp; !mathLabFilter,]
+
+# Remove students with multiple values for COHORT_DT in FTF data
+# problemIDs &lt;- c(&quot;00517160&quot;, &quot;00572252&quot;, &quot;00280932&quot;, &quot;00643029&quot;, &quot;00548206&quot;)
+
+theDupes &lt;- table(ftfData$EMPLID) |&gt;
+  (\(x){x[x&gt;1]})() |&gt;
+  names()
+
+duplicateFilter &lt;- ftfData$EMPLID %in% theDupes
 
 # Merge in FTF data
 student_demographics &lt;- c(&quot;SEX&quot;,

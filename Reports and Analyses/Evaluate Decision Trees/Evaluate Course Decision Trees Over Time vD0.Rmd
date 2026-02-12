@@ -343,7 +343,7 @@ Data was additionally filtered to the top 90th cumulative percentile in course e
 
 Predictive models were trained with the package "xgboost." 
 
-An expanding window of historical data was used, where one model was trained per year from 2007 to 2024.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2020 was trained data from the years 2005 to 2019.
+An expanding window of historical data was used, where one model was trained per year from 2007 to 2024.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted course selection for the year 2020 was trained on data from the years 2005 to 2019.
 
 Each row consisted of one of nine possible course selections, the student's data duplicated nine times, and the z-scores and combined distance per student per course calculated (relative to the prior year's median 'successful' or 'on track' student.)  The target column consisted of the values "enroll" or "not enroll", with one value of "enroll" per student identifying the course actually enrolled in.     
 
