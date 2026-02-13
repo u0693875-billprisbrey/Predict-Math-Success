@@ -1,0 +1,83 @@
+Overview and Summary Draft Notes
+
+(Deleted from the "Summary of Findings" on 13 Feb 2026)
+
+  * Changes over
+  
+
+Anomalites or discontinuities in the years 2011, 2020, and 2023-2024.  
+
+
+  
+  * Two analyses conducted over time found that the derived "distance" feature was important for both course selection and grade performance. 
+
+
+
+
+
+
+
+# Old Stuff
+
+- Historically, roughly ACT Math test would determine the course and HSGPA would determine the grade.
+  - I am thinking of this as math ability and study ability.
+- A few things have changed:
+
+  (1) Mix of courses has changed.	
+        1010 is all-but abandoned; replaced by 1090
+
+  (2) Fewer test score submissions
+  	- Less than half of students are submitting ACT test scores
+  	- This is an increasingly elite group of students:  higher HSGPA and math grades than non-submitters; higher ACT median than historically
+	- This self-selection will make it harder to generalize from the test-submitting population to the general population	
+
+
+  (3) Reduced course selection accuracy:
+	- The connection between "prior" information and course selection is approaching random or no relationship		
+	- This is not taking into account knowledge of who submitted and did not submit test scores (this would improve the model)
+	
+
+  (3) Improved grade prediction	
+	- R-squared for grade prediction has improved 
+	- I'm not sure why.  Right now I suspect it is because a larger proportion of test submitters get A's as they are both better at math and better students.
+        	 
+  (4) Course selection doesn't seem to matter very much		
+	- I'm not sure why.  Right now I suspect it is because test submitters are better students, making course choice more irrelevant 
+	- This is the area of next focus		
+
+
+ 
+- Possible next steps include:
+	- Predict course and grade for the non-submitters
+	- Include a submission flag prediction variable, and impute test scores	(probably knn)
+	- Include SAT scores (why not?)	
+- Develop "warning" threshold:  Can I identify at-risk students?	
+- Focus on predicting W's.	
+
+
+  * Logistic regression, extreme gradient boosting, and categorical boosting all found that ACT Math test scores and high school GPA were mildly predictive of grade performance in initial math courses for first time freshmen (r squared values of [[0.24 to 0.26.]])  
+  * An extreme gradient boosting that derived features from ACT Math test scores and high school GPA improved the r-squared value to [[0.28.]]  
+  * An analysis over time found that the derived distance feature was stable over time. 
+  * Another analysis over time 
+
+
+
+
+Strongest predictors of grade performance is HSGPA and ACTMATH. 
+Strongest predictors of course is ACTMATH.
+
+Ability to predict course is declining over time, almost gone.
+
+Ability to predict grade is about plus-or-minus 0.6 GPA points (R-sq of 0.3) consistently 
+
+Course seems irrelevant to predicting the grade, although developing a counterfactual will shed more light into that.  
+
+2020 --- discontinuity, and 2024 is esp weird.
+
+I probably want to put a couple of highlights here, but otherwise call the child reports.  Or they are separate reports. 
+
+Looks like ACTMATH is declining in importance.  Isn't that interesting.  
+
+Let's trim off 2025 from all of these graphics, then work on the predictor graphic.  
+
+

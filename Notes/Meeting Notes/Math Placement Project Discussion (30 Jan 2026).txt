@@ -1,0 +1,172 @@
+Math Placement Project Discussion
+30 Jan 2026
+Reviewing Bill's Guidelines
+
+
+
+Luis:  Same page and then next steps.  Talk a little bit (?!) about Bill's work, and then go full circle to why we started it.  Hopefully have some time to hear everyone's input and accomplish the nextsteps.
+
+RC, executive leadership, Paul Cohn, Mitzi know about this math placement work.  We've put it on their radar a few times and curious as to what we're finding and will ultimately find.  
+
+That said -- Mitzi's on camp of taking "Accuplacer" and be done with it.  Just do the whole math Accuplacer and proceed that route.  Easier said than done!  If we could get students to take it, we would have done it by now!  coordinating it is difficult. I think the work we've done is a tool we can utilize for the summer for the new cohort in.  I don't think we'll get students to take it.  
+
+Mainly Mitzi.  Other folks, Chase Hagood, he's interested in math placement and guides.  Whitney, what Shalomar is asking for -- kind of parallel and I'm fuzzy on those details.  Other folks are looking at math success at the U
+
+Whitney: Shalomar, reporting through Chase Hagood, is looking at math success but not placement.  Working with committee to explore possibility of more additional support for students who may not be well placed to succeed. Committee is still exploratory and asked UAIR for information.  Some of that has been giving them an overlook of general academic preparedness for fall cohort (test scores and GPA.)  What they asked for, in addition to that, is general info on passing remedial courses (1010, 1030, 1050) vs students who fail.  And the same for writing (1010, 2010).  What I've gathered is that they will see how many students in incoming cohort fit the same archetype of students who tend to fail, and what they'd do.  Invite the same "fail" archetype of additional support or more lab opportunities. That's the data provided, but haven't heard anything more about that.	
+
+Luis:  What we do with students, and someone will need to provide where academically prepared (probably us.)  This is, I have no -- no good sense of how prepared the avg advisor is at orientation when it comes to knowing the stats of students coming in.  How well they know test scores and GPA.  That's something that I want to -- that's part of next steps. 
+
+Seen guidelines? --> nods.  
+
+Let's talk about that.  
+
+Whitney:  I don't understand every component.  I get it at a high level.  The approach makes sense.  I'm wondering why the dividing line was chosen at B- and C+.  
+
+Bill explains:  It's stable. I can "wax poetic on it.
+
+I would think as a student that a "B-" is fine at time.	
+
+Luis: What if we pick a dividing line?  We'll need to wax poetic on it.	
+
+Relative to the rest of the U, a "B-" is pretty crappy.	
+
+Bill:  What's the risk tolerance? We have good accuracy at that dividing line.  How expensive is the intervention?   We can't finely divide estimated grade.	
+
+L:  We have to be clear that it's the best line with the information we have.  Realistically, a guideline or a dashboard that people can look at and it's  easy.  Accessibility for non-technical period.
+
+Mitzi and Paul will understand some technical work, but nobody else will. 
+
+The finished product will really need to focus on over-communication. When they ask, "Why not this grade?" then we'll need to explain the risk tolerance.	
+
+Sarah:  Looking at the heatmap like chart, for predictions
+
+On the left, it looks like there's a wider gradient and the right is more polarized.  But overall, doing better than predicted.  Does the model consistently under-predict?
+
+Bill:  Actually data is almost pass-fail, lots of A's, but model predicts the middle of the ground.
+
+Bill:  I should do density plots.	
+
+Sarah:  SAT ? --> No SAT.   ACT predicted math placement, HSGPA predicted grades. 
+
+Sarah: I think it's a good idea to make a parameter for different academic years. I think "cohort size" and "curriculum" could affect those. 
+
+Course "mix" has changed -- it's all 1090 now. 
+
+Sarah:  Who? --> All first-time-freshmen in their initial math courses.
+
+Luis: A lot to go over with the guide.  
+
+NOT A FINE-TUNED ESTIMATE.  
+
+Next steps:
+
+Need some type of PDF.  Some type of white paper that summarizes all of the analyses that we've done, together.  
+
+What we've found that is predictive.  Something that summarizes all of the findings.  We'll need some kind of executive summary.  We'll need all three of you to work on that -- take a good shot at it. We'll summarize EVERYTHING.  We want to say, "What rises to the top as far as predictive, analyzed from top to bottom, and this is what it is."  And then put it all in an appendix so it isn't wasted, and I want to put it up-front and we have enough support on what a successful math course is.
+
+Whitney:  Do you have an example?
+
+L:  Summary and then a beefier report.  I want to do a draft, then meet together and decide.  Make sure everyone has access to what they've done.  Bring it back, and then describe a highlight as far as front-and-center.  At this point it's like a meta-analysis -- go over all of them and come up with an overall conclusion. 
+
+Make sure access to everything.  Meet relatively quickly, like in next two weeks.  
+
+Sarah:  Who decide who the primary user will be? --> Executive leadership.  It's a summary on everything we've found, and it needs to be accessible.  The whole analyses--
+
+This needs to be approved by Paul and Mitzi, who need to understand it, and then we can say we have these guidelines ready to go.
+
+They'll read the executive summary.
+
+L:  It needs to be accessible and readable.  If not readable, it's failed.  I can't guarantee that they'll read the appendix.  Show that guidelines aren't coming out of nowhere.  
+
+L:  I put this work front-and-center on bigger platforms.  Anxious to see what we've found, so people will dive in and consume it.
+
+Bill:  Obvious questions (obvious failures, year to first class?)
+
+L:  Accuracy of the models, variables used, confidence, because this meta-analysis is a literature review.  A lit review on what we've found, then we'll do the guidelines.  Then we'll put the guidelines, and it will be tougher!  But first be clear on summarizing all of the previous work.
+
+We'll need to make sure that people understand what variables are the most important before touching on the guidelines.  First, the meta -analysis that is a literature review that we can pass around for people to look at it.  Student success, in math courses, in who rises to the top.
+
+Then a SECOND deliverable -- the guidelines -- based on our recommendations on where to place students.  Questions will be "how accurate....how confident..." in guidelines.  We'll get the questions there.  
+
+Bill: No literature review, right? --> Akin to it, no actual external work.  
+
+Luis: Summarizing all of the analyses.  Appendix is "go wild" with everything!  Use the summaries as a guideline, and putting it all into one.	
+If we can't highlight the conclusions of each one.  
+
+"How do we predict math success of incoming students" ? And it's an off-shoot.	
+
+Make sure everyone has access to everything.  Some type of draft, like a "Google" doc, and work on a draft, and Luis will work on "gelling" it.	
+
+How to present the next deliverable -- once we've convinced them we know what we're talking about -- we need a second deliverable that is a guideline.  Given the incoming information, here is a course that we recommend.
+
+(1)  Make sure they think we know what we're talking about in recommending course.  Sarah and Whitney-- all of those math courses, we need to make sure we know what Math 1090 is, and if they can take it.  Designated for particular students!  Can't recommend Math 1080 for an undeclared student, for example.  Certain math courses are for certain majors.  Need to get on top of that for the guidelines.  Like 1050 is for everyone, and other courses we've analyzed for specific majors.  Google it on the website or course catalogue.  Everyone understand where going with this?  
+
+Whitney:  Should we have already accounted for that? --> No, because they took the appropriate courses (weren't randomly assigned.)	
+
+In these guidelines, we can put it on a PDF with a really long table and that won't work for the average campus user.  They won't look at a PDF.  Or create a dynamic dashboard that has the archetypical academic preparedness stats.  Maybe -- and there's no perfect medium to deliver -- we'll need a tool that takes in this background work that's accessible for a particular student.  Including their choice of major.  We don't need to be registrars but need to be course schedulers.  
+
+Time to work on the guidelines when, I guess this spring, as we'll have up until the summer for a tool ready.  Tool won't get used until the incoming class.   And convince them it's a workable tool.
+
+Whitney:  For only a third of the students?  --> Bill:  It's a broader prediction.
+
+Bill:  Some concerns with implementation, like telling a student "low risk" and they slack off.  
+
+L:  A high-level summary of the guidelines would be good.  
+
+L:  I'll run the guidelines past a couple of people to see if it makes sense.	
+
+L: ACT is actually at 50% for 2026.  It's back in vogue.  It's on the up.	
+L:  Let's focus on the summary.  Think about how we deliver a guide that all users can easily use, but focus on the summary.  I'll take the guidelines and run with that and present it to a couple of people to see if it makes sense to them.  But I still want the summary, too much work for nothing to show for it.   I am not a fan of the Accuplacer -- I don't think we can rely on it; and I don't think the students will want to do it at the orientation.  
+
+L: Elephant in room, as some students place themselves regardless of tool or Accuplacer, no policy preventing a student from going downhill in math class.  We had that problem last year as students go into Math 1050 when they could have been in 1210.  I'll ask about the policy for this.  High level, we'll probably want to run this tool by a trusted advisor and probably then move onto consulting with the math dep't so they are involved.  Consult with a lot of departments and stakeholders and run it by them, before this gets presented.  It might be a very slow road to put this in the right people's hands.  "Do you understand it?  Like it/hate it?" This is where the summary will be crucial, and we can pass that around.  
+
+Let's synthesize the summaries.  I'll take a look, and give it a good first pass.  
+
+If you can, bring this up to the top of your priority list, top 5 working on.  Once you get in, it will make sense.
+
+Bill: Schedule the meeting for next Friday, without Luis, doesn't want too many chefs in the kitchen until we have a draft.
+
+Luis:  Happy to meet 1x1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+

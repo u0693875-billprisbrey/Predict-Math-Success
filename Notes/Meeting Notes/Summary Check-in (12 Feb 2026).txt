@@ -1,0 +1,36 @@
+Meeting Notes
+Check-in on Summary
+12 Feb 2026
+
+
+Sound bites in the documents ?
+
+Make sure I have the "key take-aways" one-pager, make sure the sound bites are accessible.	
+
+Surprisingly dynamic environment
+  -- Implication is that this isn't one model to predict, but year after year	
+
+"Success" is good -- better than "pass" 
+"At risk" is good 
+
+
+IMPLEMENTATION RISKS:  
+
+- Psychology
+- Oscillation 
+- Obscures causality / meaningful intervention	
+
+Implementation: 
+WANT TO DO A/B TESTING
+TRACK ALL INTERVENTIONS	
+
+
+
+
+
+
+ 
+ 
+
+
+

@@ -1,0 +1,34 @@
+Man, like ---
+
+So let's say I have a "perfect selector" that slots students into the appropriate course
+
+==
+
+Rather, it's more like -all- of these courses are at the same level of difficulty, preparation, and rigor.
+Or, that one is as good as another.
+Or, that *something else* is helping them select a course appropriate to their abilities, essentially they are already all handicapped, and they end up at the same place based on the *work* they do.	
+
+I mean, if you look at a freshman math class at MIT, you'll see the exact. same. grade distribution.  How can you figure out the expected grade performance of swapping an avg MIT freshman with a UofU freshman?  Haven't we already scaled for each other -- the U's teaching expectations to the U's student population?	
+
+I just keep going round an' round over this question and nothing is giving me much insight.
+
+How could I find a natural experiment?  Should I attempt "matching" ?
+
+Next steps:
+ -- Wrap up "Predictors over time" 
+     - It's do-able, and I appreciate how it familiarizes me with the data	
+     - Do the 2D maps, ridgeline predictions, and compare heatmaps for <2020 and 2024
+     - Compare the recent classes and make sure I haven't lost an important one.
+ -- Look at predicted-vs-actual "ZERO" values	
+     - Train a model on "W" values?
+ -- Look at course effects
+     - Why so different than my predicted effects? 
+ -- Read half a book on causal inference (probably the best value add)
+ 	
+
+
+
+
+
+
+

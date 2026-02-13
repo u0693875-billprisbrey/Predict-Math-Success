@@ -1,0 +1,62 @@
+Math Placement Project Discussion
+2.13.2026
+
+Luis:  On track ?  Discuss progress and how it's looking. Show something is awesome.  Generally speaking, where are we at on summary?  
+
+L:  Math department analyzed Accu-Placer. A lot of students are doing ALEKS from prompter.  It's less ideal to do it "prompted" as "proctored."  They want Student Senate (?) to pony up money to do it proctored.  Do we have money to pay for it?  If no money, I don't know what they'll do.  But I've warned that the Accu-Placer ---- but how will the students take it?  6,500 students multiplied by $10-$20 for a proctored exam.  I'll share the analysis on the Accu-Placer. Looked at ACT Math, and didn't do High School GPA.  
+
+Give me the summary and we'll need to discuss Phase 2 as Mitzi keeps asking about it.  "Might pay for the Accu-Placer.  What else do we have?"  We still have all of this work that we can show.  It won't necessarily be, I don't know if it will put the guidelines on a dashboard and make it usable.  Let's get the summary and then have the rest of the semester to plan on how to make it accessible for the rest of the campus.	
+
+B:  If Mitzi's asking, then it's urgent.  --> Yeah, need the summary.	 She's weighing options and was happy with selecting Accuplacer. 
+
+B:  So Math Dep't is frustrated? --> Not really, they just want proctored exams.  The logistics of getting students to do it is not very feasible, but can have it proctored online.   We had a wild, wild west with Accuplacer, and just consulted with an advisor.
+
+L:  Puts study in the chat.  They  say the Accuplacer reduces DFW rates.  Math Dep't wants money for the Accuplacer.  
+
+W:  They get the money but students can't do it.  Can we replace with ours ? --> Yes.
+
+L:  These are almost a verification  now.  I don't know if they'd implement black-and-white policies but wanted to check.  I think it's a little more gray, lots of wiggle room with students, and that's really complicated.  We like parsimonious guidelines at the U -- add interpretation into people's hands it's a mess!  Give them room to interpret and it's a mess.	
+
+B:  Include a graph? --> Don't force it if you don't need it.   You don't need to match their outline.  
+
+L:  Their analysis goes back to 2005, a mystery of placing students won't get fixed in a couple of months !   
+
+Email me any questions and let's get the summary done.		
+
+W:  How to organize? 
+
+L:  Summary with appendix and then just the summary.  Word doc is easier, or PDF.  
+
+W:  Individual one-pagers or just a mega-one pager and individual appendices? 
+
+L:  I need the mega-summary!   The rest doesn't quite matter as much. I'll have my eyes on that one, and then all of the appendices and see if they make sense.  Anything that is separate
+
+	
+
+
+
+
+
+Putting out big bucks means big frustrations.  
+
+
+
+
+TO DO:
+
+- Send summary paper for Luis to make adjustments and suggestions	
+- 	
+
+
+
+MAYBE NICE TO HAVE: 
+- A graphical explanation of how "distance" is calculated (because it's complicated)
+- Implementing predictive models
+- Ethical considerations for using machine learning models
+
+
+possible graphs to include in the meta-summary: 
+
+- Predicted vs actual distribution 
+- Heatmap of predicted values	
+- Course scatterplot 

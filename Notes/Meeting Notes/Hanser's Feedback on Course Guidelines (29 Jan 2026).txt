@@ -1,0 +1,71 @@
+Hanser's Feedback on Course Guidelines
+29 Jan 2026
+
+Test Optional in 2020 --
+
+   - An increase in DWI rates ? --> No 
+   - Grade Inflation	
+
+Approach was --
+
+A "recommender" piece:  Recommender piece, students like you.
+ 
+Then also their predicted grade.  Can focus on their most likely.
+
+INTENDED MAJOR or COLLEGE (?  We know them!) Even a STEM or NO STEM flag	
+
+We have individual test scores on AP -- I don't know how clean it is.	
+
+I can ask Luis -- but he wants to rely on heavily-vetted data.
+
+Imputing the missing ACT math score -- K-nearest neighbors 
+
+HSGPA and ACTMATH was correlated, but tried HSGPA by itself and its results were terrible.	
+
+Discussing -- what to do if there are no test scores?
+
+How the margin of error is massive when trying to predict grades in math courses with only a high school GPA --
+
+In addition I could predict their expected grade in a course.  Fait tails.  Could include some sort of risk factor -- high risk for low grades,
+or 30% risk of <C- .  
+
+T.A. in courses would have status updates for some of our students.  Week 5 an e-mail with Qualtrics survey on five questions -- missed assignments? Failed test? At risk of failing the course?	
+
+Some sort of model of "these students might be at risk of failing."  BEFORE the final grade and design interventions around that.  
+
+Create an intervention based on some sort of feedback system.	
+
+Write up next steps and recommendations
+
+OSCILATIONS	
+PSYCHOLOGY	
+TRANSPARENCY/EXPLAINABILITY/ETHICS		
+	
+no admissions problem	
+
+INDIVIDUAL MATH COURSE reports -- 
+
+Some ability to automate it.  
+
+Kind of hard to read, and an academic advisor who is not a math person, tables and figures could be tough. 
+
+ID at top.  MATH and HSGPA.
+And then a table of their most likely courses, and predicted grades, and their risk of failing each course.	
+In a table form, identify HIGH RISK or not.	
+
+It's not SUPER-APPARENT that we're looking at median ACT/HSGPA of SUCCESSFUL students
+
+Address "no test scores/ only HSGPA" aggressively.  Say, "must" take the adaptive math test.	
+
+Seems like you SHOULD be able to EASILY write a math placement test in-house	
+
+	
+
+
+
+
+
+
+
+
+  

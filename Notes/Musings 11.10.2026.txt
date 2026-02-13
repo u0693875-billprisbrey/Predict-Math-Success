@@ -1,0 +1,54 @@
+Probably early to middle of November, 2026
+
+Sort through notes
+Review convo's with Claude  (who summarized my situation very clearly)
+
+PRIORITY 
+  -- compare heatmaps over time
+  -- create ridgeline graphics showing distribution of grades given prediction / distribution of predictions given grades	
+     - This might become an entry into matching
+     - It's another nice way of visually showing Kappa	
+
+
+Complete reports:
+	Complete predictors over time
+	Complete grades over time 
+Complete your heatmaps, comparing 2024 and, say, 2005 or 2015
+
+Compare counterfactuals with linear regression	
+
+
+===
+
+Really makes me want to create my own rough heuristic, which is simply a diagonal line on the heatmap, and see how many people pass/flunk based on that border.  One per top 5 courses.	
+
+I also want to see a heatmap of the predicted values and compare it to the actual values.	
+
+Also, if the grade isn't declining even though the course selection is less predictable/free-for-all, what problem are we trying to fix?
+
+
+
+
+===
+
+
+Attempt Proposal #6 
+  -- Train model without course
+  -- Obtain expected grade
+  -- Calculate delta between expected and actual grade
+  -- Train model with only course to estimate the effect of the course (????)
+
+Attempt at matching
+  -- Look at variations in course taken by people with the same HSGPA and same ACT scores
+  -- Look at variations in grade	
+  -- Isn't this the simple linear regression?	
+  
+Idea: 
+Models do a poor job at predicting "W" values.
+Maybe I can create a "mis-match" variable that should be a good predictor of "W"
+The "mis-match" is people taking the wrong course.
+W and "mis-match"
+
+
+Get a notebook and write in it
+Write a DAG for grades (look one up?)	
