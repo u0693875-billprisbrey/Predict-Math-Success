@@ -18,79 +18,60 @@ loadfonts()
 
 # EXECUTIVE SUMMARY 
 
-### ***PURPOSE:*** **This document describes recent efforts to predict and describe grade performance in initial math courses for first time freshmen based on data available at the time of admission.**  
+### ***PURPOSE:*** **The purpose of this document is to describe recent efforts in predicting grade performance for initial math courses for first time freshmen based on minimal data available at the time of admission.**  
+
 
 ### ***EXECUTIVE SUMMARY:*** 
 
-Recently,
-
-Key findings include the 
+TBD (one or two paragraphs)
 
 
 # DATA 
 
+ * ***Demographics data*** describing first time freshmen include age, sex, first generation status, and ethnicity.
+ * ***High school data*** including high school GPA, number of AP credits, and whether the high school was public or private. 
+ * ***Test scores*** from the ACT including Math, English, Science, and Comprehensive. (Note:  SAT test scores were not used, and students who did not submit an ACT test score were excluded.)  
+ * ***University information*** included the name of the course, the course level, residence status, Pell grant eligibility, cohort year (2005 to 2024), class year (2005 to 2025), years from the cohort date (always in the fall) until the first term math courses were taken, season, and honors status. 
+ * ***Derived features*** included calculating a kind of z-score for the high school GPA and ACT math test scores and combining them into a single "distance" measure.   
+ 
 # ANALYSES CONDUCTED
 
-  * Logistic regression, extreme gradient boosting, and categorical boosting all found that ACT Math test scores and high school GPA were mildly predictive of grade performance in initial math courses for first time freshmen (r squared values of [[0.24 to 0.26.]])  
-  * An extreme gradient boosting that derived features from ACT Math test scores and high school GPA improved the r-squared value to [[0.28.]]  
-  * An analysis over time found that the derived distance feature was stable over time. 
-  * Another analysis over time 
+  * ***Descriptive*** analyses investigated how key variables changed over the time span of the study. 
+  * ***Predictive*** analyses modeled predictors of grade performance.
+  * ***Time series*** analyses investigated predictive model accuracy over time by generating a predictive model per year.  Grade performance and course selection were both modeled. 
+  * ***Special investigations*** investigated whether grades of 'W' or 'Withdraw' were 
+ 
+# KEY FINDINGS 
+
+
+### *Predictive accuracy:*  
+
+  * Grade performance was predicted with an R-squared value between ~0.20 and ~0.28 over the time period.  
+  * These predictions could identify a high "successful" group and a low "at risk" group with a Kappa accuracy value of ~0.40 in 2024.  The "successful" group observed one out of twenty-five students (4%) failing and the "at risk" group observed one out of three students (29%) failing.  (Failing was defined as achieving a grade of 1.3 or less.)  
   
+### *Variable importance:*  
+
+  * High school GPA, ACT Math test scores, and their derivative features were consistently the most important predictors. 
+  * ACT Math test scores, followed by "distance", were the most important features for predicting course selection.  
+  * High school GPA, distantly followed by the high school GPA z-score, "distance", and ACT Math z-score, were the most important features for predicting grade performance.  
   
-# NOTED FINDINGS
-
-  * Changes over
+### *Over time:*   
   
-
-
+  * ***Course selection accuracy declined while grade performance accuracy improved.***  
   
-  * Two analyses conducted over time found that the derived "distance" feature was important for both course selection and grade performance. 
-
-
-# Old Stuff
-
-- Historically, roughly ACT Math test would determine the course and HSGPA would determine the grade.
-  - I am thinking of this as math ability and study ability.
-- A few things have changed:
-
-  (1) Mix of courses has changed.	
-        1010 is all-but abandoned; replaced by 1090
-
-  (2) Fewer test score submissions
-  	- Less than half of students are submitting ACT test scores
-  	- This is an increasingly elite group of students:  higher HSGPA and math grades than non-submitters; higher ACT median than historically
-	- This self-selection will make it harder to generalize from the test-submitting population to the general population	
-
-
-  (3) Reduced course selection accuracy:
-	- The connection between "prior" information and course selection is approaching random or no relationship		
-	- This is not taking into account knowledge of who submitted and did not submit test scores (this would improve the model)
-	
-
-  (3) Improved grade prediction	
-	- R-squared for grade prediction has improved 
-	- I'm not sure why.  Right now I suspect it is because a larger proportion of test submitters get A's as they are both better at math and better students.
-        	 
-  (4) Course selection doesn't seem to matter very much		
-	- I'm not sure why.  Right now I suspect it is because test submitters are better students, making course choice more irrelevant 
-	- This is the area of next focus		
-
+    * Predictive accuracy for course selection started with a Kappa of ~0.45 in 2008-2010 and declined to values of ~0.06-0.07 in 2023-2024.  This suggests there was initially a moderate relationship between the predictors and course selection that declined until there was essentially no relationship in 2023-2024. 
+  * Conversely, predictive accuracy for grade performance started with an R-squared value of ~0.2 in 2007-2010 and improved to a predictive accuracy of ~0.28 in 2024.   
+  
+  * ***The environment is dynamic over time.*** 
+  
+  * Grade inflation or grade compression was observed over the time period. The proportion of students receiving an 'A' increased from about 20% in 2005 to ~33% in 2024.  
+  * ACT test score submission rates have decreased dramatically, from roughly 90% until 2016 to only 30% for enrollees in high volume math courses.  
+  * The mix of courses selected changed, from Math 1010 as the dominant choice until 2017 and Math 1090 as the highest enrolled course in 2024.    
+  * Anomalies and discontinuities in models and predictors were observed in the years 2011, 2020, and 2023-2024.  
 
  
-- Possible next steps include:
-	- Predict course and grade for the non-submitters
-	- Include a submission flag prediction variable, and impute test scores	(probably knn)
-	- Include SAT scores (why not?)	
-- Develop "warning" threshold:  Can I identify at-risk students?	
-- Focus on predicting W's.	
+# DISCUSSION 
 
-
-
-```{r fig.height=5, fig.width=11}
-
-displayPerformance()
-
-```
 
 ```{r fig.height=5, fig.width=11}
 
@@ -99,21 +80,26 @@ displayPipeline()
 ```
 
 
-Strongest predictors of grade performance is HSGPA and ACTMATH. 
-Strongest predictors of course is ACTMATH.
+```{r fig.height=5, fig.width=11}
 
-Ability to predict course is declining over time, almost gone.
+displayPerformance()
 
-Ability to predict grade is about plus-or-minus 0.6 GPA points (R-sq of 0.3) consistently 
+```
 
-Course seems irrelevant to predicting the grade, although developing a counterfactual will shed more light into that.  
+The important variables are consistent with the theory that performance is an outcome of motivation and ability, where ACT Math represents math ability and high school GPA represents studiousness or "study ability."   
+The collapse of accuracy in predicting course selection may suggest a current kind of "free-for-all" in course enrollment.  Discussing the current situation and other historical trends with an instructor familiar with the history of the math department could be insightful. 
 
-2020 --- discontinuity, and 2024 is esp weird.
 
-I probably want to put a couple of highlights here, but otherwise call the child reports.  Or they are separate reports. 
+# CONCLUSIONS 
 
-Looks like ACTMATH is declining in importance.  Isn't that interesting.  
+At a high level, it can be concluded that ACT Math test scores and high school GPA are consistently mildly predictive of math course selection and math grade performance.
 
-Let's trim off 2025 from all of these graphics, then work on the predictor graphic.  
 
+# POSSIBLE NEXT STEPS 
+  
+  * **Discuss this report** and findings with instructors in the math department familiar with the history and current situation.  
+  
+  * **Include concurrent variables** such as number of credits, concurrent courses and their difficulty, initial course grades on quizzes, homework, and tests, utilization of tutoring services, and participation in study groups.    
+
+  * **Develop gentle guidelines** for course recommendations based on ACT math test scores and high school GPA  
 

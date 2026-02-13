@@ -192,6 +192,25 @@ New features were engineered:
   * The ACT math test scores converted to a z-score using the prior year's course median successful student  
   * The combined Euclidean distance of these z-scores 
 
+# Grade Mapping
+
+```{r}
+
+data.frame(Letter = c("E, EU", "D-","D","D+", "C-","C","C+", "B-","B","B+","A-","A"),
+           GPA = c(0,0.7,1,1.3,1.7,2.0,2.3,2.7,3.0,3.3,3.7,4.0)
+           ) |>
+  kbl(align = c("l", "c"),
+      col.names = c("Letter Grade", "GPA"),
+      caption = "Grade Mapping") |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") |>
+  column_spec(1, bold = TRUE) |>
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
+
+```
+
+
   
 # Code Detail 
 

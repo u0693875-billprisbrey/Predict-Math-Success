@@ -8,25 +8,56 @@ params:
 output:
   html_document:
     keep_md: true
+    toc: true
 ---
 
-# MODIFY THIS TEXT TO FIT vH4
-
-Work on course predictions in the "Course Guide" and then come back to this.
-
-Spiffy up the boxplots DONE
-
-Now I need to use this model to make predictions in the "Course Guide" --
-
-  - It would be cool if I could reasonably demonstrate that the people predicted as "low" could have improved their grade by switching to a closer course.  That would be a little bit of an exercise, but probably worth it.
   
-  - I need to find the report where I did all the work describing how I cleaned the data.  
-  
-  - I'd like to show the essentially precision/recall for all of the grades in my two categories  
-  
+**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on the prior twenty years' of pre-University data like ACT math test scores, high school GPA, course selection, and various demographics. Various aspects of the model are visualized and compared.  
+
+# SUMMARY
+
+# METHODOLOGY 
+
+Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation." 
+
+A predictive model was trained with the package "xgboost."  
+
+A value for math grade was predicted, and evaluated with the root mean square error, mean absolute error, and r-squared values. 
+
+These values were also combined into a binary categorization ("high"/"low" or "success"/"fail" or "on track"/"at risk") using various thresholds or cut-offs.  An optimum threshold or cut-off was discovered with the highest Kappa value. 
+
+# DISCUSSION  
+
+#### *Implications for admissions*
+
+# CONCLUSIONS 
 
 
-**PURPOSE:** This report describes a model trained to predict initial math grades for first time freshmen in 2024 based on prior twenty years' of data on variables like ACT math test scores, high school GPA, and high school AP credits.  It includes the distance of the current  It performs with an r-squared value of 0.26.  Various aspects of the model prediction and actual performance are visualized and compared.  
+
+# POSSIBLE NEXT STEPS 
+
+Grade prediction accuracy should increase with the inclusion of concurrent data, such as: 
+
+  * The number of credits taken 
+  * Difficulty of other classes 
+  * Initial course grades on quizzes, homework, and initial tests   
+  * Utilization of tutoring services  
+  * Participation in study groups 
+  
+The model might improve with an indicator that clusters similar classes (in terms of incoming qualifications) together.  This could help differentiate many small courses by combining them.   
+
+
+
+# RESULTS 
+
+# REFERENCES
+
+```{r}
+
+
+
+```
+
 
 EXECUTIVE SUMMARY
 
@@ -384,8 +415,11 @@ thePredictions <- lapply(params$target_classes, function(x) {
   # print(table(missingFilter))
 }
   
+  # drop 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
   predict(model_list[[x]],
-          newdata = data_list[[x]][["testing"]][missingFilter,])
+          newdata = data_list[[x]][["testing"]][missingFilter & remove2025,])
   
 } )
 names(thePredictions) <- params$target_classes
@@ -415,8 +449,12 @@ theResults <- lapply(params$target_classes, function(x) {
 #  print(table(missingFilter))
 }
   
+    # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  
   postResample(pred = thePredictions[[x]],
-                  obs = data_list[[x]][["testing"]][[x]][missingFilter]
+                  obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
   
                )
 })
@@ -426,37 +464,13 @@ names(theResults) <- params$target_classes
 
 ```
 
-### Models 
 
-"Quad" model was not evaluated and is not covered in this report. 
-
-```{r}
-
-data.frame(Letter = c("E, EU", "D-","D","D+", "C-","C","C+", "B-","B","B+","A-","A"),
-           GPA = c(0,0.7,1,1.3,1.7,2.0,2.3,2.7,3.0,3.3,3.7,4.0),
-           Quad =c(0,0,0,0,1,1,1,2,2,2,2,3)
-           ) |>
-  kbl(align = c("l", "c", "c"),
-      col.names = c("Letter Grade", "GPA", "Quad"),
-      caption = "Grade Mapping") |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
-                full_width = FALSE,
-                position = "left") |>
-  column_spec(1, bold = TRUE) |>
-  row_spec(0, bold = TRUE, background = "#f0f0f0")
-
-```
 
 
 
 # Results
 
 ```{r}
-
-
-# I'd like to normalize the errors with the range and standard deviation
-
-# but it doesn't change that these aren't very good models
 
 # normalized errors
 
@@ -498,9 +512,12 @@ normResults <- lapply(params$target_classes, function(x) {
 #  print(table(missingFilter))
 }
   
+      # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
   normalized_metrics(
     pred = thePredictions[[x]],
-    obs = data_list[[x]][["testing"]][[x]][missingFilter]
+    obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
   )
   
 })  
@@ -599,48 +616,13 @@ invisible(lapply(params$target_classes, function(x){
   
   missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
   
+        # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
   
 regression_diagnostics(pred = thePredictions[[x]],
-                       reference = data_list[[x]][["testing"]][[x]][missingFilter],
-                       plot_title = x)
+                       reference = data_list[[x]][["testing"]][[x]][missingFilter & remove2025],
+                       plot_title = "Predicted vs Actual")
 })
-)
-
-```
-
-
-
-```{r fig.height=4.5, fig.width=9}
-
-aligned <- alignPrediction(prediction_list = thePredictions, reference_list = data_list)
-
-# ACTUAL vs PREDICTED HEATMAP
-predictionMap(data = aligned[["GRADEGPA"]], 
-              plot_title = "Predicted vs Actual for 2024, all courses")
-
-
-
-```
-
-
-```{r eval=FALSE}
-
-# I'm not seeing a real need to display this for each grade 
-
-suppressWarnings(
-predictionHistogram(data = aligned[["GRADEGPA"]],
-                    title = NA,
-                    show = "actual",
-                    cap = TRUE, 
-                    hist_params = list(freq = TRUE))
-)
-
-suppressWarnings(
-predictionHistogram(data = aligned[["GRADEGPA"]],
-                    title = NA,
-                    show = "predict",
-                    cap = TRUE, 
-                    hist_params = list(freq = TRUE))
 )
 
 ```
@@ -648,22 +630,207 @@ predictionHistogram(data = aligned[["GRADEGPA"]],
 
 ```{r}
 
-suppressWarnings(
-predictionHistogram(data = aligned[["GRADEGPA"]],
-                    title = NA,
-                    show = "actual",
-                    cap = TRUE,
-                    cuts = c(0,2.7,4),
-                    hist_params = list(freq = TRUE))
-)
+# manually align test data (reference) with prediction, removing 2025
+
+# Identify mis-math in courses between training and testing sets
+
+missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
+
+missingFilter <- !data_list[["GRADEGPA"]][["testing"]][["course"]] %in% missing
+
+# remove 2025
+  remove2025 <- data_list[["GRADEGPA"]][["testing"]][["class_year"]] != 2025
+
+aligned <- data_list[["GRADEGPA"]][["testing"]][missingFilter & remove2025,]
+
+aligned$pred <- thePredictions[["GRADEGPA"]]
+    
+# Density plot
+xLim <- range(aligned[,c("GRADEGPA", "pred")])
+
+ref <- aligned[,"GRADEGPA"]
+pred <- aligned[,"pred"]
+
+plot(density(ref), 
+     col = "dodgerblue3", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "GPA")
+lines(density(pred), 
+      col = "darkorange2", 
+      lwd = 2)
+legend("topleft", legend = c("Actual", "Predicted"), 
+       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+
+mtext(text = "Predicted vs Actual",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "as a density plot",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+
+
+```
+
+
+```{r fig.height=4.5, fig.width=9}
+
+# aligned <- alignPrediction(prediction_list = thePredictions, reference_list = data_list)
+
+# ACTUAL vs PREDICTED HEATMAP
+predictionMap(data = aligned, 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+
+
+```
+
+
+### Illustration of prediction accuracy
+
+```{r}
 
 suppressWarnings(
-predictionHistogram(data = aligned[["GRADEGPA"]],
+predictionHistogram(data = aligned,
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE, 
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
+)
+
+```      
+
+Use some good words here to describe what you are seeing.
+
+```{r}
+suppressWarnings(
+predictionHistogram(data = aligned,
                     title = NA,
                     show = "predict",
                     cap = TRUE, 
-                    cuts = c(0,2.7,4),
-                    hist_params = list(freq = TRUE))
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
+)
+
+```
+
+### Selection of binary optimum cutoff or threshold
+
+
+```{r fig.height=5, fig.width=11}
+
+# Cumulative accuracy
+# Where I calculate a binary confusion matrix, and gradually increase the upper bound,
+# so that everything equal-or-less-than is considered accurate
+
+cumAcc <- lapply(round(seq(from = 0.1, to = 3.9, by = 0.1),1), function(x){
+  
+  createCM(aligned, cuts = c(0,x,4))
+  
+})
+
+par(mar=c(5.1,4.1,4.1,7.6), bg="ivory")
+
+plot(x = 0.5,
+  ylim = c(0,1),
+     xlim = c(0,length(cumAcc)),
+  xaxt = "n",
+  las = 2,
+     ylab = "",
+     xlab = "",
+  type = "n")
+
+rect(xleft = par("usr")[1] ,
+     ybottom = par("usr")[3] ,
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "grey95")
+
+grid(col="gray90", lwd = 2, lty = 1)
+
+sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> lines(col = "firebrick", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> lines(col = "dodgerblue", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Recall"]]}) |> lines(col = "gold", lwd = 2)
+
+axis(side = 1, at = 1:(length(cumAcc)+1), labels = round(seq(from = 0.1, to = 4.0, by = 0.1),1))
+
+legend("topright",
+       col = c("firebrick","dodgerblue","gold"),
+       legend = c("Kappa","Precision","Recall"),
+       lwd =4,
+       inset = c(-0.175,0),
+       xpd = TRUE,
+       bg = "snow"
+       )
+
+mtext(side=3, font = 2, cex = 1.619, line = 1.619, text = "Confusion matrix metrics from binary discretization")
+mtext(side=1, line = 3, "Upper GPA Bound")
+
+# Admission mistake point
+points(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+         col = "dodgerblue",
+       pch = 16,
+       cex = 1.1
+)
+
+text(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+  labels = "Admission 'mistake' candidates\n     (predictably failed)",
+  pos = 4)
+
+
+# Optimum (Kappa)
+points(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+       y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+       col = "firebrick",
+       pch = "|",
+       cex = 1.319
+)
+
+text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+     y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+     labels = "Model\noptimum",
+     pos = 1)
+
+
+```
+
+
+
+```{r}
+
+suppressWarnings(
+predictionHistogram(data = aligned,
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE,
+                    cuts = c(0,2.4,4),
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
+)
+
+# note that this aligns with
+
+# > table(aligned$GRADEGPA[aligned$pred < 2.4])
+
+#  0 0.7   1 1.3 1.7   2 2.3 2.7   3 3.3 3.7   4 
+#  69  30  27  21  32  41  32  43  66  50  35  61 
+
+suppressWarnings(
+predictionHistogram(data = aligned,
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    cuts = c(0,2.4,4),
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
 )
 
 ```  
@@ -758,13 +925,13 @@ table(aligned[["GRADEGPA"]][,c("pred_cut_2.7", "cut_1.7")]) |>
 ```{r}
 
 
-aligned[["GRADEGPA"]][["pred_cut_2.4"]] <- cut(aligned[["GRADEGPA"]][["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE)
+aligned[["pred_cut_2.4"]] <- cut(aligned[["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE, right = TRUE)
 
-aligned[["GRADEGPA"]][["cut_1.7"]] <- cut(aligned[["GRADEGPA"]][["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+aligned[["cut_1.7"]] <- cut(aligned[["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
 
 
 # Create confusion matrix with proportions
-conf_table <- table(aligned[["GRADEGPA"]][,c("pred_cut_2.4", "cut_1.7")])
+conf_table <- table(aligned[,c("pred_cut_2.4", "cut_1.7")])
 
 # Convert to proportions and percentages
 prop_table <- prop.table(conf_table) * 100
@@ -797,7 +964,7 @@ precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.
 
 Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
 
-
+This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()  `%.
 
 
 
@@ -809,7 +976,7 @@ Students predicted to have a grade less than 2.4 are a high-risk group of studen
 
 cumAcc <- lapply(round(seq(from = 0.1, to = 3.9, by = 0.1),1), function(x){
   
-  createCM(aligned[["GRADEGPA"]], cuts = c(0,x,4))
+  createCM(aligned, cuts = c(0,x,4))
   
 })
 
@@ -880,13 +1047,20 @@ text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(
 
 ```
 
+
 Examining the precision for predictions of grades <0.9 looks like these few people could be an admissions error, or a very low probability of success for this handful of people. 
 
 
 ```{r}
 
-createCM(aligned[["GRADEGPA"]], cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
-createCM(aligned[["GRADEGPA"]], cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
+createCM(aligned, cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
+
+```
+
+
+```{r}
+
+createCM(aligned, cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
 
 ```
 
@@ -944,6 +1118,11 @@ hist(data_list[["GRADEGPA"]][["training"]][["ACTMATH.z"]],
      right = FALSE,
      bg = "ivory")
 
+```
+
+
+```{r eval=FALSE}
+
 plot(hsgpaDensity,
      bg = "ivory",
      main = "Density distribution of high school grade z-scores"
@@ -983,6 +1162,8 @@ zBox <- function(data, column,
                      data = data,
                      ylab = "",
                      xlab = "",
+                     xaxt = "n",
+                     yaxt = "n",
                      outline = FALSE
                      )
   
@@ -1012,7 +1193,7 @@ zBox <- function(data, column,
     font = c(1,1),
     cex = c(1.2,1.2),
     line = c(2.32,2.31),
-    text = c("High school grade", "Z-score")
+    text = c("Math grade", "Z-score")
   )
 
   axis_params <- modifyList(default_axis_params, axis_params)
@@ -1023,7 +1204,7 @@ zBox <- function(data, column,
     font = c(2,3),
     cex = c(2.05, 1.25),
     line = c(1.69, 0.5),
-    text = c(title, "Z-score distance to median successful student")
+    text = c(title, "Z-score distance to prior median successful student")
   )
   
   title_params <- modifyList(default_title_params, title_params)
@@ -1034,15 +1215,34 @@ zBox <- function(data, column,
 
 
 zBox(data = data_list[["GRADEGPA"]][["training"]], 
-     column = "ACTMATH.z",
-     title = "ACT Math",
-     box_params = list(col="pink"))
+     column = "HSGPA",
+     title = "High school GPA",
+     axis_params = list(text = c("Math grade", "High school GPA")),
+     box_params = list(col="lightsteelblue1", las=1),
+     title_params = list(text = c("High school GPA","") ))
 
 
 zBox(data = data_list[["GRADEGPA"]][["training"]], 
      column = "HSGPA.z",
      title = "High school GPA",
-     box_params = list(col="aliceblue"))
+     box_params = list(col="lightsteelblue2", las=1))
+
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "ACTMATH",
+     title = "ACT Math",
+     axis_params = list(text = c("Math grade", "ACT Math")),
+     box_params = list(col="pink1", las=1),
+     title_params = list(text = c("ACT math", "")))
+
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "ACTMATH.z",
+     title = "ACT Math",
+     box_params = list(col="pink2", las=1))
+
+
+
 
 zBox(data = data_list[["GRADEGPA"]][["training"]], 
      column = "dist",
@@ -1241,7 +1441,7 @@ drawGuide()
 
 Presentation order: 
 
-```{r eval=FALSE}
+```{r eval=TRUE}
 
 
 
@@ -1255,4 +1455,13 @@ lapply(params$target_classes, function(x) {
 
 
 ```
+
+# References
+
+Maybe put this in the source/cleaning data?  Seems like a better place for it
+
+
+# Old text
+
+  - I'd like to show the essentially precision/recall for all of the grades in my two categories  
 

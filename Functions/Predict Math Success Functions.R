@@ -470,8 +470,8 @@ predictionHistogram <- function(data,
   
   
   
-  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE)
-  data$ref_cut <- cut(data$GRADEGPA, cuts, include.lowest = TRUE)
+  data$pred_cut <- cut(data$pred, cuts, include.lowest = TRUE, right = FALSE)
+  data$ref_cut <- cut(data$GRADEGPA, cuts, include.lowest = TRUE, right = FALSE)
   
   cm <- confusionMatrix(data$pred_cut, data$ref_cut, mode = "everything")
   
