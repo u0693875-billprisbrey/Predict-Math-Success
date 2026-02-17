@@ -1,0 +1,69 @@
+---
+title: "Project Overview for Math Course Recommendation"
+format: 
+  html: default
+  gfm: default
+editor: source
+---
+
+# Executive Summary 
+
+# Research Questions  
+
+#### Main question:
+
+  (Q0) Can improving math course recommendations improve educational outcomes?
+  
+#### Sub questions: 
+
+  (Q1) Can math course grade performance be predicted with minimal pre-University data?    
+  (Q2) Can math course recommendations be made with minimal pre-University data?  
+  
+# Background  
+
+  Currently, math course placement for first time freshmen is under consideration due to internal and external pressures in a dynamic environment:  
+  
+  * ***External concerns:*** Academic preparedness for first time freshmen has declined nation-wide, including for math[^1][^2].  
+  * ***Internal concerns:*** Several internal concerns have been voiced, including:  
+    (1)  Advisors having insufficient guidelines to place students in courses, leading to mis-placed students.  This misplacement may cause a strain on instructors, tutors, and classroom environments and result in poor academic performance.  
+    (2)  Students taking courses beneath their ability, exacerbating course capacity limits.  
+    (3)  Math placement tests may be expensive and logistically difficult to administer at scale.  
+  * ***Changing situation:*** Mix of math courses selected, submission of ACT math test scores, grade inflation (or compression), and the relationship between incoming qualifications and course selection are changing.   
+
+# ANALYSES  
+
+  Consequently, research questions Q1 and Q2 are investigated in order to answer the main question Q0.
+  
+## Q1: PREDICT GRADE PERFORMANCE   
+
+### Q1 DATA
+
+  * ***Demographics data*** for first time freshmen include age, sex, first generation status, and ethnicity.  
+  * ***High school data*** includes high school GPA, AP credits, and test scores. 
+  * ***University information*** includes the name of the course, year and season the course was taken, and student cohort year.  
+  * ***Course filter*** selected math courses as the initial math courses taken by the first time freshmen, or in other words all math courses taken by a freshman in the first semester that they took a math course. 
+  
+  
+### Q1 ANALYSES
+
+  Logistic regression, categorical boosting, and extreme gradient boosting models predicted grade performance. 
+  
+  A time series analysis investigated model validity over time.  
+
+### Q1 RESULTS  
+
+**Table filled with placeholder values**
+
+  |MODEL ID| METHOD                    | DATA         | R-SQUARED |
+  |--------|---------------------------|--------------|-----------|
+  | Log_1  | Logistic Regression       | Years > 2020 |   0.24    | 
+  | Cat_1  | Categorical Boosting      | Yrs > 2020   |   0.22    |
+  | vH4    | Extreme Gradient Boosting | Yrs > 2005   |   0.28    | 
+  | vD1    | Time series (xgboost)     | Yrs > 2005   | 0.20-0.28 |
+
+ with a r-squared values between 0.2 and 0.28 [[pull exact numbers.]]  Important or predictive variables across models included high school GPA and ACT math test scores.
+
+  
+  [^1] Sánchez-Mendías, J., et al. (2024). "Who are we receiving at the university? The impact of COVID-19 on mathematics and reading learning in high school." Frontiers in Education, 9, 1356730. <https://doi.org/10.3389/feduc.2024.1356730> 
+  
+  [^2] Horowitch, Rose. "'A Recipe for Idiocracy': What Happens When Even College Students Can't Do Math Anymore?" The Atlantic, November 19, 2025. <https://www.theatlantic.com/education/archive/2025/11/college-students-math-crisis/>
