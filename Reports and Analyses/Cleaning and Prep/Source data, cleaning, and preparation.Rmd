@@ -31,7 +31,7 @@ library(skimr)
 library(lubridate)
 #library(ggplot2)
 #library(patchwork)
-#library(kableExtra)
+library(kableExtra)
 
 source(here::here("Functions", "Predict Math Success Functions.R"))
 

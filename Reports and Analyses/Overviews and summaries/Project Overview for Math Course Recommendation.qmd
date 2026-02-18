@@ -8,6 +8,8 @@ editor: source
 
 # Executive Summary 
 
+This report finds that comparing incoming students to the prior year's successful students can create a course guide.
+
 In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called "pre-University data.").  Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection.  Time series analyses with extreme gradient boosting models are conducted.   Accuracy values of 0.2-0.28 R^2^ in grades and a Kappa of 0.4 in identifying students at risk of failing are achieved. 
 
 Over time and across models, the best predictors are ACT math test scores, high school GPA, and their derivative z-scores and combined z-score distance.   The z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year's  successful students per course.  "Success" is defined as achieving a GPA of at least 2.7 or B-minus. 

@@ -1,6 +1,6 @@
 ---
 title: "Source data, cleaning, and preparation"
-date: "February 12, 2026"
+date: "February 18, 2026"
 output:
   html_document:
     keep_md: true
@@ -165,6 +165,69 @@ New features were engineered:
   * The high school GPA converted to a z-score using the prior year's course median successful student  
   * The ACT math test scores converted to a z-score using the prior year's course median successful student  
   * The combined Euclidean distance of these z-scores 
+
+# Grade Mapping
+
+<table class="table table-striped table-hover table-condensed" style="color: black; width: auto !important; ">
+<caption>Grade Mapping</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> Letter Grade </th>
+   <th style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;"> GPA </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> E, EU </td>
+   <td style="text-align:center;"> 0.0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> D- </td>
+   <td style="text-align:center;"> 0.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> D </td>
+   <td style="text-align:center;"> 1.0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> D+ </td>
+   <td style="text-align:center;"> 1.3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> C- </td>
+   <td style="text-align:center;"> 1.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> C </td>
+   <td style="text-align:center;"> 2.0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> C+ </td>
+   <td style="text-align:center;"> 2.3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> B- </td>
+   <td style="text-align:center;"> 2.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> B </td>
+   <td style="text-align:center;"> 3.0 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> B+ </td>
+   <td style="text-align:center;"> 3.3 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> A- </td>
+   <td style="text-align:center;"> 3.7 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;font-weight: bold;"> A </td>
+   <td style="text-align:center;"> 4.0 </td>
+  </tr>
+</tbody>
+</table>
+
 
   
 # Code Detail 
