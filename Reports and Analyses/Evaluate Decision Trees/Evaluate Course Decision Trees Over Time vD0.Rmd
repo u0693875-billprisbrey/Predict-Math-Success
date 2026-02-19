@@ -895,3 +895,29 @@ skim(data_list[["2024"]][["training"]])
 
 ```
 
+```{r eval=FALSE}
+
+# xg.Boost models
+
+boostModels <- lapply(model_list, 
+                      function(x){ 
+                        xgModel <- x$finalModel
+                        return(xgModel)
+                        }
+                      )
+
+# xgb.ggplot.importance(xgb.importance(model = boostModels[["2024"]])) # confirmed
+
+for(name in names(boostModels)){
+  
+  xgb.save(boostModels[[name]], here::here("Reports and Analyses", "Robjects", paste0("course_model_vD0", name, ".ubj")))
+  
+}
+
+saveRDS(theResults, here::here("Reports and Analyses", "Robjects", "course_vD0_results.rds" ))
+
+saveRDS(courseResults, here::here("Reports and Analyses", "Robjects", "course_vD0_course_results.rds" ))
+
+```
+
+
