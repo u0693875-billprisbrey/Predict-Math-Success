@@ -6,6 +6,37 @@ format:
 editor: source
 ---
 
+
+```{r}
+#| include: false
+
+library(xgboost)
+library(tidyverse)
+
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+theModel <- xgb.load(here::here("Reports and Analyses", "Robjects", "Model_vH4.ubj"))
+
+
+aligned <- readRDS(here::here("Reports and Analyses", "Robjects", "Aligned_vH4.rds") )
+
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
+```
+
+
+```{r}
+#| include: false
+
+xgb.ggplot.importance(xgb.importance(model = theModel))
+
+
+``` 
+
+
 # Executive Summary 
 
 This report finds that comparing incoming students to the prior year's successful students can create a course guide.
@@ -82,7 +113,42 @@ The models could predict grade performance based on minimal pre-University data 
 
 The results from vH4 could be modified to identify an "At Risk" population where one out of three students failed. 
 
-***Insert Fig. 1, density plot of predicted grades vs actual grades.***
+```{r}
+  #| include: false
+
+# Density plot
+xLim <- range(aligned[,c("GRADEGPA", "pred")])
+
+ref <- aligned[,"GRADEGPA"]
+pred <- aligned[,"pred"]
+
+plot(density(ref), 
+     col = "dodgerblue3", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "GPA")
+lines(density(pred), 
+      col = "darkorange2", 
+      lwd = 2)
+legend("topleft", legend = c("Actual", "Predicted"), 
+       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+
+mtext(text = "Predicted vs Actual",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "as a density plot",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+```
 
 As can be seen in Fig. 1, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an 'A' in 2024.)
 
@@ -92,7 +158,15 @@ The predictive models could predict grade accuracy with r-squared values between
 
 The predictive model created gently increasing grade expecations as these two variables increased, as can be seen in Fig. 2 on the left.  Actual grade performance was higher, as can be seen in the heatmap on the right.
 
-***Insert Fig. 2, heat map of predicted grades vs actual grades.*** 
+
+```{r}
+#| include: false
+
+predictionMap(data = aligned, 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+``` 
+
 
 Derivatives were calculated from the two leading predictors:  z-scores (based on successful students in the prior year) and a combined z-score distance.  These derived variables were found to improve predictive accuracy.	  
 
@@ -129,6 +203,74 @@ The model could predict course selection with a Kappa value as high as [[0.4]], 
 The most important predictors were ACT Math test scores, high school GPA, and their derivatives.  
 
 ***Insert Fig 4, course guide map***
+
+```{r}
+#| include: false
+
+hiGrades$clust1 <- hiGrades |>
+  (\(x){ x[,colnames(x)[grepl("ACTMATH\\.Q\\.", colnames(x))]]  })() |>
+  dist(method ="euclidean") |>
+  hclust(method = "ward.D2")  |>
+  #vplot()
+  cutree(k=4)
+
+```
+
+
+```{r}
+#| include: false 
+
+clusterColors <- c("darkorange", "steelblue", "purple3", "turquoise3")
+# clusterColors <- c("tomato","forestgreen","purple3","orange2")
+
+# c("darkorange", "steelblue",   "turquoise4", "yellow2")
+
+  
+  
+courseScatter(hiGrades[hiGrades$class_year == 2023,], 
+              clusterColumn = "clust1",
+              ellipse_params = list(plot = FALSE),
+              qrect_params = list(border = NA),
+              legend_params = list(plot = FALSE),
+              plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
+              mtext_params = list(side = c(1,2,3,3),
+                    text = c("High School GPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    font = c(1,1,2,3),
+                    cex = c(1.3, 1.3, 1.75, 1.25),
+                    line = c(2.3, 2.3, 1.25, 0.30)
+              )
+              )
+
+clusterPoints <- aggregate(.~clust1, data = hiGrades[hiGrades$class_year == 2023,], mean)
+
+par(xpd=TRUE)
+DrawEllipse(x=clusterPoints$HSGPA.Q.50.[1:3],
+       y = clusterPoints$ACTMATH.Q.50.[1:3],
+       radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[1:3],
+       radius.y = 0.5*(clusterPoints$ACTMATH.Q.75.-clusterPoints$ACTMATH.Q.25.)[1:3], col = adjustcolor(clusterColors, alpha.f = 0.35)[1:3],
+       border = clusterColors[1:3]
+)
+
+par(xpd=TRUE)
+DrawEllipse(x=clusterPoints$HSGPA.Q.50.[4],
+       y = clusterPoints$ACTMATH.Q.50.[4],
+       radius.x = 0.5*(clusterPoints$HSGPA.Q.75.-clusterPoints$HSGPA.Q.25.)[4],
+       radius.y = 0.5*(clusterPoints$ACTMATH.Q.90.-clusterPoints$ACTMATH.Q.10.)[4], col = adjustcolor(clusterColors, alpha.f = 0.35)[4],
+       border = clusterColors[4]
+)
+
+par(xpd=TRUE)
+legend("topright",
+       bg = "snow",
+       legend = rev(c("Basic", "Intermediate","Advanced","Elite")),
+       pt.cex = 3,
+       col = rev(clusterColors),
+       pch = 19,
+       xpd = TRUE,
+       inset = c(-0.155,0)
+       )
+
+```
 
 A course guide could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA >=2.7) from the year 2023.  
 
