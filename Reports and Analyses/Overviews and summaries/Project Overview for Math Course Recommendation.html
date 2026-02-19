@@ -65,6 +65,13 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
+<section id="plain-language-summary" class="level1">
+<h1>Plain language summary</h1>
+<p>This report finds that comparing incoming students to the prior year’s successful students can create useful course guide.</p>
+<p>This report finds that both high school GPA and ACT Math test scores have been consistent predictors of grade performance and course selection in math courses for first time freshmen.</p>
+<p>Using these two qualifications, and comparing incoming students to the prior year’s qualifications of successful students, creates a guide.</p>
+<p>Something about how it’s not deterministic or really strong; gentle guidelines with lots of overlap between courses.</p>
+</section>
 <section id="executive-summary" class="level1">
 <h1>Executive Summary</h1>
 <p>In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called “pre-University data.”). Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection. Time series analyses with extreme gradient boosting models are conducted. Accuracy values of 0.2-0.28 R<sup>2</sup> in grades and a Kappa of 0.4 in identifying students at risk of failing are achieved.</p>
@@ -72,19 +79,7 @@ ul.task-list li input[type="checkbox"] {
 <p>Because the combined distance is a strong predictor, comparing incoming students with last year’s successful students is concluded to reasonably guide course recommendation.</p>
 <p>A course guide is created that compares the incoming students to the prior year’s successful students (GPA &gt;=2.7) in terms of high school GPA and ACT math test scores. The best model was used to create counter-factual predictions of grade performance in alternative courses.</p>
 <p>The guide finds that course recommendations heavily overlap in their qualifications, or that many courses have equivalent grade expectations for a given incoming freshmen.</p>
-<p>A next step is to calculate a theoretical benefit in using the course guide by estimating counter-factual grades in alternative courses for students who failed (achieved a GPA &lt;1.7).</p>
-</section>
-<section id="research-questions" class="level1">
-<h1>Research Questions</h1>
-<section id="main-question" class="level4">
-<h4 class="anchored" data-anchor-id="main-question">Main question:</h4>
-<p>(Q0) Can improving math course recommendations improve educational outcomes?</p>
-</section>
-<section id="sub-questions" class="level4">
-<h4 class="anchored" data-anchor-id="sub-questions">Sub questions:</h4>
-<p>(Q1) Can math course grade performance be predicted with minimal pre-University data?<br>
-(Q2) Can math course recommendations be made with minimal pre-University data?</p>
-</section>
+<p>A next step is to calculate a theoretical benefit in using the course guide by identifying passing counter-factual grades in alternative courses for students who failed (achieved a GPA &lt;1.7).</p>
 </section>
 <section id="background" class="level1">
 <h1>Background</h1>
@@ -101,8 +96,20 @@ ul.task-list li input[type="checkbox"] {
 <li>Math placement tests may be expensive and logistically difficult to administer at scale.<br>
 </li>
 </ol></li>
-<li><strong><em>Changing situation:</em></strong> The mix of math courses selected, submission of ACT math test scores, grade inflation (or compression), and the relationship between incoming qualifications and course selection are changing.</li>
+<li><strong><em>Changing situation:</em></strong> The mix of math courses selected, submission rates of ACT math test scores, grade inflation (or compression), and the relationship between incoming qualifications and course selection are changing.</li>
 </ul>
+</section>
+<section id="research-questions" class="level1">
+<h1>Research Questions</h1>
+<section id="main-question" class="level4">
+<h4 class="anchored" data-anchor-id="main-question">Main question:</h4>
+<p>(Q0) Can improving math course recommendations improve educational outcomes?</p>
+</section>
+<section id="sub-questions" class="level4">
+<h4 class="anchored" data-anchor-id="sub-questions">Sub questions:</h4>
+<p>(Q1) Can math course grade performance be predicted with minimal pre-University data?<br>
+(Q2) Can math course recommendations be made with minimal pre-University data?</p>
+</section>
 </section>
 <section id="analyses" class="level1">
 <h1>Analyses</h1>
@@ -114,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
 <ul>
 <li><em>Demographics data</em> for first time freshmen include age, sex, first generation status, and ethnicity.<br>
 </li>
-<li><em>High school data</em> includes high school GPA, AP credits, test scores, and public or private status of the high school.<br>
+<li><em>High school data</em> includes high school GPA, AP credits, and public or private status of the high school.<br>
 </li>
 <li><em>Test scores</em> from the ACT includes Math, English, Science, and Comprehensive. (SAT scores were not used, and students who did not submit an ACT test score were excluded).<br>
 </li>
@@ -175,14 +182,30 @@ ul.task-list li input[type="checkbox"] {
 </table>
 <p>The models could predict grade performance based on minimal pre-University data with r-squared values between [[0.2 and 0.28]] over time. Important or predictive variables across all models included high school GPA and ACT math test scores.</p>
 <p>The results from vH4 could be modified to identify an “At Risk” population where one out of three students failed.</p>
-<p><strong><em>Insert Fig. 1, density plot of predicted grades vs actual grades.</em></strong></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 <p>As can be seen in Fig. 1, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an ‘A’ in 2024.)</p>
 </section>
 <section id="q1-discussion" class="level3">
 <h3 class="anchored" data-anchor-id="q1-discussion">Q1 DISCUSSION</h3>
 <p>The predictive models could predict grade accuracy with r-squared values between [[0.20 and 0.28]]. Consistently the leading predictors were the ACT math test scores and the high school GPA. Adopting a model of performance<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> where performance is the outcome of ability by motivation, the models seem to suggest that “ability” can be broken into “math ability” (indicated by the ACT math test scores) and “study ability” (indicated by the high school GPA.) No metrics related to “motivation” were used.</p>
 <p>The predictive model created gently increasing grade expecations as these two variables increased, as can be seen in Fig. 2 on the left. Actual grade performance was higher, as can be seen in the heatmap on the right.</p>
-<p><strong><em>Insert Fig. 2, heat map of predicted grades vs actual grades.</em></strong></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 <p>Derivatives were calculated from the two leading predictors: z-scores (based on successful students in the prior year) and a combined z-score distance. These derived variables were found to improve predictive accuracy.</p>
 <p>Time series analyses validated these derived predictors and discovered a discontinuity since 2020 that accelerated in 2023-2024 where the relationship between incoming qualifications and course selection disappeared.</p>
 <p>Predictive accuracy may be improved with the addition of concurrent data, such as the choice of major, the number of credits concurrently taken, the difficulty of concurrent courses, and early grades on homework, quizzes, and tests.</p>
@@ -216,6 +239,15 @@ ul.task-list li input[type="checkbox"] {
 <p>The model could predict course selection with a Kappa value as high as [[0.4]], declining over time to next to no ability in 2023-2024.</p>
 <p>The most important predictors were ACT Math test scores, high school GPA, and their derivatives.</p>
 <p><strong><em>Insert Fig 4, course guide map</em></strong></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 <p>A course guide could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA &gt;=2.7) from the year 2023.</p>
 </section>
 <section id="q2-discussion" class="level3">

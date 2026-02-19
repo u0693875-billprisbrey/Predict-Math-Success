@@ -4,15 +4,41 @@ format:
   html: default
   gfm: default
 editor: source
+execute: 
+  echo: false
+  warning: false  
+  message: false
+  error: false
+knitr: 
+  opts_chunk: 
+    fig.height: 5
+    fig.width: 7
 ---
-
 
 ```{r}
 #| include: false
 
+# Author's notes
+
+# Try a "plain language" summary to start this off.  
+# Exec Summary needs a reference to the class prediction  
+# Put the background first  
+# Toggle Fig 4. plot parameters
+# A Quarto automatic figure numbering is probbly available 
+# Let's get the models extracted from the time series next
+
+
+``` 
+
+
+
+
+```{r}
+
 library(xgboost)
 library(tidyverse)
-
+library(Ckmeans.1d.dp)
+library(hexbin)
 
 source(here::here("Functions", "Predict Math Success Functions.R"))
 
@@ -29,17 +55,24 @@ hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
 
 
 ```{r}
-#| include: false
+#| eval: false
 
 xgb.ggplot.importance(xgb.importance(model = theModel))
 
 
 ``` 
 
+# Plain language summary
+
+This report finds that comparing incoming students to the prior year's successful students can create useful course guide.
+
+This report finds that both high school GPA and ACT Math test scores have been consistent predictors of grade performance and course selection in math courses for first time freshmen.
+
+Using these two qualifications, and comparing incoming students to the prior year's qualifications of successful students, creates a guide.  
+
+Something about how it's not deterministic or really strong; gentle guidelines with lots of overlap between courses.  
 
 # Executive Summary 
-
-This report finds that comparing incoming students to the prior year's successful students can create a course guide.
 
 In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called "pre-University data.").  Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection.  Time series analyses with extreme gradient boosting models are conducted.   Accuracy values of 0.2-0.28 R^2^ in grades and a Kappa of 0.4 in identifying students at risk of failing are achieved. 
 
@@ -53,6 +86,17 @@ The guide finds that course recommendations heavily overlap in their qualificati
 
 A next step is to calculate a theoretical benefit in using the course guide by identifying passing counter-factual grades in alternative courses for students who failed (achieved a GPA <1.7).   
 
+# Background  
+
+  Currently, math course placement for first time freshmen is under consideration due to internal and external pressures in a dynamic environment:  
+  
+  * ***External concerns:*** Academic preparedness for first time freshmen has declined nation-wide, including for math[^1][^2].  
+  * ***Internal concerns:*** Several internal concerns have been voiced, including:  
+    (1)  Advisors having insufficient guidelines to place students in courses, leading to mis-placed students.  This misplacement may cause a strain on instructors, tutors, and classroom environments and result in poor academic performance.  
+    (2)  Students taking courses beneath their ability, exacerbating course capacity constraints.  
+    (3)  Math placement tests may be expensive and logistically difficult to administer at scale.  
+  * ***Changing situation:*** The mix of math courses selected, submission rates of ACT math test scores, grade inflation (or compression), and the relationship between incoming qualifications and course selection are changing.   
+
 
 # Research Questions  
 
@@ -65,16 +109,6 @@ A next step is to calculate a theoretical benefit in using the course guide by i
   (Q1) Can math course grade performance be predicted with minimal pre-University data?    
   (Q2) Can math course recommendations be made with minimal pre-University data?  
   
-# Background  
-
-  Currently, math course placement for first time freshmen is under consideration due to internal and external pressures in a dynamic environment:  
-  
-  * ***External concerns:*** Academic preparedness for first time freshmen has declined nation-wide, including for math[^1][^2].  
-  * ***Internal concerns:*** Several internal concerns have been voiced, including:  
-    (1)  Advisors having insufficient guidelines to place students in courses, leading to mis-placed students.  This misplacement may cause a strain on instructors, tutors, and classroom environments and result in poor academic performance.  
-    (2)  Students taking courses beneath their ability, exacerbating course capacity constraints.  
-    (3)  Math placement tests may be expensive and logistically difficult to administer at scale.  
-  * ***Changing situation:*** The mix of math courses selected, submission of ACT math test scores, grade inflation (or compression), and the relationship between incoming qualifications and course selection are changing.   
 
 # Analyses
 
@@ -114,7 +148,7 @@ The models could predict grade performance based on minimal pre-University data 
 The results from vH4 could be modified to identify an "At Risk" population where one out of three students failed. 
 
 ```{r}
-  #| include: false
+  #| echo: false
 
 # Density plot
 xLim <- range(aligned[,c("GRADEGPA", "pred")])
@@ -160,7 +194,7 @@ The predictive model created gently increasing grade expecations as these two va
 
 
 ```{r}
-#| include: false
+#| echo: false
 
 predictionMap(data = aligned, 
               plot_title = "Predicted vs Actual for 2024, all courses")
@@ -205,7 +239,7 @@ The most important predictors were ACT Math test scores, high school GPA, and th
 ***Insert Fig 4, course guide map***
 
 ```{r}
-#| include: false
+#| echo: false
 
 hiGrades$clust1 <- hiGrades |>
   (\(x){ x[,colnames(x)[grepl("ACTMATH\\.Q\\.", colnames(x))]]  })() |>
@@ -218,7 +252,7 @@ hiGrades$clust1 <- hiGrades |>
 
 
 ```{r}
-#| include: false 
+#| echo: false 
 
 clusterColors <- c("darkorange", "steelblue", "purple3", "turquoise3")
 # clusterColors <- c("tomato","forestgreen","purple3","orange2")
