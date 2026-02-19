@@ -465,7 +465,29 @@ names(theResults) <- params$target_classes
 ```
 
 
+```{r eval=FALSE}
 
+# SAVE OBJECTS FOR USE IN OTHER REPORTS
+
+# save the xgb.Booster object
+
+xgb.save(model_list[["GRADEGPA"]]$finalModel, here::here("Reports and Analyses", "Robjects", "Model_vH4.ubj"))
+
+saveRDS(theResults, here::here("Reports and Analyses", "Robjects", "Results_vH4.rds"))
+
+saveRDS(thePredictions, here::here("Reports and Analyses", "Robjects", "Predictions_vH4.rds"))
+
+# complete this from inside the loop, lines 622 - 640
+theReference <- data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
+
+saveRDS(theReference, here::here("Reports and Analyses", "Robjects", "Reference_vH4.rds"))
+
+# Complete this after line 696
+saveRDS(aligned, here::here("Reports and Analyses", "Robjects", "Aligned_vH4.rds") )
+
+
+
+```
 
 
 # Results
@@ -632,7 +654,7 @@ regression_diagnostics(pred = thePredictions[[x]],
 
 # manually align test data (reference) with prediction, removing 2025
 
-# Identify mis-math in courses between training and testing sets
+# Identify mis-match in courses between training and testing sets
 
 missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
 
@@ -838,6 +860,11 @@ predictionHistogram(data = aligned,
 ```{r eval=FALSE}
 
 # density plot sandbox
+
+# I think this will look better than the histogram,
+# esp if I can use a color gradient underneath at the proper breaks.
+
+# But that's a project for another day. 
 
 # eh let's do the density plot  
 density_grade <- density(aligned[["GRADEGPA"]][["GRADEGPA"]])
