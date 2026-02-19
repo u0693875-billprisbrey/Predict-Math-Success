@@ -772,4 +772,37 @@ skim(data_list[["GRADEGPA"]][["2024"]][["testing"]])
 
 ```
 
+```{r eval=FALSE}
+
+# Extract and save objects for use in other reports
+
+# xg.Boost models
+
+boostModels <- lapply(model_list[["GRADEGPA"]], 
+                      function(x){ 
+                        xgModel <- x$finalModel
+                        return(xgModel)
+                        }
+                      )
+
+# xgb.ggplot.importance(xgb.importance(model = boostModels[["2024"]])) # confirmed
+
+for(name in names(boostModels)){
+  
+  xgb.save(boostModels[[name]], here::here("Reports and Analyses", "Robjects", paste0("grade_model_", name, ".ubj")))
+  
+}
+
+saveRDS(resultsDF, here::here("Reports and Analyses", "Robjects", "grade_vQ0_results.rds" ))
+
+saveRDS(importance_over_time[["GRADEGPA"]],
+        here::here("Reports and Analyses", "Robjects", "grade_vQ0_importance.rds" )
+        )
+
+saveRDS(course_over_time,
+        here::here("Reports and Analyses", "Robjects", "grade_vQ0_course_accuracy_over_time.rds" )
+        )
+
+```
+
 
