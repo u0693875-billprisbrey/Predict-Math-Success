@@ -401,7 +401,7 @@ legend("topright",
        col = rev(clusterColors),
        pch = 19,
        xpd = TRUE,
-       inset = c(-0.2,0)
+       inset = c(-0.275,0)
        )
 
 ```
