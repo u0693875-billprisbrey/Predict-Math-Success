@@ -65,17 +65,17 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="plain-language-summary" class="level1">
-<h1>Plain language summary</h1>
-<p>This report finds that comparing incoming students to the prior year’s successful students can create useful course guide.</p>
-<p>This report finds that both high school GPA and ACT Math test scores have been consistent predictors of grade performance and course selection in math courses for first time freshmen.</p>
-<p>Using these two qualifications, and comparing incoming students to the prior year’s qualifications of successful students, creates a guide.</p>
-<p>Something about how it’s not deterministic or really strong; gentle guidelines with lots of overlap between courses.</p>
-</section>
 <section id="executive-summary" class="level1">
 <h1>Executive Summary</h1>
-<p>In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called “pre-University data.”). Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection. Time series analyses with extreme gradient boosting models are conducted. Accuracy values of 0.2-0.28 R<sup>2</sup> in grades and a Kappa of 0.4 in identifying students at risk of failing are achieved.</p>
-<p>Over time and across models, the best predictors are ACT math test scores, high school GPA, and their derivative z-scores and combined z-score distance. The z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year’s successful students per course. “Success” is defined as achieving a GPA of at least 2.7 or B-minus.</p>
+<p>This report finds that comparing incoming students to the prior year’s successful students can create a mild-yet-useful course guide.</p>
+<p>This report finds that both high school GPA and ACT Math test scores have consistently moderately predicted grade performance and course selection in math courses for first time freshmen.</p>
+<p>Using these two qualifications, and comparing incoming students to the prior year’s successful students, creates a course guide.</p>
+<p>This report also finds that there are often several equivalent course options for any particular student with a given set of qualifications. It also finds that high school GPA and ACT math test scores are not highly predictive of grade performance, suggesting that additional data (such as individual effort) may further explain grade performance.</p>
+</section>
+<section id="summary" class="level1">
+<h1>Summary</h1>
+<p>In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called “pre-University data.”). Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection. Time series analyses with extreme gradient boosting models are conducted. Accuracy values of 0.20-0.28 R<sup>2</sup> in grades and a Kappa of 0.40 in identifying students at risk of failing are achieved. In course selection, a Kappa as high as 0.45 was achieved in 2009 before declining to values less than 0.1 in 2023 and 2024.</p>
+<p>Over time and across models, the best predictor of course selection are ACT math test scores, and the best predictor of academic performance is the high school GPA. Their derivative z-scores and combined z-score distance also figure prominently. (The z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year’s successful students per course. “Success” is defined as achieving a GPA of at least 2.7 or B-minus.)</p>
 <p>Because the combined distance is a strong predictor, comparing incoming students with last year’s successful students is concluded to reasonably guide course recommendation.</p>
 <p>A course guide is created that compares the incoming students to the prior year’s successful students (GPA &gt;=2.7) in terms of high school GPA and ACT math test scores. The best model was used to create counter-factual predictions of grade performance in alternative courses.</p>
 <p>The guide finds that course recommendations heavily overlap in their qualifications, or that many courses have equivalent grade expectations for a given incoming freshmen.</p>
@@ -103,12 +103,15 @@ ul.task-list li input[type="checkbox"] {
 <h1>Research Questions</h1>
 <section id="main-question" class="level4">
 <h4 class="anchored" data-anchor-id="main-question">Main question:</h4>
-<p>(Q0) Can improving math course recommendations improve educational outcomes?</p>
+<p>(Q0) Can improving math course recommendations improve educational outcomes?<br>
+<em>Next step: Calculate improvement in failure rates using the predictive model to estimate an optimum course selection.</em></p>
 </section>
 <section id="sub-questions" class="level4">
 <h4 class="anchored" data-anchor-id="sub-questions">Sub questions:</h4>
-<p>(Q1) Can math course grade performance be predicted with minimal pre-University data?<br>
-(Q2) Can math course recommendations be made with minimal pre-University data?</p>
+<p>(Q1) Can math course grade performance be predicted with minimal pre-University data?</p>
+<p><em>Grade performance was estimated with mild to moderate accuracy using several different models.</em></p>
+<p>(Q2) Can math course recommendations be made with minimal pre-University data?</p>
+<p><em>Grade performance can be estimated for multiple course options, suggesting equivalent or superior courses.</em></p>
 </section>
 </section>
 <section id="analyses" class="level1">
@@ -123,7 +126,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
 <li><em>High school data</em> includes high school GPA, AP credits, and public or private status of the high school.<br>
 </li>
-<li><em>Test scores</em> from the ACT includes Math, English, Science, and Comprehensive. (SAT scores were not used, and students who did not submit an ACT test score were excluded).<br>
+<li><em>Test scores</em> from the ACT includes Math, English, Science, and Comprehensive. (SAT scores were not used in all models, and students who did not submit an ACT test score were excluded from most models).<br>
 </li>
 <li><em>University information</em> includes the name of the course, the course level (1000 or 2000), residence status, Pell eligibility, year and season the course was taken, and student cohort year.<br>
 </li>
@@ -149,16 +152,16 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td>Log_1</td>
+<td>Log_2</td>
 <td>Logistic Regression</td>
-<td>Years &gt; 2020</td>
-<td>0.24 R<sup>2</sup></td>
+<td>Years &gt; 2021</td>
+<td>0.31 Kappa</td>
 </tr>
 <tr class="even">
 <td>Cat_1</td>
 <td>Categorical Boosting</td>
-<td>Yrs &gt; 2020</td>
-<td>0.22 R<sup>2</sup></td>
+<td>Yrs &gt; 2021</td>
+<td>[[?]] Kappa</td>
 </tr>
 <tr class="odd">
 <td>vH4</td>
@@ -180,28 +183,38 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 </tbody>
 </table>
-<p>The models could predict grade performance based on minimal pre-University data with r-squared values between [[0.2 and 0.28]] over time. Important or predictive variables across all models included high school GPA and ACT math test scores.</p>
-<p>The results from vH4 could be modified to identify an “At Risk” population where one out of three students failed.</p>
-<div class="cell">
+<p>Per the time series, the models could predict grade performance based on minimal pre-University data with r-squared values between 0.20 and 0.28. Identification of at-risk populations occurred with a Kappa value fomr 0.31 to 0.40. At 0.40 (model vH4_1), one out of three students in the at-risk population failed.</p>
+<p>Important or predictive variables across all models included high school GPA and ACT math test scores.</p>
+<div class="cell fig-cap-location-top">
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-density" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Predicted vs Actual Grade Performance: Density Plot
+</figcaption>
+<div aria-describedby="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/fig-density-1.png" class="img-fluid figure-img" width="672">
+</div>
 </figure>
 </div>
 </div>
 </div>
-<p>As can be seen in Fig. 1, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an ‘A’ in 2024.)</p>
+<p>As can be seen in <a href="#fig-density" class="quarto-xref">Figure&nbsp;1</a>, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an ‘A’ in 2024.)</p>
 </section>
 <section id="q1-discussion" class="level3">
 <h3 class="anchored" data-anchor-id="q1-discussion">Q1 DISCUSSION</h3>
-<p>The predictive models could predict grade accuracy with r-squared values between [[0.20 and 0.28]]. Consistently the leading predictors were the ACT math test scores and the high school GPA. Adopting a model of performance<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> where performance is the outcome of ability by motivation, the models seem to suggest that “ability” can be broken into “math ability” (indicated by the ACT math test scores) and “study ability” (indicated by the high school GPA.) No metrics related to “motivation” were used.</p>
-<p>The predictive model created gently increasing grade expecations as these two variables increased, as can be seen in Fig. 2 on the left. Actual grade performance was higher, as can be seen in the heatmap on the right.</p>
-<div class="cell">
+<p>The predictive models could predict grade accuracy with r-squared values between 0.20 and 0.28. Consistently the leading predictors were the high school GPA, followed at some distance by the ACT math test scores. Adopting a model of performance<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> where performance is the outcome of ability by motivation, the models seem to suggest that “ability” can be broken into “math ability” (indicated by the ACT math test scores) and “study ability” (indicated by the high school GPA.) No metrics related to “motivation” were used.</p>
+<p>The predictive model created gently increasing grade expectations as these two variables increased, as can be seen in <a href="#fig-map" class="quarto-xref">Figure&nbsp;2</a> on the left. Actual grade performance was higher, as can be seen in the heat map on the right.</p>
+<div class="cell fig-cap-location-top">
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-map" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Predicted vs Actual Grade Performance: Heat Map
+</figcaption>
+<div aria-describedby="fig-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/fig-map-1.png" class="img-fluid figure-img" width="672">
+</div>
 </figure>
 </div>
 </div>
@@ -213,11 +226,12 @@ ul.task-list li input[type="checkbox"] {
 <section id="q1-conclusions" class="level3">
 <h3 class="anchored" data-anchor-id="q1-conclusions">Q1 CONCLUSIONS</h3>
 <ul>
-<li>Grade performance can be predicted at an R-squared value of 0.2 to 0.28 with minimal pre-University data.<br>
+<li>Grade performance can be predicted at an R-squared value of 0.20 to 0.28 with minimal pre-University data.<br>
 </li>
-<li>The most important predictors are high school GPA, ACT math test scores, and their derivatives.<br>
-</li>
-<li>This model can be used to differentiate “high risk” and “low risk” populations of students (where one out of three students fail or one out of twenty-five students fail.) This designation may direct interventions or course recommendations.</li>
+<li>The most important predictors are high school GPA, ACT math test scores, and their derivatives.
+<ul>
+<li>Populations at risk of failing can be identified with an accuracy score of 0.31-0.40 Kappa. At the higher value, one out of three students fail in the “at risk” population compared to one out of twenty-five students in the “anticipated success” population fails.) This designation may direct interventions or course recommendations.</li>
+</ul></li>
 </ul>
 </section>
 </section>
@@ -235,34 +249,42 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="q2-results" class="level3">
 <h3 class="anchored" data-anchor-id="q2-results">Q2 RESULTS</h3>
-<p><strong><em>Insert Fig. 3, Kappa declining over time.</em></strong></p>
-<div class="cell">
+<div class="cell fig-cap-location-top">
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-Kappa" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-Kappa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Course selection accuracy declining over time
+</figcaption>
+<div aria-describedby="fig-Kappa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/fig-Kappa-1.png" class="img-fluid figure-img" width="672">
+</div>
 </figure>
 </div>
 </div>
 </div>
-<p>The model could predict course selection with a Kappa value as high as [[0.4]], declining over time to next to no ability in 2023-2024.</p>
+<p>The model could predict course selection with a Kappa value as high as 0.45, declining over time to next to no ability in 2023-2024.</p>
 <p>The most important predictors were ACT Math test scores, high school GPA, and their derivatives.</p>
-<p><strong><em>Insert Fig 4, course guide map</em></strong></p>
 <div class="cell">
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-guide" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-guide-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Project-Overview-for-Math-Course-Recommendation_files/figure-html/fig-guide-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-guide-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Course guide
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>A course guide could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA &gt;=2.7) from the year 2023.</p>
+<p>A course guide (<a href="#fig-guide" class="quarto-xref">Figure&nbsp;4</a>) could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA &gt;=2.7) from the year 2023.</p>
 </section>
 <section id="q2-discussion" class="level3">
 <h3 class="anchored" data-anchor-id="q2-discussion">Q2 DISCUSSION</h3>
-<p>The time series analysis demonstrated that minimal pre-University data could be used to predict course selection until 2022. It also validated the use of the combined z-score distance as an important predictor.</p>
-<p>The ability to predict courses declined over time, and all-but vanished in 2023 and 2024. A closer look at the combined distance variable shows a discontinuity in this metric starting in 2020 and accelerating in 2023-2024. This collapse of the model accuracy and accelerating discontinuity may suggest an urgent need to address math course placement. On the other hand, over the same period grades improved (or inflated or compressed), possibly suggesting changing expectations for math performance in these initial math courses.</p>
+<p>The time series analysis demonstrated that minimal pre-University data could be used to predict course selection until recently. It also validated the use of the combined z-score distance as an important predictor.</p>
+<p>The ability to predict courses declined over time, and all-but vanished in 2023 and 2024. A closer look at the combined distance variable (not shown) reveals a discontinuity in this metric starting in 2020 and accelerating in 2023-2024. This collapse of the model accuracy and accelerating discontinuity may suggest an urgent need to address math course placement. On the other hand, over the same period grades improved (or inflated or compressed), possibly suggesting changing expectations for math performance in these initial math courses.</p>
 <p>The course guide showed considerable overlap between courses, and the counter-factual grade predictions (not shown) had similar grade outcomes per student for several courses. This suggests that any particular student may have multiple equivalent course options.</p>
 </section>
 <section id="q2-conclusions" class="level3">

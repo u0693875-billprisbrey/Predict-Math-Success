@@ -64,21 +64,21 @@ xgb.ggplot.importance(xgb.importance(model = theModel))
 
 ``` 
 
-# Plain language summary
+# Executive Summary
 
-This report finds that comparing incoming students to the prior year's successful students can create useful course guide.
+This report finds that comparing incoming students to the prior year's successful students can create a mild-yet-useful course guide.
 
-This report finds that both high school GPA and ACT Math test scores have been consistent predictors of grade performance and course selection in math courses for first time freshmen.
+This report finds that both high school GPA and ACT Math test scores have consistently moderately predicted grade performance and course selection in math courses for first time freshmen.
 
-Using these two qualifications, and comparing incoming students to the prior year's qualifications of successful students, creates a guide.  
+Using these two qualifications, and comparing incoming students to the prior year's successful students, creates a course guide.  
 
-Something about how it's not deterministic or really strong; gentle guidelines with lots of overlap between courses.  
+This report also finds that there are often several equivalent course options for any particular student with a given set of qualifications.  It also finds that high school GPA and ACT math test scores are not highly predictive of grade performance, suggesting that additional data (such as individual effort) may further explain grade performance.  
 
-# Executive Summary 
+# Summary 
 
-In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called "pre-University data.").  Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection.  Time series analyses with extreme gradient boosting models are conducted.   Accuracy values of 0.2-0.28 R^2^ in grades and a Kappa of 0.4 in identifying students at risk of failing are achieved. 
+In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions (called "pre-University data.").  Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance or course selection.  Time series analyses with extreme gradient boosting models are conducted.   Accuracy values of 0.20-0.28 R^2^ in grades and a Kappa of 0.40 in identifying students at risk of failing are achieved.  In course selection, a Kappa as high as 0.45 was achieved in 2009 before declining to values less than 0.1 in 2023 and 2024. 
 
-Over time and across models, the best predictors are ACT math test scores, high school GPA, and their derivative z-scores and combined z-score distance.   The z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year's  successful students per course.  "Success" is defined as achieving a GPA of at least 2.7 or B-minus. 
+Over time and across models, the best predictor of course selection are ACT math test scores, and the best predictor of academic performance is the high school GPA.  Their derivative z-scores and combined z-score distance also figure prominently.   (The z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year's  successful students per course.  "Success" is defined as achieving a GPA of at least 2.7 or B-minus.) 
 
 Because the combined distance is a strong predictor, comparing incoming students with last year's successful students is concluded to reasonably guide course recommendation.  
 
@@ -104,13 +104,18 @@ A next step is to calculate a theoretical benefit in using the course guide by i
 
 #### Main question:
 
-  (Q0) Can improving math course recommendations improve educational outcomes?
+  (Q0) Can improving math course recommendations improve educational outcomes?  
+    *Next step: Calculate improvement in failure rates using the predictive model to estimate an optimum course selection.* 
   
 #### Sub questions: 
 
   (Q1) Can math course grade performance be predicted with minimal pre-University data?    
+  
+  *Grade performance was estimated with mild to moderate accuracy using several different models.* 
+  
   (Q2) Can math course recommendations be made with minimal pre-University data?  
   
+  *Grade performance can be estimated for multiple course options, suggesting equivalent or superior courses.*  
 
 # Analyses
 
@@ -122,7 +127,7 @@ A next step is to calculate a theoretical benefit in using the course guide by i
 
   * *Demographics data* for first time freshmen include age, sex, first generation status, and ethnicity.  
   * *High school data* includes high school GPA, AP credits, and public or private status of the high school.  
-  * *Test scores* from the ACT includes Math, English, Science, and Comprehensive.  (SAT scores were not used, and students who did not submit an ACT test score were excluded).  
+  * *Test scores* from the ACT includes Math, English, Science, and Comprehensive.  (SAT scores were not used in all models, and students who did not submit an ACT test score were excluded from most models).   
   * *University information* includes the name of the course, the course level (1000 or 2000), residence status, Pell eligibility, year and season the course was taken, and student cohort year.  
   * *Course filter* selected math courses as the initial math courses taken by the first time freshmen, or in other words all math courses taken by a freshman in the first semester that they took a math course. 
   
@@ -139,18 +144,20 @@ A next step is to calculate a theoretical benefit in using the course guide by i
 
   |MODEL ID| METHOD                    | DATA         | ACCURACY      |
   |--------|---------------------------|--------------|---------------|
-  | Log_1  | Logistic Regression       | Years > 2020 | 0.24 R^2^     | 
-  | Cat_1  | Categorical Boosting      | Yrs > 2020   | 0.22 R^2^     |
+  | Log_2  | Logistic Regression       | Years > 2021 | 0.31 Kappa    | 
+  | Cat_1  | Categorical Boosting      | Yrs > 2021   | [[?]] Kappa   |
   | vH4    | Extreme Gradient Boosting | Yrs > 2005   | 0.28 R^2^     | 
   | vD1    | Time series (xgboost)     | Yrs > 2005   | 0.20-0.28 R^2^| 
-  | vH4_1  | At Risk Pop. (xgboost)     | vH4 results  | 0.40 Kappa    |
+  | vH4_1  | At Risk Pop. (xgboost)    | vH4 results  | 0.40 Kappa    |
 
-The models could predict grade performance based on minimal pre-University data with r-squared values between [[0.2 and 0.28]] over time. Important or predictive variables across all models included high school GPA and ACT math test scores. 
+Per the time series, the models could predict grade performance based on minimal pre-University data with r-squared values between 0.20 and 0.28.  Identification of at-risk populations occurred with a Kappa value fomr 0.31 to 0.40.  At 0.40 (model vH4_1), one out of three students in the at-risk population failed.
 
-The results from vH4 could be modified to identify an "At Risk" population where one out of three students failed. 
+Important or predictive variables across all models included high school GPA and ACT math test scores. 
 
 ```{r}
-  #| echo: false
+#| label: fig-density
+#| fig-cap: "Predicted vs Actual Grade Performance: Density Plot" 
+#| fig-cap-location: top
 
 # Density plot
 xLim <- range(aligned[,c("GRADEGPA", "pred")])
@@ -163,7 +170,9 @@ plot(density(ref),
      lwd = 2, 
      xlim = xLim,
      main = "", 
-     xlab = "GPA")
+     xlab = "GPA",
+     las = 1)
+
 lines(density(pred), 
       col = "darkorange2", 
       lwd = 2)
@@ -186,17 +195,19 @@ mtext(text = "as a density plot",
 
 ```
 
-As can be seen in Fig. 1, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an 'A' in 2024.)
+As can be seen in @fig-density, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an 'A' in 2024.)
 
 ### Q1 DISCUSSION
 
-The predictive models could predict grade accuracy with r-squared values between [[0.20 and 0.28]].  Consistently the leading predictors were the ACT math test scores and the high school GPA.  Adopting a model of performance[^3] where performance is the outcome of ability by motivation, the models seem to suggest that "ability" can be broken into "math ability" (indicated by the ACT math test scores) and "study ability" (indicated by the high school GPA.)  No metrics related to "motivation" were used.  
+The predictive models could predict grade accuracy with r-squared values between 0.20 and 0.28.  Consistently the leading predictors were the high school GPA, followed at some distance by the ACT math test scores.  Adopting a model of performance[^3] where performance is the outcome of ability by motivation, the models seem to suggest that "ability" can be broken into "math ability" (indicated by the ACT math test scores) and "study ability" (indicated by the high school GPA.)  No metrics related to "motivation" were used.  
 
-The predictive model created gently increasing grade expecations as these two variables increased, as can be seen in Fig. 2 on the left.  Actual grade performance was higher, as can be seen in the heatmap on the right.
+The predictive model created gently increasing grade expectations as these two variables increased, as can be seen in @fig-map on the left.  Actual grade performance was higher, as can be seen in the heat map on the right.
 
 
 ```{r}
-#| echo: false
+#| label: fig-map
+#| fig-cap: "Predicted vs Actual Grade Performance: Heat Map"
+#| fig-cap-location: top
 
 predictionMap(data = aligned, 
               plot_title = "Predicted vs Actual for 2024, all courses")
@@ -212,9 +223,9 @@ Predictive accuracy may be improved with the addition of concurrent data, such a
 
 ### Q1 CONCLUSIONS  
 
-  * Grade performance can be predicted at an R-squared value of 0.2 to 0.28 with minimal pre-University data.	
+  * Grade performance can be predicted at an R-squared value of 0.20 to 0.28 with minimal pre-University data.	
   * The most important predictors are high school GPA, ACT math test scores, and their derivatives.   
-  * This model can be used to differentiate "high risk" and "low risk" populations of students (where one out of three students fail or one out of twenty-five students fail.)  This designation may direct interventions or course recommendations. 
+    * Populations at risk of failing can be identified with an accuracy score of 0.31-0.40 Kappa.  At the higher value, one out of three students fail in the "at risk" population compared to one out of twenty-five students in the "anticipated success" population fails.)  This designation may direct interventions or course recommendations. 
 
 ## Q2: RECOMMEND MATH COURSE   
 
@@ -232,9 +243,9 @@ The same data as Q1 was used.
 
 ### Q2 RESULTS 
 
-***Insert Fig. 3, Kappa declining over time.*** 
 
 ```{r}
+
 
 theKappas <- sapply(theResults_course_all, function(x) {x[["overall"]]["Kappa"]})
 names(theKappas) <- names(theResults_course_all)  
@@ -245,6 +256,10 @@ kappa_values <- as.numeric(round(theKappas,3))
 ```
 
 ```{r}
+#| label: fig-Kappa
+#| fig-cap: "Course selection accuracy declining over time"
+#| fig-cap-location: top
+
 
 par(
   mar = c(3.1,4.1,3.1,1.1)
@@ -317,14 +332,12 @@ plot_ly(x = years, #[-length(years)],
 
 ``` 
 
-The model could predict course selection with a Kappa value as high as [[0.4]], declining over time to next to no ability in 2023-2024.  
+The model could predict course selection with a Kappa value as high as 0.45, declining over time to next to no ability in 2023-2024.  
 
 The most important predictors were ACT Math test scores, high school GPA, and their derivatives.  
 
-***Insert Fig 4, course guide map***
 
 ```{r}
-#| echo: false
 
 hiGrades$clust1 <- hiGrades |>
   (\(x){ x[,colnames(x)[grepl("ACTMATH\\.Q\\.", colnames(x))]]  })() |>
@@ -337,7 +350,8 @@ hiGrades$clust1 <- hiGrades |>
 
 
 ```{r}
-#| echo: false 
+#| label: fig-guide
+#| fig-cap: "Course guide"
 
 clusterColors <- c("darkorange", "steelblue", "purple3", "turquoise3")
 # clusterColors <- c("tomato","forestgreen","purple3","orange2")
@@ -348,15 +362,16 @@ clusterColors <- c("darkorange", "steelblue", "purple3", "turquoise3")
   
 courseScatter(hiGrades[hiGrades$class_year == 2023,], 
               clusterColumn = "clust1",
+              par_params = list(mar = c(0,2.5,5,7)), #  mar = c(0,2.5,3,7), oma = c(4,2,0,0)
               ellipse_params = list(plot = FALSE),
               qrect_params = list(border = NA),
               legend_params = list(plot = FALSE),
               plot_params = list(xlim = c(3.6,4.0), ylim = c(17,36)),
               mtext_params = list(side = c(1,2,3,3),
-                    text = c("High School GPA","ACTMATH","Incoming qualifications of successful students by course", "Median student achieving at least B-"),
+                    text = c("High School GPA","ACTMATH","Courses distinguished by qualifications\nof successful students", "Median student achieving at least B-"),
                     font = c(1,1,2,3),
                     cex = c(1.3, 1.3, 1.75, 1.25),
-                    line = c(2.3, 2.3, 1.25, 0.30)
+                    line = c(2.3, 2.3, 1.5, 0.30)
               )
               )
 
@@ -386,18 +401,18 @@ legend("topright",
        col = rev(clusterColors),
        pch = 19,
        xpd = TRUE,
-       inset = c(-0.155,0)
+       inset = c(-0.2,0)
        )
 
 ```
 
-A course guide could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA >=2.7) from the year 2023.  
+A course guide (@fig-guide) could be generated for 2024 students based on the ACT math scores and the high school GPA of the successful students (GPA >=2.7) from the year 2023.  
 
 ### Q2 DISCUSSION 
 
-The time series analysis demonstrated that minimal pre-University data could be used to predict course selection until 2022.  It also validated the use of the combined z-score distance as an important predictor.	
+The time series analysis demonstrated that minimal pre-University data could be used to predict course selection until recently.  It also validated the use of the combined z-score distance as an important predictor.	
 
-The ability to predict courses declined over time, and all-but vanished in 2023 and 2024.  A closer look at the combined distance variable shows a discontinuity in this metric starting in 2020 and accelerating in 2023-2024.  This collapse of the model accuracy and accelerating discontinuity may suggest an urgent need to address math course placement.  On the other hand, over the same period grades improved (or inflated or compressed), possibly suggesting changing expectations for math performance in these initial math courses.  
+The ability to predict courses declined over time, and all-but vanished in 2023 and 2024.  A closer look at the combined distance variable (not shown) reveals a discontinuity in this metric starting in 2020 and accelerating in 2023-2024.  This collapse of the model accuracy and accelerating discontinuity may suggest an urgent need to address math course placement.  On the other hand, over the same period grades improved (or inflated or compressed), possibly suggesting changing expectations for math performance in these initial math courses.  
 
 The course guide showed considerable overlap between courses, and the counter-factual grade predictions (not shown) had similar grade outcomes per student for several courses.  This suggests that any particular student may have multiple equivalent course options.  
 	
