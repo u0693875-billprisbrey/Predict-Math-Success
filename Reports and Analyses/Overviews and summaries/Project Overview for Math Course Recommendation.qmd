@@ -3,6 +3,8 @@ title: "Project Overview for Math Course Recommendation"
 format: 
   html: default
   gfm: default
+  pdf: default
+  docx: default 
 editor: source
 execute: 
   echo: false
@@ -139,8 +141,6 @@ A next step is to calculate a theoretical benefit in using the course guide by i
   A time series analysis investigated model validity over time.  
 
 ### Q1 RESULTS  
-
-**Table filled with placeholder values**
 
   |MODEL ID| METHOD                    | DATA         | ACCURACY      |
   |--------|---------------------------|--------------|---------------|
