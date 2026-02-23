@@ -1,0 +1,107 @@
+Summary Outline	
+17 Feb 2026
+
+Three pictures:
+Heatmap, Density plot, and course map
+
+Here it is in brief:
+
+EXECUTIVE SUMMARY:  
+((Use a paragraph.))
+
+
+DRIVING RESEARCH QUESTIONS:  
+  Over-arching or main question:
+  (Q0) Can improving math course recommendations improve educational outcomes?
+  Sub-questions: 
+  (Q1) Can math course grade performance be predicted with minimal pre-University data?	
+  (Q2) Can math course recommendations be made with minimal pre-University data?		
+
+BACKGROUND:	
+  (1) Changing situation:  Course mix selection, submission of ACT test scores, grade compression/inflation, decline of relationship between incoming qualifications and course selection
+  (2)  External concerns: 
+        Nationally, there is a conversation around decreased educational abilities, including math abilities
+         (find Atlantic article)
+  (3) Internal concerns: 
+        (1) Students taking courses beneath their ability, exacerbating course capacity limits	
+        (2) Advisors having insufficient guidelines to place students in courses, leading to mis-placed students.  This misplacement may cause a strain on instructors, tutors, and classroom environments and result in poor academic performance, which in turn reduces persistence, retention, and time to graduate.	
+  	(3) Math placement tests may be expensive and logistically difficult to administer at scale.
+
+Q1 ANALYSES:	
+
+  DATA:  Demographic data for first time freshmen was combined with math performance data for first time freshmen.	 Math courses were selected as the initial math courses taken by the first time freshmen, or in other words all math courses taken by a freshman in the first semester that they took a math course.	
+
+  ANALYSES:
+
+        Predictive models included logistic regression, extreme gradient boosting, and categorical boosting.  Outcomes included course selection and grade performance.  Time series analyses investigated model validity over time.  
+
+  RESULTS:  
+
+[[Table of models and R-squared values]]
+[[Table of leading predictors and relative importance]]
+
+[[Predictive density plot here]]
+[[Predictive heat map and actual heat map]]
+
+  DISCUSSION:   
+    The predictive models could predict grade accuracy with r-squared values between [[0.2 and 0.28]].  Consistently the leading predictors were the ACT math test scores and the high school GPA.  Adopting a model of performance [[cite!]] where performance is the outcome of ability by motivation, the models seem to suggest that "ability" can be broken into "math ability" (indicated by the ACT math test scores) and "study ability" (indicated by the high school GPA.)  No metrics related to "motivation" were used. 
+
+    Derivatives were calculated from the two leading predictors:  z-scores (based on successful students in the prior year) and a combined z-score distance.  These derived variables were found to improve predictive accuracy.	  
+
+    Time series analyses validated and discovered a discontinuity since 2020 that accelerated in 2023-2024 where [[describe.]] 
+
+    Predictive accuracy may be improved with the addition of concurrent data, such as the number of credits concurrently taken, the difficulty of concurrent courses, and early grades on homework, quizzes, and tests.	 	
+
+  Q1 CONCLUSIONS: 
+
+    Grade performance can be predicted at an R-squared value of 0.2 to 0.28 with minimal pre-University data.	
+    The most important predictors are high school GPA, ACT math test scores, and their derivatives.   
+    This model can be used to differentiate "high risk" and "low risk" groups of students (where one out of three students fail or one out of twenty-five students fail.)  This designation may direct interventions. 
+  
+Q2 ANALYSES:	
+
+   DATA:  The same data was used.
+
+   ANALYSES:  
+     Time series models predicting course selection
+     Counterfactual grade performance	
+
+   RESULTS:  
+
+    [[Table of Kappa values ?]]
+
+    (Course map here)
+
+    DISCUSSION:
+
+    The time series analysis demonstrated that minimal pre-University data could be used to predict course selection until 2022.  It also validated the use of the combined z-score distance as an important predictor.	
+
+    The ability to predict courses declined over time, and all-but vanished in 2023 and 2024.  A closer look at the combined distance variable shows a discontinuity in this metric starting in 2020 and accelerating in 2023-2024.  This collapse of the model accuracy and accelerating discontinuity may suggest an urgent need to address math course placement.  On the other hand, over the same period grades improved (or inflated or compressed), suggeting changing expectations for math performance in these initial math courses. 
+	
+    Q2 CONCLUSIONS: 
+
+	Math course recommendations can be made by comparing incoming student qualifications to the qualifications of the prior year's successful students.	
+
+	This should be considered a loose guideline with a heavy overlap in acceptable courses per student.	
+
+Q0 NEXT STEPS:	 
+
+    In order to answer the main question, a reasonable next step would be to calculate the improvement in failure rates if students who failed were placed in their optimum course per the model and received their counterfactual (predicted) grades.	
+
+ Compare incoming students with last year's successful students per course.	
+
+
+Abandoned text:
+
+# Conclusions from Q1 and Q2  
+
+All models found that ACT Math test scores, high school GPA, and their derivatives were predictive of course selection (until 2022) and academic performance. 
+
+This suggests that comparing incoming students with last year's successful students per course can guide course recommendation. 
+
+***Insert Fig. 4, course map.*** 
+
+As seen in Fig. 4, the courses can be distinguished by the ACT math test scores and the high school GPA of successful students (where success is defined as a GPA of 2.4 or greater.)  
+
+	
+
