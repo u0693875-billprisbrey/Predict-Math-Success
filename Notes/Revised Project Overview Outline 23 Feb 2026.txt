@@ -1,0 +1,32 @@
+Revised Project Overview Outline
+23 Feb 2026
+
+
+CAN WE PREDICT GRADE PERFORMANCE?
+  --> Yes, with various accuracy scores. Leading predictor is HSGPA.
+  --> This is pretty stable over time.	
+  --> This can lead to an early intervention of at-risk students.
+
+CAN THE EARLY INTERVENTION BE A RECOMMENDATION TO TAKE A DIFFERENT COURSE?  WHAT IMPACT WOULD THAT HAVE ON THE GRADE? 
+  --> This is a more complicated question, as there are different predictors of course selection than grade performance.
+      It appears that ACT Math test scores are the best predictor of course selection.  However, that accuracy disappeared in the last couple of years, while grades increased.  So it's a more complicated, dynamic picture that may be reflecting shifting expectations.
+	
+	POSSIBILITY #1:  COURSE SELECTION DOESN'T MATTER.   These courses are all leveled as appropriate for an incoming freshman.	
+	POSSIBILITY #2:  COURSE SELECTION IS ALREADY OPTIMAL.  We can't find a course signal because the best course is already picked for a student between the prior information and the grade performance.  Whatever that black box is, it's working fine, so we don't see the mis-placed students that would give us a signal.	
+	
+  --> Statistical Test:  Matching.  Find students with identical incoming qualifications in different courses and compare their performance.	
+
+   What we can see: 
+	- ACT Math (course selection) and HSGPA (grade performance) are the biggest predictors.	
+  	- Using these two metrics, we can then see that filtering to successful students distinguishes the courses
+	- This suggests that courses do have an impact on grade performance, and that a loose guide to the optimal course can be made.
+
+IF WE TAKE THIS PRETTY SIMPLISTIC MODEL, AND PUT EACH STUDENT IN ITS OPTIMUM COURSE, WHAT'S THE IMPACT TO GRADE PERFORMANCE?
+	- We can use our two leading indicators (ACT Math and HSGPA) and derive a new metric.
+	- The new metric compares successful students from the prior year.
+	- It bounds the 	
+	- That is the next step and can be calculated.	
+
+
+
+

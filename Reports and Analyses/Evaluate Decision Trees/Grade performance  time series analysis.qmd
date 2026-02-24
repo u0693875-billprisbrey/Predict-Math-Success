@@ -1,0 +1,233 @@
+---
+title: "Appendix 1c: Grade performance time series analysis"
+format: 
+  html: default
+  gfm: default
+  pdf: default
+  docx: default 
+params: 
+  version: "vQ0"
+  target_classes: 
+    - GRADEGPA
+editor: source
+execute: 
+  echo: false
+  warning: false  
+  message: false
+  error: false
+knitr: 
+  opts_chunk: 
+    fig.height: 5
+    fig.width: 7
+---
+
+```{r include = FALSE}
+
+# This is copied from "Evaluate Grade Decision Trees Over Time vQ0."
+
+# It is meant to be presented as an appendix item as part of the larger report,
+# "Predicting student success in first math courses using pre-university attributes."  
+
+# Due to versioning and corruption, this report attempts to use the xg.boost class of model that was extracted from the caret objects when vQ0 was actually trained.  
+
+```
+
+
+```{r}
+#| include: false
+
+############
+## SET UP ##
+############
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+# Strikes me that I want one list per target class, with multiple years per
+
+# Build file paths
+testYears <- 2007:2025
+grid <- expand.grid(params$version, testYears,  params$target_classes)
+
+model_files <- here::here("Reports and Analyses", "Robjects", paste0("grade_model_", grid$Var2, ".ubj"))
+
+# Read this into a list of lists by target class
+
+model_list <- setNames(
+  lapply(model_files, xgb.load),
+  as.character(testYears)
+)
+
+model_list <- setNames(
+  lapply(params$target_classes, function(tClass){
+    files <- model_files[grep(tClass, model_files)]
+    
+    # Extract year from each filename
+    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
+    
+    setNames(
+      lapply(files, readRDS),
+      years  # Use extracted years
+    )
+  }),
+  params$target_classes
+)
+
+
+
+# Build file paths
+data_files <- here::here("Data", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(params$target_classes, function(tClass){
+    files <- data_files[grep(tClass, model_files)]
+    
+    # Extract year from each filename
+    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
+    
+    setNames(
+      lapply(files, readRDS),
+      years  # Use extracted years
+    )
+  }),
+  params$target_classes
+)
+
+
+```
+
+
+
+### PLAIN LANGUAGE SUMMARY  
+
+This analysis finds that high school GPA is a moderate yet stable predictor of academic performance over time.  This is followed by the ACT math test scores.  
+
+Model accuracy improved over time, possibly due to grade compression where a much larger proportion of students received a grade of 'A' in 2024 compared to 2005 (the first year of the analysis.)   
+
+### SUMMARY 
+
+In order to examine trends in grade performance in initial math courses by first time freshmen over time, a series of predictive models were trained that used minimal and readily available information about first time freshmen. 
+
+Eighteen predictive models were trained using extreme gradient boosting and an expanding window, where each year a consecutive year's worth of data was added and a new subsequent year's grades were predicted.  
+
+The predictive models found a moderate relationship between math course grades and predictors that improved over time (starting with an r-squared value of ~0.2 and ending with a value of ~0.27 in 2024.) 
+
+The most important predictor of grade performance in almost every year was the high school GPA, followed by the high school GPA z-score, combined distance, and ACT math z-score. 
+
+Contrary to declining course selection accuracy, grade prediction improved over time.  This may be due to: 
+
+  * Grade inflation or compression.
+  * Course selection irrelevance or conversely course selection importance. 
+  
+Possible next steps include:  
+
+  * Discussing the results with instructors familiar with departmental history.   
+  * Conducting a careful "matching" analysis to better gauge course importance.   
+  * Repeating the analysis with clusters of similar courses. 
+
+### METHODOLOGY 
+
+Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation".  
+
+Predictive models were trained with package "xgboost".
+
+An expanding window of historical data was used, where one model was trained per year from 2007 to 2024.  Each model incrementally added an additional year's data and predicted on the subsequent year.  For example, the predicted grades for the year 2020 was trained on data from the years 2005 to 2019.  
+
+A value for math grade was predicted, and evaluated with root mean square error, mean absolute error, and r-squared values.
+
+### DISCUSSION  
+
+R-squared values fluctuated between ~0.2 and ~0.27, with a gently improving trend over time and the highest value in the last year. Mean absolute error and root mean square error followed a complementary pattern, gently declining over time with the lowest values in 2024 of 0.8 and 1 respectively.  
+
+High school GPA was the most important variable in determining grade by a large margin, at a value of 100 for almost all years.  High school GPA z-score, combined distance, and ACTMATH z-score are distantly next, with importance values between ~30 to ~50 in the last five years.  The remaining variables fell below an importance value of 20.  
+
+A notable omission in determining grade was the choice of course, possibly due to courses having very similar grade distributions (as noted in the report "Predictors over time").  Another omission in determining grade was the ACT math test scores, possibly due to the courses being selected according to the ACT math test score (as noted in the report "Evaluate Course Decision Trees Over Time.")  
+
+Some individual course activity includes: 
+
+  *Math 1010:* Contrary to the course selection model, where course prediction accuracy declined, grade prediction accuracy increased from an r-squared value of 0.12 to a high of 0.35 in 2022 and 0.21 in 2024.  No elbow was noticed in 2017, when enrollment and selection accuracy began to decline.  
+  *Math 1090:* R-squared value was stable from 2016 onward from 0.15 to 0.2, but jumped in 2024 to 0.35. 
+  *Math 1210:* R-squared value gently increased to a high of 0.28 in 2024, making both course and grade prediction relatively high. 
+  *Math 1220:* R-squared was volatile over the entire time period with no apparent trend.  It was highest in 2022 with a value of 0.32. 
+
+***Why did course selection accuracy worsen while grade prediction accuracy improved?***  
+
+Predicting course selection and predicting course grade had two opposing trends: accuracy in course selection dramatically worsened while accuracy in grade prediction dramatically improved.  
+
+Possible explanations include:  
+
+  * *Grade inflation or compression.*  Grades are easier to predict when there is reduced spread. 
+  * *Course selection irrelevance.*  The courses might overlap in their prerequisite skill expectations, level-setting one course as initially equivalent as others and emphasizing study ability over math ability.  
+  * *Course selection importance.*  The courses might differ in their prerequisite skill expectations, and the decline in course selection guidance allows students to place themselves in courses they are ill-suited for, improving grade prediction accuracy for a broader mis-match.  
+
+### CONCLUSIONS  
+
+High school GPA, ACT math scores, and their derivative features, have reliably predicted grades over time with an r-squared value between 0.2 and 0.28. 
+
+### POSSIBLE NEXT STEPS 
+
+A conversation with instructors familiar with the department history could describe their experience with the following elements: 
+
+  * Increased grade predictability 
+  * Grade compression or inflation 
+  * Absorption of students that do not follow historical patterns in course selection
+  * The dramatic increase since 2020 in the increased "distance" of failing/at risk students, suggesting grade inflation  
+
+Careful "matching" to observe the accomplishments of similarly-qualified students in different courses would help clarify whether course selection was important or irrelevant.  
+
+Repeating the analysis with clusters of similar courses could also help clarify the importance of course selection (as similar courses might have been irrelevant to grade prediction but clusters of similar courses would emphasize the differences and become relevant to grade prediction.)   
+
+### RESULTS 
+
+
+```{r}
+#| include: false
+
+############
+## SET UP ##
+############
+
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(plotly)
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+```
+
+

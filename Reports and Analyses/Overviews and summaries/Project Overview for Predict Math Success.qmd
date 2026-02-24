@@ -1,0 +1,250 @@
+---
+title: "Project Overview for Predict Math Success"
+format: 
+  html: default
+  gfm: default
+  pdf: default
+  docx: default 
+editor: source
+execute: 
+  echo: false
+  warning: false  
+  message: false
+  error: false
+knitr: 
+  opts_chunk: 
+    fig.height: 5
+    fig.width: 7
+---
+
+```{r}
+#| include: false
+
+# Author's notes
+
+# This was originally "Project Overview for Recommend Math Course" but I am reducing this
+# to reflect just the first phase, "Predict Math Success."
+
+# Depending on how this was received, I'll 
+
+# Try a "plain language" summary to start this off.  
+# Exec Summary needs a reference to the class prediction  
+# Put the background first  
+# Toggle Fig 4. plot parameters
+# A Quarto automatic figure numbering is probbly available 
+# Let's get the models extracted from the time series next
+
+
+``` 
+
+
+
+
+```{r}
+
+library(xgboost)
+library(tidyverse)
+library(Ckmeans.1d.dp)
+library(hexbin)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+theModel <- xgb.load(here::here("Reports and Analyses", "Robjects", "Model_vH4.ubj"))
+
+
+aligned <- readRDS(here::here("Reports and Analyses", "Robjects", "Aligned_vH4.rds") )
+
+hiGrades <- readRDS(here::here("Data","hiGrades from vH3.rds"))
+
+theResults_course_all <- readRDS(here::here("Reports and Analyses", "Robjects", "course_vD0_results.rds" ))
+
+```
+
+
+```{r}
+#| eval: false
+
+xgb.ggplot.importance(xgb.importance(model = theModel)) # Features apparenlty need to be added elsewhere.
+
+
+``` 
+
+# Executive Summary
+
+This report examines predictors of math success for first time freshmen.  
+
+Using information available at the time of enrollment, predictive models are developed that identified many students who eventually failed.  This included a trade-off of flagging some students who eventually succeeded.      
+
+The important predictors are high school GPA and ACT math test scores.  These have consistently, if moderately, predicted academic performance in math courses over time.  
+
+The information could be used to inform advising strategies, intervention strategies, or course recommendations.  
+
+Reasonable next steps include using this information to develop a mild course guide, followed by evaluating the potential impact of using that course guide on failure rates.   
+
+# Summary 
+
+In order to improve academic outcomes in math courses for first time freshmen, an investigation into predictors of academic performance and course selection is made using data available at the time of admissions.  Predictive models (logistic regression, categorical boosting, and extreme gradient boosting) are trained that target grade performance.  Time series analyses with extreme gradient boosting models are conducted.   Accuracy values of 0.20-0.28 R^2^ in grades and a Kappa of 0.40 in identifying students at risk of failing are achieved.   
+
+Over time and across models, the best predictors of academic performance are the high school GPA, ACT math test scores, and their derivatives.  The derivative metrics are z-scores and combined z-score distance, where the z-scores and combined distance are calculated by comparing the qualifications of incoming students with the qualifications of last year's  successful students per course.  "Success" in this case is defined as achieving a GPA of at least 2.7 or B-minus.) 
+
+Because the combined distance is a strong predictor, comparing incoming students with last year's successful students is concluded to reasonably guide course recommendation.  This will be further explored in the second phase. 
+
+# Background  
+
+  Currently, math course placement for first time freshmen is under consideration due to internal and external pressures in a dynamic environment:  
+  
+  * ***External concerns:*** Academic preparedness for first time freshmen has declined nation-wide, including for math[^1][^2].  
+  * ***Internal concerns:*** Several internal concerns have been voiced, including:  
+    (1)  Advisors having insufficient guidelines to place students in courses, leading to mis-placed students.  This misplacement may cause a strain on instructors, tutors, and classroom environments and result in poor academic performance.  
+    (2)  Students taking courses beneath their ability, exacerbating course capacity constraints.  
+    (3)  Math placement tests may be expensive and logistically difficult to administer at scale.  
+  * ***Changing situation:*** The mix of math courses selected, submission rates of ACT math test scores, grade compression (or inflation), and the relationship between incoming qualifications and course selection are changing.   
+
+
+# Research Questions  
+
+#### Phase One:  Predict Math Success
+
+  (Q1) Can math course grade performance be predicted using minimal data available at the time of enrollment? 
+  
+  *Grade performance was estimated with mild to moderate accuracy using several different models.  Accuracies of R^2^ ~0.20 to ~0.28 were achieved with a mean absolute error of 0.8 grade points in 2024.*   
+
+  (Q2) Can students at risk of failing be identified using minimal data available at the time of enrollment? 
+  
+  *At risk populations could be identified with an accuracy value of Kappa = 0.40 in 2024, where one out of three students actually failed.*
+
+#### Phase Two: Develop Course Guide   
+
+  (Q3) Can course recommendations be developed or a course guide created based on minimal data available at the time of enrollment? 
+  
+  *Next step:  Investigate predictors of course selection and develop a course guide.*       
+  
+#### Phase Three: Estimate Academic Impact  
+
+  (Q4) Can improving math course recommendations improve educational outcomes?  
+  
+  *Next step: Calculate improvement in failure rates using the predictive model to estimate an optimum course selection.*  
+  
+# Phase One: Predict Grade Performance     
+
+### Data
+
+  Data from the years 2005 to 2024 were used.
+
+  * *Demographics data* for first time freshmen include age, sex, first generation status, and ethnicity.  
+  * *High school data* includes high school GPA, AP credits, and public or private status of the high school.  
+  * *Test scores* from the ACT includes Math, English, Science, and Comprehensive.  (SAT scores were not used in all models, and students who did not submit an ACT test score were excluded from most models).   
+  * *University information* includes the name of the course, the course level (1000 or 2000), residence status, Pell eligibility, year and season the course was taken, and student cohort year.  
+  * *Course filter* selected math courses as the initial math courses taken by the first time freshmen, or in other words all math courses taken by a freshman in the first semester that they took a math course. 
+  
+  
+### Analyses  
+
+  Logistic regression, categorical boosting, and extreme gradient boosting models predicted grade performance.  Slightly different data sub-sets and grade thresholds were used, as explained in the appendices. 
+  
+  A time series analysis investigated model validity over time.  
+
+### Results  
+
+  |MODEL ID| METHOD                    | DATA         | ACCURACY      |
+  |--------|---------------------------|--------------|---------------|
+  | Log_2  | Logistic Regression       | Yrs > 2021   | 0.31 Kappa    | 
+  | Cat_1  | Categorical Boosting      | Yrs > 2021   | 0.91 F1       |
+  | vH4    | Extreme Gradient Boosting | Yrs > 2005   | 0.28 R^2^     | 
+  | vD1    | Time series (xgboost)     | Yrs > 2005   | 0.20-0.28 R^2^| 
+  | vH4_1  | At Risk Pop. (xgboost)    | vH4 results  | 0.40 Kappa    |
+
+Per the time series, the models could predict grade performance based on minimal pre-University data with r-squared values between 0.20 and 0.28.  Identification of at-risk populations occurred with a Kappa value from 0.31 to 0.40.  At 0.40 (model vH4_1), one out of three students in the at-risk population failed (precision was 29% and recall was 76%.)
+
+Important or predictive variables across all models were high school GPA, ACT math test scores, and their derivatives.  Additional strong predictors included AP credits and whether the math class was taken in the first year.    
+
+```{r}
+#| label: fig-density
+#| fig-cap: "Predicted vs Actual Grade Performance: Density Plot" 
+#| fig-cap-location: top
+
+# Density plot
+xLim <- range(aligned[,c("GRADEGPA", "pred")])
+
+ref <- aligned[,"GRADEGPA"]
+pred <- aligned[,"pred"]
+
+plot(density(ref), 
+     col = "dodgerblue3", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "GPA",
+     las = 1)
+
+lines(density(pred), 
+      col = "darkorange2", 
+      lwd = 2)
+legend("topleft", legend = c("Actual", "Predicted"), 
+       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+
+mtext(text = "Predicted vs Actual",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "as a density plot",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+```
+
+As can be seen in @fig-density, model vH4 tended to make middle-of-the-road predictions while the grade distribution skewed heavily towards the top of the scale (where ~30% of students received an 'A' in 2024.)
+
+### Discussion  
+
+The predictive models could predict grade accuracy with r-squared values between 0.20 and 0.28.  Consistently the leading predictors were the high school GPA, followed at some distance by the ACT math test scores.  Adopting a model of performance[^3] where performance is the outcome of ability by motivation, the models seem to suggest that "ability" can be broken into "math ability" (indicated by the ACT math test scores) and "study ability" (indicated by the high school GPA.)  No metrics related to "motivation" were used.  
+
+The predictive model created gently increasing grade expectations as these two variables increased, as can be seen in @fig-map on the left.  Actual grade performance was higher, as can be seen in the heat map on the right.
+
+
+```{r}
+#| label: fig-map
+#| fig-cap: "Predicted vs Actual Grade Performance: Heat Map"
+#| fig-cap-location: top
+
+predictionMap(data = aligned, 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+``` 
+
+
+Derivatives were calculated from the two leading predictors:  z-scores (based on successful students in the prior year) and a combined z-score distance.  These derived variables were found to improve predictive accuracy.	  
+
+Time series analyses validated these derived predictors and discovered a discontinuity since 2020 that accelerated in 2023-2024 where the relationship between incoming qualifications and course selection disappeared.   
+
+Predictive accuracy may be improved with the addition of concurrent data, such as the choice of major, the number of credits concurrently taken, the difficulty of concurrent courses, and early grades on homework, quizzes, and tests.	
+
+### Conclusions   
+
+  * Grade performance can be predicted at an R-squared value of 0.20 to 0.28 with minimal pre-University data.	
+  * The most important predictors are high school GPA, ACT math test scores, and their derivatives.   
+    * Populations at risk of failing can be identified with an accuracy score of 0.31-0.40 Kappa.  At the higher value, one out of three students fail in the "at risk" population compared to one out of twenty-five students in the "anticipated success" population fails.)  This designation may direct interventions or course recommendations. 
+
+### Next Steps
+
+Next, in ***Phase Two: Develop Course Guide***, the leading predictors of course selection should be investigated and compared with the predictors of grade performance.  A course guide, if even a gentle one, could be developed from these leading predictors.  Ideally, a "matching" analysis would further clarify the impact of course selection on academic performance. 
+
+Finally, in ***Phase Three: Estimate Academic Impact*** the improvement in failure rates can be estimated by using the predictive model to identify alternative courses and estimated grades for students who failed. 
+
+
+---
+  
+[^1]: Sánchez-Mendías, J., et al. (2024). "Who are we receiving at the university? The impact of COVID-19 on mathematics and reading learning in high school." Frontiers in Education, 9, 1356730. <https://doi.org/10.3389/feduc.2024.1356730> 
+  
+[^2]: Horowitch, Rose. "'A Recipe for Idiocracy': What Happens When Even College Students Can't Do Math Anymore?" The Atlantic, November 19, 2025. <https://www.theatlantic.com/education/archive/2025/11/college-students-math-crisis/> 
+
+[^3]: Anderson, N. H., & Butzin, C. A. 1974. Performance = motivation X ability: An integration-theoretical analysis. Journal of Personality and Social Psychology, 30(5): 598–604. <https://doi.org/10.1037/h0037447> 
+

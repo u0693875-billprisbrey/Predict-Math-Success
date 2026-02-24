@@ -61,7 +61,7 @@ theResults_course_all <- readRDS(here::here("Reports and Analyses", "Robjects", 
 ```{r}
 #| eval: false
 
-xgb.ggplot.importance(xgb.importance(model = theModel))
+xgb.ggplot.importance(xgb.importance(model = theModel)) # FAILED!  Sheesh
 
 
 ``` 
