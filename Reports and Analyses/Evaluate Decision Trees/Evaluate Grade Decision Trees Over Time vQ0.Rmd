@@ -2,14 +2,15 @@
 title: "Evaluate Grade Decision Trees Over Time `r params$version`"
 author: "Bill Prisbrey"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
-params: 
-  version: "vQ0"
-  target_classes: 
-    - GRADEGPA
 output:
+  word_document:
+    toc: true
   html_document:
     keep_md: true
     toc: true
+params:
+  version: vQ0
+  target_classes: GRADEGPA
 ---
 
 
@@ -37,6 +38,9 @@ library(lubridate)
 library(plotly)
 
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+
+is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
 
 ```
 
@@ -284,12 +288,12 @@ High school GPA was the most important variable in determining grade by a large 
 
 A notable omission in determining grade was the choice of course, possibly due to courses having very similar grade distributions (as noted in the report "Predictors over time").  Another omission in determining grade was the ACT math test scores, possibly due to the courses being selected according to the ACT math test score (as noted in the report "Evaluate Course Decision Trees Over Time.")  
 
-Some individual course activity includes: 
+Some individual course activity includes:   
 
-  *Math 1010:* Contrary to the course selection model, where course prediction accuracy declined, grade prediction accuracy increased from an r-squared value of 0.12 to a high of 0.35 in 2022 and 0.21 in 2024.  No elbow was noticed in 2017, when enrollment and selection accuracy began to decline.  
-  *Math 1090:* R-squared value was stable from 2016 onward from 0.15 to 0.2, but jumped in 2024 to 0.35. 
-  *Math 1210:* R-squared value gently increased to a high of 0.28 in 2024, making both course and grade prediction relatively high. 
-  *Math 1220:* R-squared was volatile over the entire time period with no apparent trend.  It was highest in 2022 with a value of 0.32. 
+  * *Math 1010:* Contrary to the course selection model, where course prediction accuracy declined, grade prediction accuracy increased from an r-squared value of 0.12 to a high of 0.35 in 2022 and 0.21 in 2024.  No elbow was noticed in 2017, when enrollment and selection accuracy began to decline.  
+  * *Math 1090:* R-squared value was stable from 2016 onward from 0.15 to 0.2, but jumped in 2024 to 0.35. 
+  * *Math 1210:* R-squared value gently increased to a high of 0.28 in 2024, making both course and grade prediction relatively high.   
+  * *Math 1220:* R-squared was volatile over the entire time period with no apparent trend.  It was highest in 2022 with a value of 0.32.  
 
 ***Why did course selection accuracy worsen while grade prediction accuracy improved?***  
 
@@ -322,7 +326,7 @@ Repeating the analysis with clusters of similar courses could also help clarify 
 ### RESULTS 
 
 
-```{r}
+```{r eval=is_html}
 
 # I want three plotly graphics, one per RMSE, R-squared, and MAE
 # Each plot has one line per GRADEGPA and grade_quad
@@ -388,6 +392,132 @@ plot_rmse
 
 
 
+```{r eval=!is_html, fig.height=3}
+
+# base R graphics for rending into PDF or Word
+
+# Note that I'm making these smaller
+
+years <- as.numeric(rownames(resultsDF))[-19]
+
+par(bg="beige", mar = c(3.1,4.1,3.1,2.1)) # c(5.1,4.1,4.1,2.1)
+
+plot(x = years,
+     y = resultsDF[-19,"Rsquared"], 
+     main = "R-squared Over Years",
+     ylab = "R-squared",
+     xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue",
+     las = 1
+     )
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col = "grey92"
+)
+
+grid(col = "grey97", lwd =2, lty=1)
+
+lines(x = years,
+     y = resultsDF[-19,"Rsquared"], 
+     main = "R-squared Over Years",
+     ylab = "R-squared",
+     xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue",
+     las = 1
+     )
+
+```
+
+```{r eval=!is_html, fig.height=3}
+
+par(bg="beige", mar = c(3.1,4.1,3.1,2.1)) # c(5.1,4.1,4.1,2.1)
+
+plot(x = years,
+     y = resultsDF[-19,"MAE"], 
+     main = "MAE Over Years",
+     ylab = "Mean Absolute Error",
+     xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue",
+     las = 1
+     )
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col = "grey92"
+)
+
+grid(col = "grey97", lwd =2, lty=1)
+
+lines(x = years,
+     y = resultsDF[-19,"MAE"], 
+    # main = "R-squared Over Years",
+    # ylab = "R-squared",
+    # xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue" #,
+    # las = 1
+     )
+
+
+
+``` 
+
+
+
+```{r eval=!is_html, fig.height=3}
+
+par(bg="beige", mar = c(3.1,4.1,3.1,2.1)) # c(5.1,4.1,4.1,2.1)
+
+plot(x = years,
+     y = resultsDF[-19,"RMSE"], 
+     main = "RMSE Over Years",
+     ylab = "Root Mean Square Error",
+     xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue",
+     las = 1
+     )
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col = "grey92"
+)
+
+grid(col = "grey97", lwd =2, lty=1)
+
+lines(x = years,
+     y = resultsDF[-19,"RMSE"], 
+    # main = "R-squared Over Years",
+    # ylab = "R-squared",
+    # xlab = "",
+     type = "b",
+     lwd = 1.7,
+     col = "royalblue" #,
+    # las = 1
+     )
+
+
+
+``` 
+
+
+
+
 ```{r}
 
 # extract variable importance
@@ -426,7 +556,7 @@ importance_over_time <- lapply(model_list, function(tClass) {
 
 
 
-```{r}
+```{r eval=is_html}
 
 # plotly version of importance_over_time
 
@@ -482,6 +612,108 @@ p
 
 ```
 
+
+```{r eval=!is_html}
+
+# Base R plot of importance over time 
+
+
+# eliminate year 2025
+
+lastCol <- ncol(importance_over_time[["GRADEGPA"]])
+
+testYears <- testYears[-which(testYears %in% "2025")]
+
+varFilter <- apply(importance_over_time[["GRADEGPA"]][,-1*c(1, lastCol )],1, function(x){any(x>10)}) 
+
+varSelection <- importance_over_time[["GRADEGPA"]][["var"]][varFilter & !is.na(varFilter)]
+
+# varSelection <- importance_over_time[["GRADEGPA"]][["var"]][order(importance_over_time[["GRADEGPA"]][["2024"]], decreasing = TRUE)] |>
+#  (\(x){x[2:10]})() # top 8 predictors in 2024
+
+# Filter to selected variables
+plotData <- importance_over_time[["GRADEGPA"]][
+  importance_over_time[["GRADEGPA"]][,"var"] %in% varSelection,-lastCol 
+]
+
+par(bg="snow", mar=c(4,5,4,9))  # c(5.1,4.1,4.1,2.1)
+
+plot(x=50,
+     ylim = c(0,100),
+     xlim = c(0,ncol(plotData)),
+     ylab = "Variable Importance",
+     xlab = "",
+     las= 1,
+     xaxt = "n",
+     main = "Variable Importance Over Time"
+)
+
+rect(par("usr")[1],
+     par("usr")[3],
+     par("usr")[2],
+     par("usr")[4],
+     col="gray92"
+     )
+
+grid(col="gray97", lty=1, lwd=3)
+
+
+varColors <- c(
+  "royalblue",    # blue
+  "firebrick2",   # red
+  "forestgreen",  # green
+  "darkorange",   # orange
+  "mediumpurple", # purple
+  "deeppink2",    # pink
+  "turquoise3",   # teal
+  "goldenrod2",   # yellow-gold
+  "sienna",       # brown
+  "gray30",       # dark gray
+  "darkslateblue"         # not black
+)
+
+
+theColors <- c(
+  "#0072B2",  # blue
+  "#E69F00",  # orange
+  "#009E73",  # bluish green
+  "#CC79A7",  # pink/mauve
+  "#56B4E9",  # sky blue
+  "#D55E00",  # vermillion
+  "#F0E442",  # yellow
+  "#000000",  # black
+  "#8B4513",  # brown (added)
+  "#6A5ACD",  # slate blue (added)
+  "#20B2AA"   # light sea green (added)
+)
+
+for(var in 1:nrow(plotData)) {
+  
+  plotRow <- plotData[var, 2:ncol(plotData)]
+  
+  lines(y = plotRow,
+        x = 1:(ncol(plotData)-1),
+        col = theColors[var],
+        lwd = 3
+        )
+  
+  
+}
+
+axis(side=1,
+     at=1:(ncol(plotData)-1),
+     labels = colnames(plotData)[-1])
+
+
+legend("topright",
+       legend = plotData[,"var"],
+       col = theColors,
+       lwd = 3,
+       inset = c(-0.375,0),
+       xpd = TRUE)
+
+
+```
 
 
 ```{r eval=FALSE}
@@ -589,9 +821,11 @@ p
 ```
 
 
-Discretize and create a confusion matrix
+
 
 ```{r}
+
+# Abandoned: Display a couple of confusion matrices
 
 # Discretize and create a couple of confusion matrices
 # Should I do the high accuracy, or preserve the C+/B- barrier? 
@@ -715,7 +949,7 @@ cat("Weighted RMSE from courses:", weighted_rmse2024, "\n")
 
 ```
 
-```{r}
+```{r eval=is_html}
 
 # This is probably worth fixing
 
@@ -763,6 +997,20 @@ plot_course_metric(course_over_time[["RMSE"]], "RMSE")
 
 
 ```
+
+
+```{r}
+
+# R-squared over the years for select courses   
+
+selectCourses <- c("MATH_1010", "MATH_1090", "MATH_1210", "MATH_1220")
+
+
+
+
+``` 
+
+
 
 Representative data from the year 2024
 
