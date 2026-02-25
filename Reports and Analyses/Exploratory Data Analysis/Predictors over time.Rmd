@@ -3,6 +3,8 @@ title: "Predictors over time"
 author: "Bill Prisbrey"
 date: "2026-02-11"
 output:
+  word_document:
+    toc: true
   html_document:
     keep_md: true
     toc: true

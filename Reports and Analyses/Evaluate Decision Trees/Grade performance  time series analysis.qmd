@@ -1,5 +1,5 @@
 ---
-title: "Appendix 1c: Grade performance time series analysis"
+title: "Grade performance time series analysis"
 format: 
   html: default
   gfm: default
@@ -80,20 +80,21 @@ model_list <- setNames(
   as.character(testYears)
 )
 
-model_list <- setNames(
-  lapply(params$target_classes, function(tClass){
-    files <- model_files[grep(tClass, model_files)]
+
+#model_list <- setNames(
+#  lapply(params$target_classes, function(tClass){
+#    files <- model_files[grep(tClass, model_files)]
     
     # Extract year from each filename
-    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
+#    years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
     
-    setNames(
-      lapply(files, readRDS),
-      years  # Use extracted years
-    )
-  }),
-  params$target_classes
-)
+#    setNames(
+#      lapply(files, readRDS),
+#      years  # Use extracted years
+#    )
+#  }),
+#  params$target_classes
+#)
 
 
 
@@ -101,9 +102,14 @@ model_list <- setNames(
 data_files <- here::here("Data", "Over Time", paste0("Decision Tree ", grid$Var1, " ", grid$Var2, " ", grid$Var3, " Data.rds"))
 
 # Read each model into a named list
+
+# Extract year from each filename
+years <- gsub(".*_(\\d{4})\\.ubj$", "\\1", model_files)
+
+# Read each model into a named list
 data_list <- setNames(
   lapply(params$target_classes, function(tClass){
-    files <- data_files[grep(tClass, model_files)]
+    files <- data_files#[grep(tClass, model_files)]
     
     # Extract year from each filename
     years <- gsub(".*Decision Tree.*?(\\d{4}).*", "\\1", files)
@@ -116,10 +122,20 @@ data_list <- setNames(
   params$target_classes
 )
 
-
 ```
 
 
+```{r eval=FALSE}
+
+# Check 
+
+# xgb.ggplot.deepness(model = model_list[["2024"]])
+xgb.ggplot.importance(xgb.importance(model = model_list[["2024"]], feature_names = colnames(data_list[["GRADEGPA"]][["2024"]][["training"]])))
+# xgb.ggplot.shap.summary()
+
+
+
+```
 
 ### PLAIN LANGUAGE SUMMARY  
 
