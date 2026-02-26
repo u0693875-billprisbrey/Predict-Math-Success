@@ -39,14 +39,12 @@ These values were also combined into a binary categorization ("high"/"low" or "s
 Grade prediction accuracy should increase with the inclusion of concurrent data, such as: 
 
   * The number of credits taken 
-  * Difficulty of other classes 
+  * Difficulty of concurrent classes 
   * Initial course grades on quizzes, homework, and initial tests   
   * Utilization of tutoring services  
   * Participation in study groups 
   
 The model might improve with an indicator that clusters similar classes (in terms of incoming qualifications) together.  This could help differentiate many small courses by combining them.   
-
-
 
 # RESULTS 
 
@@ -1482,13 +1480,4 @@ lapply(params$target_classes, function(x) {
 
 
 ```
-
-# References
-
-Maybe put this in the source/cleaning data?  Seems like a better place for it
-
-
-# Old text
-
-  - I'd like to show the essentially precision/recall for all of the grades in my two categories  
 

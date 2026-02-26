@@ -1,0 +1,252 @@
+---
+title: "Deeper Dive into vH4 (quarto)"
+format: 
+  html: default
+  gfm: default
+  pdf: default
+  docx: default 
+editor: source
+execute: 
+  echo: false
+  warning: false  
+  message: false
+  error: false
+knitr: 
+  opts_chunk: 
+    fig.height: 5
+    fig.width: 7
+---
+
+```{r}
+#| include: false
+
+
+############
+## SET UP ##
+############
+
+# knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+library(kableExtra)
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", params$target_classes, " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  params$target_classes
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", params$target_classes, " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  params$target_classes
+)
+
+```
+
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply(params$target_classes, function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  # print(x)
+  # print(table(missingFilter))
+}
+  
+  # drop 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter & remove2025,])
+  
+} )
+names(thePredictions) <- params$target_classes
+
+```
+
+```{r}
+
+
+theResults <- lapply(params$target_classes, function(x) {
+  
+  # print(x)
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+    # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  
+  postResample(pred = thePredictions[[x]],
+                  obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
+  
+               )
+})
+names(theResults) <- params$target_classes
+
+```
+
+
+
+
+```{r}
+
+# normalized errors
+
+normalized_metrics <- function(pred, obs) {
+  rmse <- sqrt(mean((pred - obs)^2))
+  mae  <- mean(abs(pred - obs))
+  r2   <- cor(pred, obs)^2
+  
+  range_y <- diff(range(obs, na.rm = TRUE))
+  sd_y    <- sd(obs, na.rm = TRUE)
+  
+  data.frame(
+    RMSE = rmse,
+    MAE  = mae,
+    R2   = r2,
+    NRMSE_range = rmse / range_y,
+    NMAE_range  = mae  / range_y,
+    NRMSE_sd    = rmse / sd_y,
+    NMAE_sd     = mae  / sd_y
+  )
+}  
+  
+normResults <- lapply(params$target_classes, function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+      # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  normalized_metrics(
+    pred = thePredictions[[x]],
+    obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
+  )
+  
+})  
+names(normResults) <- params$target_classes
+
+```
+
+# SUMMARY 
+
+# METHODLOGY 
+
+# DISCUSSION 
+
+# CONCLUSIONS 
+
+# POSSIBLE NEXT STEPS 
+
+# RESULTS 
+
+```{r}
+#| eval: is_html
+#| label: tbl-results
+
+library(kableExtra)
+
+normResults |>
+  (\(x){do.call(rbind,x)})() |>
+  (\(x){round(x,2)})()|>
+    kbl(
+    caption = "Normalized Regression Results Across Grading Buckets",
+    align = "c",
+    col.names = c("",
+      "RMSE", "MAE", "R-sq", 
+      "NRMSE (Range)", "NMAE (Range)", 
+      "NRMSE (SD)", "NMAE (SD)"
+    )
+  ) |>
+  kable_classic(full_width = FALSE, html_font = "Calibri") |>
+  row_spec(0, bold = TRUE, background = "#f0f0f0") |>  # header
+  row_spec(1:length(params$target_classes), background = c("#ffffff", "#f9f9f9")) |> # alternating rows
+  add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
+
+```
+
+
+
