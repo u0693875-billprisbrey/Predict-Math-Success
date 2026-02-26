@@ -226,7 +226,7 @@ names(normResults) <- "GRADEGPA"
 # RESULTS 
 
 ```{r}
-#| eval: !expr is_html
+#| # eval: !expr is_html
 #| label: tbl-results
 #| tbl-cap: "Normalized Regression Results"
 
@@ -566,6 +566,7 @@ createCM(aligned, cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
 
 ```
 
+Some words here describing the prediction histograms.
 
 ```{r}
 #| label: fig-pred_hist_low
@@ -608,7 +609,9 @@ predictionHistogram(data = aligned,
 
 ```
 
-Some words here describing the prediction histograms.
+
+
+This model also shows a high precision point at a predicted GPA of 0.9.  These candidates would predictably fail, and could be considered an admissions mistake.  However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.  
 
 ```{r}
 #| label: fig-fail_cm
@@ -619,7 +622,7 @@ createCM(aligned, cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with 
 
 ```
 
-This model also shows a high precision point at a predicted GPA of 0.9.  These candidates would predictably fail, and could be considered an admissions mistake.  However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.  
+
 
 
 ## Variable importance  
@@ -768,7 +771,7 @@ zBox(data = data_list[["GRADEGPA"]][["training"]],
 ```
 
 ```{r}
-#| label: fig-act_z
+#| label: fig-act
 #| fig-cap: "#5 Variable: ACT Math"
 #| fig-cap-location: top
 
@@ -789,36 +792,59 @@ zBox(data = data_list[["GRADEGPA"]][["training"]],
 #| fig-cap-location: top
 
 # Density plot
-xLim <- range(aligned[,c("GRADEGPA", "pred")])
+xLim <- c(-0.5,4) #   range(aligned[,"yr_diff"])
 
-ref <- aligned[,"GRADEGPA"]
-pred <- aligned[,"pred"]
+success_ref <- aligned[aligned$cut_1.7 == "[0,1.7)","yr_diff"]
+fail_ref <- aligned[aligned$cut_1.7 == "[1.7,4]","yr_diff"]
 
-plot(density(ref), 
-     col = "dodgerblue3", 
+plot(density(success_ref), 
+     col = "seagreen4", 
      lwd = 2, 
      xlim = xLim,
      main = "", 
-     xlab = "GPA")
-lines(density(pred), 
-      col = "darkorange2", 
+     xlab = "Yrs to initial math course")
+lines(density(fail_ref), 
+      col = "mediumorchid4", 
       lwd = 2)
-legend("topleft", legend = c("Actual", "Predicted"), 
-       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+legend("topright", legend = c(">=1.7", "<1.7"), 
+       col = c("seagreen4", "mediumorchid4"), lwd = 2)
 
-mtext(text = "Predicted vs Actual",
+mtext(text = "Years to initial math course",
       side = 3,
       line = 1.7,
       font = 2,
       cex = 2,
       )
 
-mtext(text = "as a density plot",
+mtext(text = "broken out by GPA",
       side = 3,
       line = 0.3,
       font = 1,
       cex = 1.3,
       )
 
+```
+
+There is a small tendency for people who fail to take the initial math course after the first year. (Most students (`r cut(aligned$yr_diff, breaks = c(-100,0,1, 100), right = FALSE ) |> table(useNA="always") |> proportions() |> round(2) |> (\(x){x*100})() |> (\(x){x["[0,1)"]})()`% in 2024) take their initial math course in the first year.)
+
+# REFERENCES
+
+```{r}
+#| label: fig-guide
+#| fig-cap: "How to interpret a confusion matrix"
+#| fig-cap-location: top
+
+drawGuide()
 
 ```
+
+## Training data
+
+```{r eval=TRUE}
+
+
+skim(data_list[["GRADEGPA"]][["training"]])
+
+
+```
+

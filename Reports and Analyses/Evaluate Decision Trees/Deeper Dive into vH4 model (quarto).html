@@ -86,14 +86,8 @@ ul.task-list li input[type="checkbox"] {
 <section id="results" class="level1">
 <h1>RESULTS</h1>
 <div class="cell">
-<div id="tbl-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;1: Normalized Regression Results
-</figcaption>
-<div aria-describedby="tbl-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="lightable-classic do-not-create-environment cell caption-top table table-sm table-striped small" data-quarto-postprocess="true">
+<table class="lightable-classic caption-top table table-sm table-striped small" data-quarto-postprocess="true">
 <colgroup>
 <col style="width: 12%">
 <col style="width: 12%">
@@ -138,9 +132,6 @@ Normalized Metrics
 </tr>
 </tbody>
 </table>
-</div>
-</div>
-</figure>
 </div>
 </div>
 <div class="cell fig-cap-location-top">
@@ -188,7 +179,6 @@ Figure&nbsp;3: The heatmap shows grade expectations increase with ACT Math and h
 <section id="selection-of-model-optimum-binary-cutoff-or-threshold" class="level2">
 <h2 class="anchored" data-anchor-id="selection-of-model-optimum-binary-cutoff-or-threshold">Selection of model optimum binary cutoff or threshold</h2>
 <p>The model has the highest accuracy in separating into high/low (or succeed/at-risk) populations at a predicted grade of 2.4, between an actual grade of C-plus (2.3) and B-minus (2.7).</p>
-<p>This model also shows a high precision point at a predicted GPA of 0.9. These candidates would predictably fail, and could be considered an admissions mistake. However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.</p>
 <div class="cell fig-cap-location-top">
 <div class="cell-output-display">
 <div id="fig-threshold" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
@@ -207,7 +197,7 @@ Figure&nbsp;4: Selection of model optimum cutoff
 <div id="tbl-risk" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-risk-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;2: Actual failure rates of ‘Success’ and ‘At Risk’ populations at model binary optimum
+Table&nbsp;1: Actual failure rates of ‘Success’ and ‘At Risk’ populations at model binary optimum
 </figcaption>
 <div aria-describedby="tbl-risk-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -267,26 +257,13 @@ Figure&nbsp;5: Confusion matrix at model binary optimum
 </div>
 </div>
 </div>
-<div class="cell fig-cap-location-top">
-<div class="cell-output-display">
-<div id="fig-fail_cm" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
-<figure class="quarto-float quarto-float-fig figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: Confusion matrix for ‘admission mistake’ candidates
-</figcaption>
-<div aria-describedby="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-fail_cm-1.png" class="img-fluid figure-img" width="672">
-</div>
-</figure>
-</div>
-</div>
-</div>
+<p>Some words here describing the prediction histograms.</p>
 <div class="cell fig-cap-location-top">
 <div class="cell-output-display">
 <div id="fig-pred_hist_low" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
 <figure class="quarto-float quarto-float-fig figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-pred_hist_low-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: Illustration of prediction accuracy
+Figure&nbsp;6: Illustration of prediction accuracy
 </figcaption>
 <div aria-describedby="fig-pred_hist_low-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-pred_hist_low-1.png" class="img-fluid figure-img" width="672">
@@ -300,7 +277,7 @@ Figure&nbsp;7: Illustration of prediction accuracy
 <div id="fig-pred_hist_high" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
 <figure class="quarto-float quarto-float-fig figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-pred_hist_high-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: Illustration of prediction accuracy
+Figure&nbsp;7: Illustration of prediction accuracy
 </figcaption>
 <div aria-describedby="fig-pred_hist_high-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-pred_hist_high-1.png" class="img-fluid figure-img" width="672">
@@ -309,10 +286,558 @@ Figure&nbsp;8: Illustration of prediction accuracy
 </div>
 </div>
 </div>
-<p>Some words here describing the prediction histograms.</p>
+<p>This model also shows a high precision point at a predicted GPA of 0.9. These candidates would predictably fail, and could be considered an admissions mistake. However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.</p>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-fail_cm" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Confusion matrix for ‘admission mistake’ candidates
+</figcaption>
+<div aria-describedby="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-fail_cm-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
 </section>
 <section id="variable-importance" class="level2">
 <h2 class="anchored" data-anchor-id="variable-importance">Variable importance</h2>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-importance" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Variable importance to the model
+</figcaption>
+<div aria-describedby="fig-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-importance-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-gpa" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-gpa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: #1 Variable: High school GPA
+</figcaption>
+<div aria-describedby="fig-gpa-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-gpa-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<p>Put some words here describing the strong overlap</p>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-gpa_z" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-gpa_z-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11: #2 Variable: High school GPA z-score
+</figcaption>
+<div aria-describedby="fig-gpa_z-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-gpa_z-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-dist" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: #3 Variable: Combined z-score distance
+</figcaption>
+<div aria-describedby="fig-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-dist-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-act_z" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-act_z-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: #4 Variable: ACT Math z-score
+</figcaption>
+<div aria-describedby="fig-act_z-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-act_z-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-act" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-act-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14: #5 Variable: ACT Math
+</figcaption>
+<div aria-describedby="fig-act-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-act-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-yr_diff" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-yr_diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;15: #6 Variable: Years to initial math course
+</figcaption>
+<div aria-describedby="fig-yr_diff-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-yr_diff-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<p>There is a small tendency for people who take the initial math course after the first year to fail. (Most students (89% in 2024) take their initial math course in the first year.)</p>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>REFERENCES</h1>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-guide" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-guide-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16: How to interpret a confusion matrix
+</figcaption>
+<div aria-describedby="fig-guide-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-guide-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<section id="training-data" class="level2">
+<h2 class="anchored" data-anchor-id="training-data">Training data</h2>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Name</td>
+<td style="text-align: left;">data_list[[“GRADEGPA”]][[…</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of rows</td>
+<td style="text-align: left;">36924</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of columns</td>
+<td style="text-align: left;">24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">_______________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Column type frequency:</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">factor</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">________________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Group variables</td>
+<td style="text-align: left;">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 12%">
+<col style="width: 17%">
+<col style="width: 5%">
+<col style="width: 5%">
+<col style="width: 7%">
+<col style="width: 11%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">min</th>
+<th style="text-align: right;">max</th>
+<th style="text-align: right;">empty</th>
+<th style="text-align: right;">n_unique</th>
+<th style="text-align: right;">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">SEX</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">FIRST_GEN_STATUS_CD</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RESSTAT</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HSPRIVATE</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">season</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: factor</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 10%">
+<col style="width: 14%">
+<col style="width: 8%">
+<col style="width: 9%">
+<col style="width: 44%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: left;">ordered</th>
+<th style="text-align: right;">n_unique</th>
+<th style="text-align: left;">top_counts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">course</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: left;">MAT: 8834, MAT: 6020, MAT: 4829, MAT: 3293</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ETHNICITY</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">C: 26581, H: 4549, A: 2647, M: 1744</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">age_cut</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">(17: 30141, (18: 3150, (19: 1843, (0,: 1494</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 10%">
+<col style="width: 14%">
+<col style="width: 8%">
+<col style="width: 6%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 6%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">p0</th>
+<th style="text-align: right;">p25</th>
+<th style="text-align: right;">p50</th>
+<th style="text-align: right;">p75</th>
+<th style="text-align: right;">p100</th>
+<th style="text-align: left;">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">GRADEGPA</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2.85</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">3.30</td>
+<td style="text-align: right;">4.00</td>
+<td style="text-align: right;">4.00</td>
+<td style="text-align: left;">▂▁▂▃▇</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">FA_PELL</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">0.41</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: left;">▇▁▁▁▂</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">APCREDIT</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7.25</td>
+<td style="text-align: right;">12.44</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">12.00</td>
+<td style="text-align: right;">85.00</td>
+<td style="text-align: left;">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HSGPA</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.62</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">1.07</td>
+<td style="text-align: right;">3.41</td>
+<td style="text-align: right;">3.71</td>
+<td style="text-align: right;">3.91</td>
+<td style="text-align: right;">4.42</td>
+<td style="text-align: left;">▁▁▁▇▇</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HONORS</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.16</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: left;">▇▁▁▁▂</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ACTCOMP</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">25.05</td>
+<td style="text-align: right;">4.33</td>
+<td style="text-align: right;">11.00</td>
+<td style="text-align: right;">22.00</td>
+<td style="text-align: right;">25.00</td>
+<td style="text-align: right;">28.00</td>
+<td style="text-align: right;">36.00</td>
+<td style="text-align: left;">▁▅▇▅▂</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ACTENGL</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">24.84</td>
+<td style="text-align: right;">5.28</td>
+<td style="text-align: right;">7.00</td>
+<td style="text-align: right;">21.00</td>
+<td style="text-align: right;">24.00</td>
+<td style="text-align: right;">28.00</td>
+<td style="text-align: right;">36.00</td>
+<td style="text-align: left;">▁▂▇▆▃</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ACTMATH</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">24.44</td>
+<td style="text-align: right;">4.59</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">21.00</td>
+<td style="text-align: right;">24.00</td>
+<td style="text-align: right;">27.00</td>
+<td style="text-align: right;">36.00</td>
+<td style="text-align: left;">▁▁▅▇▂</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ACTSCI</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">24.95</td>
+<td style="text-align: right;">4.55</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">22.00</td>
+<td style="text-align: right;">24.00</td>
+<td style="text-align: right;">28.00</td>
+<td style="text-align: right;">36.00</td>
+<td style="text-align: left;">▁▁▅▇▂</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">cohort_year</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2014.59</td>
+<td style="text-align: right;">5.08</td>
+<td style="text-align: right;">2005.00</td>
+<td style="text-align: right;">2010.00</td>
+<td style="text-align: right;">2015.00</td>
+<td style="text-align: right;">2019.00</td>
+<td style="text-align: right;">2023.00</td>
+<td style="text-align: left;">▅▆▅▇▆</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">class_year</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2014.96</td>
+<td style="text-align: right;">4.99</td>
+<td style="text-align: right;">2006.00</td>
+<td style="text-align: right;">2011.00</td>
+<td style="text-align: right;">2015.00</td>
+<td style="text-align: right;">2019.00</td>
+<td style="text-align: right;">2023.00</td>
+<td style="text-align: left;">▆▆▇▇▇</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">yr_diff</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">0.79</td>
+<td style="text-align: right;">-0.40</td>
+<td style="text-align: right;">0.24</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">16.64</td>
+<td style="text-align: left;">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">course_level</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">0.17</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: left;">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HSGPA.z</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.53</td>
+<td style="text-align: right;">1.21</td>
+<td style="text-align: right;">-42.07</td>
+<td style="text-align: right;">-1.16</td>
+<td style="text-align: right;">-0.23</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: left;">▁▁▁▁▇</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ACTMATH.z</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-0.13</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">-10.00</td>
+<td style="text-align: right;">-0.79</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">6.93</td>
+<td style="text-align: left;">▁▁▇▅▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">dist</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.41</td>
+<td style="text-align: right;">1.01</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.72</td>
+<td style="text-align: right;">1.18</td>
+<td style="text-align: right;">1.86</td>
+<td style="text-align: right;">42.07</td>
+<td style="text-align: left;">▇▁▁▁▁</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </section>
 </section>
 
