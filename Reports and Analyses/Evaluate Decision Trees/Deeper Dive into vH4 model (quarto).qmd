@@ -26,7 +26,7 @@ knitr:
 ############
 
 # knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
-                      fig.height=5, fig.width=7)
+#                      fig.height=5, fig.width=7)
 
 oldPar <- par(cex.main = 3,
     cex.lab = 3,
@@ -48,6 +48,8 @@ source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 
 is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
 
+model_version <- "vH4"
+
 ```
 
 
@@ -63,21 +65,21 @@ is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwis
 
 
 # Build file paths
-model_files <- here::here("Models", paste0("Decision Tree ", params$version, " ", params$target_classes, " model.rds"))
+model_files <- here::here("Models", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " model.rds"))
 
 # Read each model into a named list
 model_list <- setNames(
   lapply(model_files, readRDS),
-  params$target_classes
+  "GRADEGPA"
 )
 
 # Build file paths
-data_files <- here::here("Data", paste0("Decision Tree ", params$version, " ", params$target_classes, " Data.rds"))
+data_files <- here::here("Data", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " Data.rds"))
 
 # Read each model into a named list
 data_list <- setNames(
   lapply(data_files, readRDS),
-  params$target_classes
+  "GRADEGPA"
 )
 
 ```
@@ -87,7 +89,7 @@ data_list <- setNames(
 
 ## PREDICTIONS ##
 
-thePredictions <- lapply(params$target_classes, function(x) {
+thePredictions <- lapply("GRADEGPA", function(x) {
   
   # identify course values in testing that aren't in training
   
@@ -113,14 +115,14 @@ thePredictions <- lapply(params$target_classes, function(x) {
           newdata = data_list[[x]][["testing"]][missingFilter & remove2025,])
   
 } )
-names(thePredictions) <- params$target_classes
+names(thePredictions) <- "GRADEGPA"
 
 ```
 
 ```{r}
 
 
-theResults <- lapply(params$target_classes, function(x) {
+theResults <- lapply("GRADEGPA", function(x) {
   
   # print(x)
   # identify course values in testing that aren't in training
@@ -149,7 +151,7 @@ theResults <- lapply(params$target_classes, function(x) {
   
                )
 })
-names(theResults) <- params$target_classes
+names(theResults) <- "GRADEGPA"
 
 ```
 
@@ -179,7 +181,7 @@ normalized_metrics <- function(pred, obs) {
   )
 }  
   
-normResults <- lapply(params$target_classes, function(x) {
+normResults <- lapply("GRADEGPA", function(x) {
   
   # identify course values in testing that aren't in training
   
@@ -207,7 +209,7 @@ normResults <- lapply(params$target_classes, function(x) {
   )
   
 })  
-names(normResults) <- params$target_classes
+names(normResults) <- "GRADEGPA"
 
 ```
 
@@ -224,7 +226,7 @@ names(normResults) <- params$target_classes
 # RESULTS 
 
 ```{r}
-#| eval: is_html
+#| eval: !expr is_html
 #| label: tbl-results
 
 library(kableExtra)
@@ -243,10 +245,160 @@ normResults |>
   ) |>
   kable_classic(full_width = FALSE, html_font = "Calibri") |>
   row_spec(0, bold = TRUE, background = "#f0f0f0") |>  # header
-  row_spec(1:length(params$target_classes), background = c("#ffffff", "#f9f9f9")) |> # alternating rows
+  row_spec(1:1, background = c("#ffffff", "#f9f9f9")) |> # alternating rows
   add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
 
 ```
 
 
+```{r}
+
+regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs Actual") {
+  if (length(pred) != length(reference)) {
+    stop("`pred` and `reference` must be the same length.")
+  }
+  
+  incoming.par <- par(mfrow= c(2,1), mar = c(3,2.5,0,1), oma = c(1.5,1.5,2.25,0))
+  
+  on.exit(par(incoming.par))
+  
+  # Compute metrics
+  rmse <- sqrt(mean((pred - reference)^2))
+  mae  <- mean(abs(pred - reference))
+  r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2) 
+  
+  # Print metrics
+#  cat("Regression diagnostics:\n")
+#  cat(sprintf("RMSE: %.4f\n", rmse))
+#  cat(sprintf("MAE:  %.4f\n", mae))
+#  cat(sprintf("R-squared (variance decomposition): %.4f\n", r2))
+
+  
+  # Scatter plot
+  plot(reference, pred,
+      # xlab = "Actual",
+      # ylab = "Predicted",
+       # main = plot_title,
+       pch = 19, col = "steelblue",
+       las = 1)
+  abline(a = 0, b = 1, col = "red", lwd = 2)  # 45-degree reference line
+  grid()
+  
+  # boxplot
+  bp <- boxplot(pred ~ reference,
+        # xlab = "Actual",
+        # ylab = "Predicted",
+         # main = plot_title,
+         col = "lightblue",
+         border = "steelblue",
+         las=1)
+  
+    # Add a red reference line for each box
+        for (i in seq_along(bp$names)) {
+          actual_val <- as.numeric(bp$names[i])
+          segments(x0 = i - 0.4, y0 = actual_val,
+                   x1 = i + 0.4, y1 = actual_val,
+                   col = "red", lwd = 2)
+        }
+  
+mtext(side = 3, line =0.75, text = plot_title, cex = 1.5, font = 2, outer = TRUE)  
+  
+mtext(side = 2, line =0.25, text = "Predicted", cex = 1.25, font = 1, outer = TRUE)  
+
+mtext(side = 1, line =0.25, text = "Actual", cex = 1.25, font = 1, outer = TRUE)  
+
+  # Return metrics invisibly as a list
+  invisible(list(RMSE = rmse, MAE = mae, R2 = r2))
+}
+
+```
+
+
+```{r}
+#| label: fig-results_scatter_box
+#| fig-cap: "These plots show what the correct prediction value would be with a red line."
+
+
+invisible(lapply("GRADEGPA", function(x){
+  
+      # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+        # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+
+regression_diagnostics(pred = thePredictions[[x]],
+                       reference = data_list[[x]][["testing"]][[x]][missingFilter & remove2025],
+                       plot_title = "Predicted vs Actual")
+})
+)
+
+```
+
+
+
+```{r}
+
+# manually align test data (reference) with prediction, removing 2025
+
+# Identify mis-match in courses between training and testing sets
+
+missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
+
+missingFilter <- !data_list[["GRADEGPA"]][["testing"]][["course"]] %in% missing
+
+# remove 2025
+  remove2025 <- data_list[["GRADEGPA"]][["testing"]][["class_year"]] != 2025
+
+aligned <- data_list[["GRADEGPA"]][["testing"]][missingFilter & remove2025,]
+
+aligned$pred <- thePredictions[["GRADEGPA"]]
+
+```
+
+
+```{r}
+#| label: fig-density
+#| fig-cap: "The model tends to predict towards the center."
+    
+# Density plot
+xLim <- range(aligned[,c("GRADEGPA", "pred")])
+
+ref <- aligned[,"GRADEGPA"]
+pred <- aligned[,"pred"]
+
+plot(density(ref), 
+     col = "dodgerblue3", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "GPA")
+lines(density(pred), 
+      col = "darkorange2", 
+      lwd = 2)
+legend("topleft", legend = c("Actual", "Predicted"), 
+       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+
+mtext(text = "Predicted vs Actual",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "as a density plot",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+
+
+```
 
