@@ -143,34 +143,177 @@ Normalized Metrics
 </figure>
 </div>
 </div>
-<div class="cell">
+<div class="cell fig-cap-location-top">
 <div class="cell-output-display">
-<div id="fig-results_scatter_box" class="quarto-float quarto-figure quarto-figure-center anchored">
+<div id="fig-results_scatter_box" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
 <figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-results_scatter_box-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: These plots show what the correct prediction value would be with a red line.
+</figcaption>
 <div aria-describedby="fig-results_scatter_box-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-results_scatter_box-1.png" class="img-fluid figure-img" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-results_scatter_box-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: These plots show what the correct prediction value would be with a red line.
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-density" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: The model tends to predict towards the center, while most students earn an ‘A’.
 </figcaption>
+<div aria-describedby="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-density-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-heatmap" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: The heatmap shows grade expectations increase with ACT Math and high school GPA.
+</figcaption>
+<div aria-describedby="fig-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-heatmap-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<section id="selection-of-model-optimum-binary-cutoff-or-threshold" class="level2">
+<h2 class="anchored" data-anchor-id="selection-of-model-optimum-binary-cutoff-or-threshold">Selection of model optimum binary cutoff or threshold</h2>
+<p>The model has the highest accuracy in separating into high/low (or succeed/at-risk) populations at a predicted grade of 2.4, between an actual grade of C-plus (2.3) and B-minus (2.7).</p>
+<p>This model also shows a high precision point at a predicted GPA of 0.9. These candidates would predictably fail, and could be considered an admissions mistake. However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.</p>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-threshold" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Selection of model optimum cutoff
+</figcaption>
+<div aria-describedby="fig-threshold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-threshold-1.png" class="img-fluid figure-img" width="1056">
+</div>
 </figure>
 </div>
 </div>
 </div>
 <div class="cell">
-<div class="cell-output-display">
-<div id="fig-density" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-density-1.png" class="img-fluid figure-img" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-density-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: The model tends to predict towards the center.
+<div id="tbl-risk" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-risk-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Actual failure rates of ‘Success’ and ‘At Risk’ populations at model binary optimum
 </figcaption>
+<div aria-describedby="tbl-risk-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="table table-striped table-hover do-not-create-environment cell caption-top table-sm small" data-quarto-postprocess="true">
+<caption>Predicted vs Actual Grade Categories</caption>
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th" style="text-align: center; border-bottom: hidden; padding-bottom: 0; padding-left: 3px; padding-right: 3px; font-weight: bold; font-size: 20px;"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">
+Predicted Grade
+</div></th>
+<th colspan="2" data-quarto-table-cell-role="th" style="text-align: center; border-bottom: hidden; padding-bottom: 0; padding-left: 3px; padding-right: 3px; font-weight: bold; font-size: 20px;"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">
+Actual Grade
+</div></th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th" style="text-align: left; font-weight: bold; background-color: rgba(230, 242, 255, 255) !important; font-size: 20px;"></th>
+<th data-quarto-table-cell-role="th" style="text-align: center; font-weight: bold; background-color: rgba(230, 242, 255, 255) !important; font-size: 20px;">Actual: Fail (&lt;1.7)</th>
+<th data-quarto-table-cell-role="th" style="text-align: center; font-weight: bold; background-color: rgba(230, 242, 255, 255) !important; font-size: 20px;">Actual: Pass (≥1.7)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">[0,2.4]</td>
+<td style="text-align: center;">147 (8.6%)</td>
+<td style="text-align: center;">360 (21.2%)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">(2.4,4]</td>
+<td style="text-align: center;">47 (2.8%)</td>
+<td style="text-align: center;">1148 (67.5%)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Students predicted to have a grade less than 2.4 are a high-risk group of students. 29% of these 507 students actually did fail, or 76% of the total of students who failed. (76% recall and 29% precision).</p>
+<p>This compares to the risk of students predicted to have a grade more than 2.4. Only 47 of these 507 students failed, or 4%.</p>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-binary_cm" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-binary_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Confusion matrix at model binary optimum
+</figcaption>
+<div aria-describedby="fig-binary_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-binary_cm-1.png" class="img-fluid figure-img" width="672">
+</div>
 </figure>
 </div>
 </div>
 </div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-fail_cm" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Confusion matrix for ‘admission mistake’ candidates
+</figcaption>
+<div aria-describedby="fig-fail_cm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-fail_cm-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-pred_hist_low" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-pred_hist_low-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Illustration of prediction accuracy
+</figcaption>
+<div aria-describedby="fig-pred_hist_low-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-pred_hist_low-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell fig-cap-location-top">
+<div class="cell-output-display">
+<div id="fig-pred_hist_high" class="quarto-float quarto-figure quarto-figure-center anchored" data-cap-location="top">
+<figure class="quarto-float quarto-float-fig figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-fig" id="fig-pred_hist_high-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Illustration of prediction accuracy
+</figcaption>
+<div aria-describedby="fig-pred_hist_high-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Deeper-Dive-into-vH4-model--quarto-_files/figure-html/fig-pred_hist_high-1.png" class="img-fluid figure-img" width="672">
+</div>
+</figure>
+</div>
+</div>
+</div>
+<p>Some words here describing the prediction histograms.</p>
+</section>
+<section id="variable-importance" class="level2">
+<h2 class="anchored" data-anchor-id="variable-importance">Variable importance</h2>
+</section>
 </section>
 
 </main>
