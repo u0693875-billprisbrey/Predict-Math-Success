@@ -2,7 +2,10 @@
 title: "Withdraw models and notes"
 author: "Bill Prisbrey"
 date: "2025-12-04"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 
@@ -33,6 +36,8 @@ library(ggplot2)
 source(here::here("Functions", "Predict Math Success Functions.R"))
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 
+is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
+
 ```
 
 ```{r}
@@ -50,22 +55,24 @@ vD0_data <- readRDS(here::here("Data", "Decision Tree vD0 wdraw_binary Data.rds"
 ```
 
 
-**PURPOSE:** *The purpose of this report is to track the different withdrawal models.*
+**PURPOSE:** *The purpose of this report is to explore 'Withdraw' grades using different predictive models.*
 
 ```{r}
 
 wDraw_frame <- data.frame(version = c("vA0", "vB0", "vC0", "vD0" ),
                           description = c("Admissions data","Adds credit load","Adds GPA prediction", "Rolling GPA prediction" ),
                           Kappa = c(0.025, 0.037, 0.029, 0.016),
-                          notes = c("'propensity to withdraw' is not in admit data", "suggests concurrent information is more important", "'pred' is new top variable; suggests data leak", "rolling prediction eliminates leak; still no accuracy" )
+                          notes = c("'propensity to withdraw' is not found in admit data", "suggests concurrent information is slightly more important", "'pred' is new top variable; suggests data leak", "rolling prediction eliminates leak; still no accuracy" )
                           ) 
 
 
 ``` 
 
-# 
+# Executive Summary
 
-```{r}
+This report finds that "Withdraw" grades are a rare phenomenon with essentially no relationship to pre-admit data. 
+
+```{r eval=is_html}
 
 library(kableExtra)
 
@@ -78,6 +85,32 @@ wDraw_frame |>
   column_spec(4, width = "40em")  # control sentence column width
 
 ```
+
+
+```{r eval=!is_html}
+
+library(flextable)
+
+wDraw_frame |>
+  flextable() |>
+  set_header_labels(
+    version = "ver", "description" = "Description", "Kappa" = "Kappa", "notes" = "Notes"
+  ) |>
+  width(j = 1, width = 0.6) |>
+  width(j = 2, width = 1.0) |>
+  width(j = 3, width = 0.8) |>
+  width(j = 4, width = 4.0) |>
+  set_caption("Predictive model accuracy is essentially random.")
+
+# wDraw_frame |>
+#  knitr::kable(align = c("c", "l", "c", "l"),
+#               col.names = c("ver", "Description", " Kappa ", "Notes"),
+#               caption = "Predictive model accuracy is essentially random.",
+#               format = "pipe")
+
+```
+
+
 
 # Discussion  
 
@@ -252,13 +285,23 @@ p1 <- ggplot(vD0_data[["training"]], aes(x = pred, fill = wdraw_binary)) +
 
 ### vA0 predictors
 
-```{r}
+```{r eval=is_html}
 
 colnames(vA0_data[["training"]]) |>
   (\(x){x[-which("wdraw_binary" %in% x)]})() |>
   kbl()
 
 ```
+
+
+```{r eval=!is_html}
+
+colnames(vA0_data[["training"]]) |>
+  (\(x){x[-which("wdraw_binary" %in% x)]})() |>
+  knitr::kable()
+
+```
+
 
 ### vB0 predictors
 

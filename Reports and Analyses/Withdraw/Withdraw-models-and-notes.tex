@@ -1,0 +1,388 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{multicol}
+\usepackage{ulem}
+\usepackage{hhline}
+\newlength\Oldarrayrulewidth
+\newlength\Oldtabcolsep
+\usepackage{hyperref}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Withdraw models and notes},
+  pdfauthor={Bill Prisbrey},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Withdraw models and notes}
+\author{Bill Prisbrey}
+\date{2025-12-04}
+
+\begin{document}
+\maketitle
+
+\textbf{PURPOSE:} \emph{The purpose of this report is to explore
+`Withdraw' grades using different predictive models.}
+
+\section{Executive Summary}\label{executive-summary}
+
+This report finds that ``Withdraw'' grades are a rare phenomenon with
+essentially no relationship to pre-admit data.
+
+\global\setlength{\Oldarrayrulewidth}{\arrayrulewidth}
+
+\global\setlength{\Oldtabcolsep}{\tabcolsep}
+
+\setlength{\tabcolsep}{2pt}
+
+\renewcommand*{\arraystretch}{1.5}
+
+
+
+\providecommand{\ascline}[3]{\noalign{\global\arrayrulewidth #1}\arrayrulecolor[HTML]{#2}\cline{#3}}
+
+\begin{longtable}[c]{|p{0.60in}|p{1.00in}|p{0.80in}|p{4.00in}}
+
+\caption{Predictive\ model\ accuracy\ is\ essentially\ random.}\\
+
+\ascline{1.5pt}{666666}{1-4}
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{ver}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Description}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Kappa}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Notes}}} \\
+
+\ascline{1.5pt}{666666}{1-4}\endfirsthead \caption[]{Predictive\ model\ accuracy\ is\ essentially\ random.}\\
+
+\ascline{1.5pt}{666666}{1-4}
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{ver}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Description}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Kappa}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Notes}}} \\
+
+\ascline{1.5pt}{666666}{1-4}\endhead
+
+
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{vA0}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Admissions\ data}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{0.025}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{'propensity\ to\ withdraw'\ is\ not\ found\ in\ admit\ data}}} \\
+
+
+
+
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{vB0}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Adds\ credit\ load}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{0.037}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{suggests\ concurrent\ information\ is\ slightly\ more\ important}}} \\
+
+
+
+
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{vC0}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Adds\ GPA\ prediction}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{0.029}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{'pred'\ is\ new\ top\ variable;\ suggests\ data\ leak}}} \\
+
+
+
+
+
+\multicolumn{1}{>{\raggedright}m{\dimexpr 0.6in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{vD0}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 1in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{Rolling\ GPA\ prediction}}} & \multicolumn{1}{>{\raggedleft}m{\dimexpr 0.8in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{0.016}}} & \multicolumn{1}{>{\raggedright}m{\dimexpr 4in+0\tabcolsep}}{\textcolor[HTML]{000000}{\fontsize{11}{11}\selectfont{rolling\ prediction\ eliminates\ leak;\ still\ no\ accuracy}}} \\
+
+\ascline{1.5pt}{666666}{1-4}
+
+
+
+\end{longtable}
+
+
+
+\arrayrulecolor[HTML]{000000}
+
+\global\setlength{\arrayrulewidth}{\Oldarrayrulewidth}
+
+\global\setlength{\tabcolsep}{\Oldtabcolsep}
+
+\renewcommand*{\arraystretch}{1}
+
+\section{Discussion}\label{discussion}
+
+Kappa values of \textless0.05 suggest that the propensity to withdraw is
+simply not found in data available at the time of admission. In other
+words, the ACT test doesn't have a `propensity to withdraw' section.
+
+Adding the concurrent credit load improved the Kappa. It's so low it
+might just be random noise. Or, it might be a suggestion that
+concurrent, contemporaneous, or situational information might be more
+predictive of a withdraw than admit-level data.
+
+Adding the GPA prediction resulted in that prediction becoming the new
+top variable, but the accuracy dropped. Again, the values are so low it
+could just be noise. Or, it could be a data leak in that I applied the
+prediction to the same data that I trained on.
+
+Substituting a rolling GPA prediction to eliminate a data leak resulted
+in an even lower Kappa. (However, a closer investigation revealed a
+discontinuity between prior years and year 2024. This was significant at
+the p\textless.1 level per a logistic regression model. This is a
+whisper that there might be a detectable relationship between `W' and
+predicted grades going forward, or it might be more noise.)
+
+The fact that the admissions data was able to predict grades with some
+accuracy, but couldn't distinguish withdrawals, suggests that withdraws
+operate by an entirely different mechanism. The addition of predicted
+grades without improving the model adds evidence to this conclusion.
+
+It is worthy of its own investigation as a separate project to
+brainstorm drivers and seek new data sets.
+
+Potential causes and underlying factors of withdrawals may include
+things like:
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Behavioral tendencies,} where some students have personality
+  traits that might more accurately predict a `W'.\\
+\item
+  \emph{Difficulty adjusting} to university-level studies.\\
+\item
+  \emph{Personal preference} for an instructional style or a personality
+  match between instructor and student.\\
+\item
+  \emph{Completely external} to the academic experience, such as a
+  medical, family, or financial difficulty.\\
+\item
+  \emph{Schedule difficulties} unrelated to academic abilities may
+  precipitate a withdrawal.
+\end{itemize}
+
+New data sets could include:
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Early grades} for homework, quizzes, and tests.\\
+\item
+  \emph{Schedule} to determine potential conflicts.
+\end{itemize}
+
+With the `admit-level' information used in these models, and the
+predicted grade in vD0, it does not seem that `withdraw' students are
+adjacent to flunking students, or related to the expected grade at all,
+otherwise the models would be more accurate.
+
+A few avenues I would like to investigate includes:
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Match:} Is a student more likely to withdraw from a math course
+  not appropriate to their abilities?
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Use the model to predict an expected grade, and incorporate that as
+    a prediction variable. Lower expected grades should have higher
+    withdraw rates.\\
+  \item
+    Develop counterfactuals and rank the courses. The lower rankings
+    (lower expected GPA) should have higher withdraw rates.\\
+  \item
+    Develop a `difficulty' ranking of the courses and use as a
+    predictive variable.
+  \item
+    Use the catalog number itself as a difficulty ranking\\
+  \end{itemize}
+\item
+  \textbf{\emph{Result of investigating match (vD0):}} Version D0 used a
+  rolling prediction of grade based on prior years to avoid a data leak.
+  Kappa was still very low. This suggests that withdrawals are unrelated
+  to academic ability and that the alternative approaches described
+  above should be pursued.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    However, it is worth noting that the year 2024 saw an improvement in
+    the relationship to predicted grades to a significance of p
+    \textless{} .1. An investigation of the distribution saw that higher
+    grades were actually more likely to withdraw. A possible explanation
+    is that in 2024, students who submitted ACT math scores are more
+    elite and therefore more cautious of their grades. If these students
+    were anticipating a ``B'' instead of an ``A'' then they might
+    withdraw. Or in other words, the behavior of the subset of students
+    used in this model for 2024 actually do have a relationship to
+    predicted grades and are different than the behavior of the general
+    population from years prior.
+  \end{itemize}
+\end{itemize}
+
+Because vD0 failed to improve Kappa, a separate project is suggested.
+
+\section{Next steps}\label{next-steps}
+
+\begin{itemize}
+\tightlist
+\item
+  Abandon using the current approach of admit-level data and pursue a
+  separate project as described above.
+\end{itemize}
+
+Possible steps if continuing the current approach of using admit- and
+course- level data:
+
+\begin{itemize}
+\item
+  Create a rolling prediction of GPA values from models trained on the
+  prior data. \textbf{\emph{DONE}}
+\item
+  Rank the counterfactual GPA's per student and use as a variable.
+\item
+  Approximate course difficulty
+
+  \begin{itemize}
+  \tightlist
+  \item
+    With the catalog number
+  \item
+    With a novel approach (by developing the `gentle guidelines'
+    suggested by the predictive models)
+  \end{itemize}
+\end{itemize}
+
+\section{APPENDIX}\label{appendix}
+
+\subsubsection{Withdraw is rare or highly
+imbalanced}\label{withdraw-is-rare-or-highly-imbalanced}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Withdraw-models-and-notes_files/figure-latex/unnamed-chunk-6-1.pdf}}
+
+\subsubsection{Withdraw does not appear related to expected
+grades}\label{withdraw-does-not-appear-related-to-expected-grades}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Withdraw-models-and-notes_files/figure-latex/unnamed-chunk-7-1.pdf}}
+
+\subsubsection{Withdraw may be slightly related to expected
+grades}\label{withdraw-may-be-slightly-related-to-expected-grades}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Withdraw-models-and-notes_files/figure-latex/unnamed-chunk-8-1.pdf}}
+
+\subsubsection{vA0 predictors}\label{va0-predictors}
+
+\begin{longtable}[]{@{}l@{}}
+\toprule\noalign{}
+x \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+course \\
+SEX \\
+FIRST\_GEN\_STATUS\_CD \\
+ETHNICITY \\
+RESSTAT \\
+FA\_PELL \\
+APCREDIT \\
+HSGPA \\
+HSPRIVATE \\
+HONORS \\
+ACTCOMP \\
+ACTENGL \\
+ACTMATH \\
+ACTSCI \\
+cohort\_year \\
+class\_year \\
+yr\_diff \\
+season \\
+course\_level \\
+vol\_cluster \\
+age\_cut \\
+\end{longtable}
+
+\subsubsection{vB0 predictors}\label{vb0-predictors}
+
+Add ``load'' as the number of credits taken
+
+\subsubsection{vC0 predictors}\label{vc0-predictors}
+
+Add ``pred'' as the predicted GPA from a model trained on years less
+than or equal to 2023, and applied to all years.
+
+\subsubsection{vD0 predictors}\label{vd0-predictors}
+
+Substitute ``pred'' as the predicted GPA from rolling models trained on
+years prior to the year predicted.
+
+\end{document}
