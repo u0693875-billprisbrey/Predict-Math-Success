@@ -511,7 +511,7 @@ The model has the highest accuracy in separating into high/low (or succeed/at-ri
 ```{r}
 #| label: fig-threshold
 #| fig-height: 5
-#| fig-width: 12
+#| fig-width: 8
 #| fig-cap: "Selection of model optimum cut-off"
 #| fig-cap-location: top
 
@@ -669,7 +669,7 @@ predictionHistogram(data = aligned,
                     cap = TRUE, 
                     cuts = c(0,2.4,4),
                     hist_params = list(freq = TRUE, right = FALSE, labels = TRUE),
-   legend_params=(list("x" = "top")))
+   legend_params=(list("x" = "topleft")))
 )
 
 ```
@@ -713,7 +713,8 @@ main = "Relative variable importance"
 #| label: fig-performance
 #| fig-cap: "Theory of performance"
 #| fig-cap-location: top
-#| fig.width: 9
+#| fig.width: 10.5
+#| fig.height: 4
 
 displayPerformance()
 
