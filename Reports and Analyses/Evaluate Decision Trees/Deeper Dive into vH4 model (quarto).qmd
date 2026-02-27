@@ -213,17 +213,121 @@ names(normResults) <- "GRADEGPA"
 
 ```
 
+
+```{r}
+
+# manually align test data (reference) with prediction, removing 2025
+
+# Identify mis-match in courses between training and testing sets
+
+missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
+
+missingFilter <- !data_list[["GRADEGPA"]][["testing"]][["course"]] %in% missing
+
+# remove 2025
+  remove2025 <- data_list[["GRADEGPA"]][["testing"]][["class_year"]] != 2025
+
+aligned <- data_list[["GRADEGPA"]][["testing"]][missingFilter & remove2025,]
+
+aligned$pred <- thePredictions[["GRADEGPA"]]
+
+```
+
+
+```{r}
+
+aligned[["pred_cut_2.4"]] <- cut(aligned[["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE, right = TRUE)
+
+aligned[["cut_1.7"]] <- cut(aligned[["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+
+
+# Create confusion matrix with proportions
+conf_table <- table(aligned[,c("pred_cut_2.4", "cut_1.7")])
+
+# Convert to proportions and percentages
+prop_table <- prop.table(conf_table) * 100
+
+# Combine counts and percentages
+combined <- matrix(
+  paste0(conf_table, "\n(", round(prop_table, 1), "%)"),
+  nrow = nrow(conf_table)
+)
+
+dimnames(combined) <- dimnames(conf_table)
+
+recall <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[,1])})()) |> round(2) |> (\(x){x*100})()
+
+precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[1,])})()) |> round(2) |> (\(x){x*100})()
+
+
+
+```
+
+
+
 # SUMMARY 
 
 # METHODLOGY 
 
+Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation."  This model trained on the years 2006 to 2023 and tested on data from the year 2024.
+
+A predictive model was trained with the package "xgboost."  
+
+A value for math grade was predicted, and evaluated with the root mean square error, mean absolute error, and r-squared values. 
+
+These values were also combined into a binary categorization ("high"/"low" or "success"/"fail" or "on track"/"at risk") using various thresholds or cut-offs.  An optimum threshold or cut-off was discovered with the highest Kappa value. 
+
 # DISCUSSION 
+
+The model attempts to take information available at the time of admittance, skip over course selection as a black box process, ignore concurrent data such as class details (time of morning or capacity), and predict grade performance for first-time freshmen at the end of their initial math course.  This comparison of the model with the timeline of the actual student experience is shown in @fig-pipeline.
+
+With this minimalist data set, the model could predict grades in initial math courses for first-time freshmen with an R-squared value of 0.28, root mean square error of 1.01, and mean absolute error of 0.8.
+
+The variables most important to the model were the high school GPA, the ACT math test scores, and their derivative z-scores and combined z-score distance to the qualifications of the prior year's median successful student. 
+
+This aligns with a theory of performance[^1] (@fig-performance) where a student's math ability (as measured by the ACT math test scores) and a student's 'study ability' (as measured by their high school GPA) are strong predictors of performance.  However, the model is not completely determinative -- the pre-University data doesn't define the grade received -- leaving room for individual motivation, effort, and the influence of the concurrent situation (such as the number of credits taken that semester).  No student is guaranteed an 'A'.  No student can walk into a math class on Day 1, show the teacher their ACT math test scores and high school report card, and expect a particular grade.  
+
+Given the sparsity of the data, the model tended to predict in the middle of the range, putting 47% of the students between a grade of 2.7 and 3.7, while some 39% of students in 2024 actually received an 'A'.  Several comparisons of the predicted and actual grades are presented as scatter plots or box plots (@fig-results_scatter_box), density plots (@fig-density), heat maps (@fig-heatmap), confusion matrices (@fig-pred_hist_actual, @fig-pred_hist_predict), and histograms (@pred_hist_low, @pred_hist_high).
+
+An optimum binary threshold was found at a predicted grade of 2.4, with a Kappa value of 0.41.  Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
+
+This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[2,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()`%.
+
+Only a handful of students were precisely to predicted fail their initial math course -- eight students were predicted to receive a grade less than 0.9, and six of these students actually received a grade less than 0.9.  These students might be considered admissions mistakes.  However, out of `r (6+2+125+1626) |> format(big.mark = ",") ` students, this doesn't seem to be a large problem with admissions standards. 
 
 # CONCLUSIONS 
 
+The model could predict grades in initial math courses for first-time freshmen with an R-squared value of 0.28, root mean square error of 1.01, and mean absolute error of 0.8.  The variables most important to the model were the high school GPA, the ACT math test scores, and their derivative z-scores and combined distance. 
+
+The model had optimum performance in separating an at-risk population and a successful population at a predicted grade threshold of 2.4 (between a C-plus and a B-minus.)  Accuracy at this cut-off had a Kappa value of 0.41.  
+
+At this cut-off, the actual failure metrics (grades less than a 1.7) were 76% recall and 29% precision, or roughly one-third of the identified "at risk" group actually failed and one out of twenty-five of the "successful" group actually failed.
+
 # POSSIBLE NEXT STEPS 
 
+Grade prediction accuracy should increase with the inclusion of concurrent data, such as: 
+
+  * The number of credits taken 
+  * Difficulty of concurrent classes 
+  * Initial course grades on quizzes, homework, and initial tests   
+  * Utilization of tutoring services  
+  * Participation in study groups 
+  
+The model might improve with an indicator that clusters similar classes (in terms of incoming qualifications) together.  This could help differentiate many small courses by combining them.
+
 # RESULTS 
+
+
+```{r}
+#| label: fig-pipeline
+#| fig-cap: "Model compared to the timeline of actual student experience"
+#| fig-cap-location: top
+#| fig.width: 9
+
+displayPipeline()
+
+```
+
 
 ```{r}
 #| # eval: !expr is_html
@@ -342,26 +446,6 @@ regression_diagnostics(pred = thePredictions[[x]],
 
 ```
 
-
-
-```{r}
-
-# manually align test data (reference) with prediction, removing 2025
-
-# Identify mis-match in courses between training and testing sets
-
-missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
-
-missingFilter <- !data_list[["GRADEGPA"]][["testing"]][["course"]] %in% missing
-
-# remove 2025
-  remove2025 <- data_list[["GRADEGPA"]][["testing"]][["class_year"]] != 2025
-
-aligned <- data_list[["GRADEGPA"]][["testing"]][missingFilter & remove2025,]
-
-aligned$pred <- thePredictions[["GRADEGPA"]]
-
-```
 
 
 ```{r}
@@ -509,29 +593,22 @@ text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(
 ```
 
 
+
+```{r}
+#| label: fig-binary_cm
+#| fig-cap: "Confusion matrix at model binary optimum" 
+#| fig-cap-location: top
+
+createCM(aligned, cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
+
+```
+
+
 ```{r}
 #| eval: !expr is_html
 #| label: tbl-risk
 #| tbl-cap: "Actual failure rates of 'Success' and 'At Risk' populations at model binary optimum"
 
-aligned[["pred_cut_2.4"]] <- cut(aligned[["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE, right = TRUE)
-
-aligned[["cut_1.7"]] <- cut(aligned[["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
-
-
-# Create confusion matrix with proportions
-conf_table <- table(aligned[,c("pred_cut_2.4", "cut_1.7")])
-
-# Convert to proportions and percentages
-prop_table <- prop.table(conf_table) * 100
-
-# Combine counts and percentages
-combined <- matrix(
-  paste0(conf_table, "\n(", round(prop_table, 1), "%)"),
-  nrow = nrow(conf_table)
-)
-
-dimnames(combined) <- dimnames(conf_table)
 
 combined |>
   kbl(caption = "Predicted vs Actual Grade Categories",
@@ -545,32 +622,17 @@ combined |>
                    bold = TRUE, font_size = 20) |>
   row_spec(0, bold = TRUE, font_size = 20, background = "#e6f2ff")
 
-recall <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[,1])})()) |> round(2) |> (\(x){x*100})()
-
-precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[1,])})()) |> round(2) |> (\(x){x*100})()
-
-
-
 ```
 
 Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
 
-This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()  `%.
+This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[2,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()  `%.
+
+The following histograms compare the ranges of grades predicted and actually received.  In @fig-pred_hist_actual, 69 students predicted to get a grade less than 2.4 received a grade of zero.  In @fig-pred_hist_predict, of the students who actually received a grade less than 2.4, only nine of them were predicted to get a grade less than one.
 
 ```{r}
-#| label: fig-binary_cm
-#| fig-cap: "Confusion matrix at model binary optimum" 
-#| fig-cap-location: top
-
-createCM(aligned, cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
-
-```
-
-Some words here describing the prediction histograms.
-
-```{r}
-#| label: fig-pred_hist_low
-#| fig-cap: "Illustration of prediction accuracy" 
+#| label: fig-pred_hist_actual
+#| fig-cap: "Illustration of prediction accuracy: where the histogram shows the actual grades received for the grades predicted in the dotted box." 
 #| fig-cap-location: top
 
 suppressWarnings(
@@ -594,8 +656,8 @@ predictionHistogram(data = aligned,
 
 
 ```{r}
-#| label: fig-pred_hist_high
-#| fig-cap: "Illustration of prediction accuracy" 
+#| label: fig-pred_hist_predict
+#| fig-cap: "Illustration of prediction accuracy: where the histogram shows the predicted grades for the actual grades received in the dotted box." 
 #| fig-cap-location: top
 
 suppressWarnings(
@@ -641,6 +703,15 @@ main = "Relative variable importance"
 
 ))
 
+
+```
+
+```{r}
+#| label: fig-performance
+#| fig-cap: "Theory of performance"
+#| fig-cap-location: top
+
+displayPerformance()
 
 ```
 
@@ -848,3 +919,5 @@ skim(data_list[["GRADEGPA"]][["training"]])
 
 ```
 
+---
+[^1]: Anderson, N. H., & Butzin, C. A. 1974. Performance = motivation X ability: An integration-theoretical analysis. Journal of Personality and Social Psychology, 30(5): 598–604. <https://doi.org/10.1037/h0037447>
