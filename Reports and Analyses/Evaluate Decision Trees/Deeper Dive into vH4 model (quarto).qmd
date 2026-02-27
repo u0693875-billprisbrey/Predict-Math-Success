@@ -285,15 +285,15 @@ With this minimalist data set, the model could predict grades in initial math co
 
 The variables most important to the model were the high school GPA, the ACT math test scores, and their derivative z-scores and combined z-score distance to the qualifications of the prior year's median successful student. 
 
-This aligns with a theory of performance[^1] (@fig-performance) where a student's math ability (as measured by the ACT math test scores) and a student's 'study ability' (as measured by their high school GPA) are strong predictors of performance.  However, the model is not completely determinative -- the pre-University data doesn't define the grade received -- leaving room for individual motivation, effort, and the influence of the concurrent situation (such as the number of credits taken that semester).  No student is guaranteed an 'A'.  No student can walk into a math class on Day 1, show the teacher their ACT math test scores and high school report card, and expect a particular grade.  
+This aligns with a theory of performance[^1] (@fig-performance) where a student's math ability (as measured by the ACT math test scores) and a student's 'study ability' (as measured by their high school GPA) are strong predictors of performance.  However, the model is not completely determinative -- the pre-University data doesn't define the grade received -- leaving room for individual motivation, effort, and the influence of the concurrent situation (such as the number of credits taken that semester).  No student is guaranteed an 'A', as many students who are predicted to score well do poorly (and vice versa.)
 
-Given the sparsity of the data, the model tended to predict in the middle of the range, putting 47% of the students between a grade of 2.7 and 3.7, while some 39% of students in 2024 actually received an 'A'.  Several comparisons of the predicted and actual grades are presented as scatter plots or box plots (@fig-results_scatter_box), density plots (@fig-density), heat maps (@fig-heatmap), confusion matrices (@fig-pred_hist_actual, @fig-pred_hist_predict), and histograms (@pred_hist_low, @pred_hist_high).
+Given the sparsity of the data, the model tended to predict in the middle of the range, putting 47% of the students between a grade of 2.7 and 3.7, while some 39% of students in 2024 actually received an 'A'.  Several comparisons of the predicted and actual grades are presented as scatter plots or box plots (@fig-results_scatter_box), density plots (@fig-density), heat maps (@fig-heatmap), confusion matrices (@fig-binary_cm, @fig-fail_cm), and histograms (@fig-pred_hist_actual, @fig-pred_hist_predict).
 
 An optimum binary threshold was found at a predicted grade of 2.4, with a Kappa value of 0.41.  Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
 
 This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[2,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()`%.
 
-Only a handful of students were precisely to predicted fail their initial math course -- eight students were predicted to receive a grade less than 0.9, and six of these students actually received a grade less than 0.9.  These students might be considered admissions mistakes.  However, out of `r (6+2+125+1626) |> format(big.mark = ",") ` students, this doesn't seem to be a large problem with admissions standards. 
+Only a handful of students were precisely predicted fail their initial math course -- eight students were predicted to receive a grade less than 0.9, and six of these students actually received a grade less than 0.9.  These students might be considered admissions mistakes, as they predictably failed.  However, out of `r (6+2+125+1626) |> format(big.mark = ",") ` students, this doesn't seem to indicate a large problem with admissions standards. 
 
 # CONCLUSIONS 
 
@@ -332,7 +332,7 @@ displayPipeline()
 ```{r}
 #| # eval: !expr is_html
 #| label: tbl-results
-#| tbl-cap: "Normalized Regression Results"
+#| tbl-cap: "Regression Results"
 
 
 library(kableExtra)
@@ -341,7 +341,7 @@ normResults |>
   (\(x){do.call(rbind,x)})() |>
   (\(x){round(x,2)})()|>
     kbl(
-    caption = "",
+    caption = "Regression Results",
     align = "c",
     col.names = c("",
       "RMSE", "MAE", "R-sq", 
@@ -503,7 +503,7 @@ predictionMap(data = aligned,
 
 ```
 
-## Selection of model optimum binary cutoff or threshold
+## Selection of model optimum binary cut-off or threshold
 
 The model has the highest accuracy in separating into high/low (or succeed/at-risk) populations at a predicted grade of 2.4, between an actual grade of C-plus (2.3) and B-minus (2.7).  
 
@@ -511,8 +511,8 @@ The model has the highest accuracy in separating into high/low (or succeed/at-ri
 ```{r}
 #| label: fig-threshold
 #| fig-height: 5
-#| fig-width: 11
-#| fig-cap: "Selection of model optimum cutoff"
+#| fig-width: 12
+#| fig-cap: "Selection of model optimum cut-off"
 #| fig-cap-location: top
 
 
@@ -641,7 +641,9 @@ predictionHistogram(data = aligned,
                     show = "actual",
                     cap = TRUE,
                     cuts = c(0,2.4,4),
-                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE),
+   legend_params=(list("x" = "top"))                  
+                    )
 )
 
 # note that this aligns with
@@ -666,7 +668,8 @@ predictionHistogram(data = aligned,
                     show = "predict",
                     cap = TRUE, 
                     cuts = c(0,2.4,4),
-                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE))
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE),
+   legend_params=(list("x" = "top")))
 )
 
 ```
@@ -710,6 +713,7 @@ main = "Relative variable importance"
 #| label: fig-performance
 #| fig-cap: "Theory of performance"
 #| fig-cap-location: top
+#| fig.width: 9
 
 displayPerformance()
 
@@ -798,8 +802,6 @@ zBox(data = data_list[["GRADEGPA"]][["training"]],
      title_params = list(text = c("High school GPA","") ))
 
 ```
-
-Put some words here describing the strong overlap
 
 
 ```{r}
