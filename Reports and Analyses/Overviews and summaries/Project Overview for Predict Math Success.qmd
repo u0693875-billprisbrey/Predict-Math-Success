@@ -154,7 +154,7 @@ Because the combined distance is a strong predictor, comparing incoming students
   | Cat_1  | Categorical Boosting      | Yrs > 2021   | 0.91 F1       |
   | vH4    | Extreme Gradient Boosting | Yrs > 2005   | 0.28 R^2^     | 
   | vD1    | Time series (xgboost)     | Yrs > 2005   | 0.20-0.28 R^2^| 
-  | vH4_1  | At Risk Pop. (xgboost)    | vH4 results  | 0.40 Kappa    |
+  | vH4_1  | At Risk Pop. (xgboost)    | vH4 results  | 0.41 Kappa    |
 
 Per the time series, the models could predict grade performance based on minimal pre-University data with r-squared values between 0.20 and 0.28.  Identification of at-risk populations occurred with a Kappa value from 0.31 to 0.40.  At 0.40 (model vH4_1), one out of three students in the at-risk population failed (precision was 29% and recall was 76%.)
 

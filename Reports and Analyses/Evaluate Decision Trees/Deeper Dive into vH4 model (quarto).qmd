@@ -1,0 +1,1007 @@
+---
+title: "Deeper Dive into vH4 (quarto)"
+format: 
+  html: default
+  gfm: default
+  pdf: default
+  docx: default 
+editor: source
+execute: 
+  echo: false
+  warning: false  
+  message: false
+  error: false
+knitr: 
+  opts_chunk: 
+    fig.height: 5
+    fig.width: 7
+---
+
+```{r}
+#| include: false
+
+
+############
+## SET UP ##
+############
+
+# knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, error=FALSE,
+#                      fig.height=5, fig.width=7)
+
+oldPar <- par(cex.main = 3,
+    cex.lab = 3,
+    cex.axis = 2,
+    mar = c(5.1,4.1,4.1,2.1) # default is c(5.1,4.1,4.1,2.1)
+    )
+
+library(here)
+library(skimr)
+library(caret)
+library(xgboost)
+library(lubridate)
+library(ggplot2)
+library(patchwork)
+library(kableExtra)
+library(flextable)
+
+library(extrafont)
+loadfonts(device = "pdf")
+
+source(here::here("Functions", "Predict Math Success Functions.R"))
+source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
+
+is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
+
+is_pdf <- knitr::is_latex_output()
+
+model_version <- "vH4"
+
+```
+
+
+```{r}
+
+##########
+## LOAD ##
+##########
+
+## MODELING RELATED ##
+
+# target_classes <- c("grade_binary", "grade_trinary", "grade_quad", "GRADEGPA")
+
+
+# Build file paths
+model_files <- here::here("Models", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " model.rds"))
+
+# Read each model into a named list
+model_list <- setNames(
+  lapply(model_files, readRDS),
+  "GRADEGPA"
+)
+
+# Build file paths
+data_files <- here::here("Data", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " Data.rds"))
+
+# Read each model into a named list
+data_list <- setNames(
+  lapply(data_files, readRDS),
+  "GRADEGPA"
+)
+
+```
+
+
+```{r}
+
+## PREDICTIONS ##
+
+thePredictions <- lapply("GRADEGPA", function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+  courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+  # print(x)
+  # print(table(missingFilter))
+}
+  
+  # drop 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  predict(model_list[[x]],
+          newdata = data_list[[x]][["testing"]][missingFilter & remove2025,])
+  
+} )
+names(thePredictions) <- "GRADEGPA"
+
+```
+
+```{r}
+
+
+theResults <- lapply("GRADEGPA", function(x) {
+  
+  # print(x)
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+    # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  
+  postResample(pred = thePredictions[[x]],
+                  obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
+  
+               )
+})
+names(theResults) <- "GRADEGPA"
+
+```
+
+
+
+
+```{r}
+
+# normalized errors
+
+normalized_metrics <- function(pred, obs) {
+  rmse <- sqrt(mean((pred - obs)^2))
+  mae  <- mean(abs(pred - obs))
+  r2   <- cor(pred, obs)^2
+  
+  range_y <- diff(range(obs, na.rm = TRUE))
+  sd_y    <- sd(obs, na.rm = TRUE)
+  
+  data.frame(
+    RMSE = rmse,
+    MAE  = mae,
+    R2   = r2,
+    NRMSE_range = rmse / range_y,
+    NMAE_range  = mae  / range_y,
+    NRMSE_sd    = rmse / sd_y,
+    NMAE_sd     = mae  / sd_y
+  )
+}  
+  
+normResults <- lapply("GRADEGPA", function(x) {
+  
+  # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  if (length(missing) == 0) {
+  # no missing values — keep everything
+  missingFilter <- rep(TRUE, nrow(data_list[[x]][["testing"]]))
+} else {
+  # normal case — exclude the missing courses
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+#  print(x)
+#  print(table(missingFilter))
+}
+  
+      # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+  
+  normalized_metrics(
+    pred = thePredictions[[x]],
+    obs = data_list[[x]][["testing"]][[x]][missingFilter & remove2025]
+  )
+  
+})  
+names(normResults) <- "GRADEGPA"
+
+```
+
+
+```{r}
+
+# manually align test data (reference) with prediction, removing 2025
+
+# Identify mis-match in courses between training and testing sets
+
+missing <- setdiff(data_list[["GRADEGPA"]][["testing"]][["course"]], data_list[["GRADEGPA"]][["training"]][["course"]])
+
+missingFilter <- !data_list[["GRADEGPA"]][["testing"]][["course"]] %in% missing
+
+# remove 2025
+  remove2025 <- data_list[["GRADEGPA"]][["testing"]][["class_year"]] != 2025
+
+aligned <- data_list[["GRADEGPA"]][["testing"]][missingFilter & remove2025,]
+
+aligned$pred <- thePredictions[["GRADEGPA"]]
+
+```
+
+
+```{r}
+
+aligned[["pred_cut_2.4"]] <- cut(aligned[["pred"]], breaks = c(0,2.4,4), include.lowest = TRUE, right = TRUE)
+
+aligned[["cut_1.7"]] <- cut(aligned[["GRADEGPA"]], c(0,1.7,4), include.lowest = TRUE, right = FALSE )
+
+
+# Create confusion matrix with proportions
+conf_table <- table(aligned[,c("pred_cut_2.4", "cut_1.7")])
+
+# Convert to proportions and percentages
+prop_table <- prop.table(conf_table) * 100
+
+# Combine counts and percentages
+combined <- matrix(
+  paste0(conf_table, "\n(", round(prop_table, 1), "%)"),
+  nrow = nrow(conf_table)
+)
+
+dimnames(combined) <- dimnames(conf_table)
+
+recall <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[,1])})()) |> round(2) |> (\(x){x*100})()
+
+precision <- (conf_table |> as.matrix() |> (\(x){x[1,1]})()  / conf_table |> as.matrix() |> (\(x){sum(x[1,])})()) |> round(2) |> (\(x){x*100})()
+
+
+
+```
+
+
+# METHODLOGY 
+
+Data was prepared as described in the separate report, "Source Data, Cleaning, and Preparation."  This model trained on the years 2006 to 2023 and tested on data from the year 2024.
+
+A predictive model was trained with the package "xgboost."  
+
+A value for math grade was predicted, and evaluated with the root mean square error, mean absolute error, and r-squared values. 
+
+These values were also combined into a binary categorization ("high"/"low" or "success"/"fail" or "on track"/"at risk") using various thresholds or cut-offs.  An optimum threshold or cut-off was discovered with the highest Kappa value. 
+
+# DISCUSSION 
+
+The model attempts to take information available at the time of admittance, skip over course selection as a black box process, ignore concurrent data such as class details (time of morning or capacity), and predict grade performance for first-time freshmen at the end of their initial math course.  This comparison of the model with the timeline of the actual student experience is shown in @fig-pipeline.
+
+With this minimalist data set, the model could predict grades in initial math courses for first-time freshmen with an R-squared value of 0.28, root mean square error of 1.01, and mean absolute error of 0.8.
+
+The variables most important to the model were the high school GPA, the ACT math test scores, and their derivative z-scores and combined z-score distance to the qualifications of the prior year's median successful student. 
+
+This aligns with a theory of performance[^1] (@fig-performance) where a student's math ability (as measured by the ACT math test scores) and a student's 'study ability' (as measured by their high school GPA) are strong predictors of performance.  However, the model is not completely determinative -- the pre-University data doesn't define the grade received -- leaving room for individual motivation, effort, and the influence of the concurrent situation (such as the number of credits taken that semester).  No student is guaranteed an 'A', as many students who are predicted to score well do poorly (and vice versa.)
+
+Given the sparsity of the data, the model tended to predict in the middle of the range, putting 47% of the students between a grade of 2.7 and 3.7, while some 39% of students in 2024 actually received an 'A'.  Several comparisons of the predicted and actual grades are presented as scatter plots or box plots (@fig-results_scatter_box), density plots (@fig-density), heat maps (@fig-heatmap), confusion matrices (@fig-binary_cm, @fig-fail_cm), and histograms (@fig-pred_hist_actual, @fig-pred_hist_predict).
+
+An optimum binary threshold was found at a predicted grade of 2.4, with a Kappa value of 0.41.  Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
+
+This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[2,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()`%.
+
+Only a handful of students were precisely predicted fail their initial math course -- eight students were predicted to receive a grade less than 0.9, and six of these students actually received a grade less than 0.9.  These students might be considered admissions mistakes, as they predictably failed.  However, out of `r (6+2+125+1626) |> format(big.mark = ",") ` students, this doesn't seem to indicate a large problem with admissions standards. 
+
+# CONCLUSIONS 
+
+The model could predict grades in initial math courses for first-time freshmen with an R-squared value of 0.28, root mean square error of 1.01, and mean absolute error of 0.8.  The variables most important to the model were the high school GPA, the ACT math test scores, and their derivative z-scores and combined distance. 
+
+The model had optimum performance in separating an at-risk population and a successful population at a predicted grade threshold of 2.4 (between a C-plus and a B-minus.)  Accuracy at this cut-off had a Kappa value of 0.41.  
+
+At this cut-off, the actual failure metrics (grades less than a 1.7) were 76% recall and 29% precision, or roughly one-third of the identified "at risk" group actually failed and one out of twenty-five of the "successful" group actually failed.
+
+# POSSIBLE NEXT STEPS 
+
+Grade prediction accuracy should increase with the inclusion of concurrent data, such as: 
+
+  * The number of credits taken 
+  * Difficulty of concurrent classes 
+  * Initial course grades on quizzes, homework, and initial tests   
+  * Utilization of tutoring services  
+  * Participation in study groups 
+  
+The model might improve with an indicator that clusters similar classes (in terms of incoming qualifications) together.  This could help differentiate many small courses by combining them.
+
+# RESULTS 
+
+
+```{r}
+#| label: fig-pipeline
+#| fig-cap: "Model compared to the timeline of actual student experience"
+#| fig-cap-location: top
+#| fig.width: 9
+
+displayPipeline()
+
+```
+
+
+```{r}
+#| label: tbl-results
+#| tbl-cap: "Regression Results"
+
+normTable <- normResults |>
+  (\(x){do.call(rbind,x)})() |>
+  (\(x){round(x,2)})() |>
+  as.data.frame() |>
+  tibble::rownames_to_column(" ")
+
+
+if (is_html) {
+normResults |>
+  (\(x){do.call(rbind,x)})() |>
+  (\(x){round(x,2)})()|>
+    kbl(
+  #  caption = "Regression Results",
+    align = "c",
+    col.names = c("",
+      "RMSE", "MAE", "R-sq", 
+      "NRMSE (Range)", "NMAE (Range)", 
+      "NRMSE (SD)", "NMAE (SD)"
+    )
+  ) |>
+  kable_classic(full_width = FALSE, html_font = "Calibri") |>
+  row_spec(0, bold = TRUE, background = "#f0f0f0") |>  # header
+  row_spec(1:1, background = c("#ffffff", "#f9f9f9")) |> # alternating rows
+  add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
+
+} else if (is_pdf) {
+  # kableExtra PDF/LaTeX version
+  normTable |>
+    kbl(booktabs = TRUE, align = "c",
+        col.names = c("", "RMSE", "MAE", "R-sq",
+            "NRMSE (Range)", "NMAE (Range)", "NRMSE (SD)", "NMAE (SD)")) |>
+    kable_styling(latex_options = c("striped", "hold_position")) |>
+    add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
+
+} else {
+
+normTable |>
+  flextable() |>
+  set_header_labels(
+    values = list(
+      " " = "",
+      V1 = "RMSE", V2 = "MAE", V3 = "R-sq",
+      V4 = "NRMSE (Range)", V5 = "NMAE (Range)",
+      V6 = "NRMSE (SD)", V7 = "NMAE (SD)"
+    )
+  ) |>
+  add_header_row(
+    values = c("", "Raw Metrics", "Normalized Metrics"),
+    colwidths = c(1, 3, 4)
+  ) |>
+  theme_booktabs() |>
+  bold(part = "header") |>
+  set_caption("Regression Results") |>
+  autofit()
+
+}
+
+```
+
+
+
+```{r}
+
+regression_diagnostics <- function(pred, reference, plot_title = "Predicted vs Actual") {
+  if (length(pred) != length(reference)) {
+    stop("`pred` and `reference` must be the same length.")
+  }
+  
+  incoming.par <- par(mfrow= c(2,1), mar = c(3,2.5,0,1), oma = c(1.5,1.5,2.25,0))
+  
+  on.exit(par(incoming.par))
+  
+  # Compute metrics
+  rmse <- sqrt(mean((pred - reference)^2))
+  mae  <- mean(abs(pred - reference))
+  r2   <- 1 - sum((pred - reference)^2) / sum((reference - mean(reference))^2) 
+  
+  # Print metrics
+#  cat("Regression diagnostics:\n")
+#  cat(sprintf("RMSE: %.4f\n", rmse))
+#  cat(sprintf("MAE:  %.4f\n", mae))
+#  cat(sprintf("R-squared (variance decomposition): %.4f\n", r2))
+
+  
+  # Scatter plot
+  plot(reference, pred,
+      # xlab = "Actual",
+      # ylab = "Predicted",
+       # main = plot_title,
+       pch = 19, col = "steelblue",
+       las = 1)
+  abline(a = 0, b = 1, col = "red", lwd = 2)  # 45-degree reference line
+  grid()
+  
+  # boxplot
+  bp <- boxplot(pred ~ reference,
+        # xlab = "Actual",
+        # ylab = "Predicted",
+         # main = plot_title,
+         col = "lightblue",
+         border = "steelblue",
+         las=1)
+  
+    # Add a red reference line for each box
+        for (i in seq_along(bp$names)) {
+          actual_val <- as.numeric(bp$names[i])
+          segments(x0 = i - 0.4, y0 = actual_val,
+                   x1 = i + 0.4, y1 = actual_val,
+                   col = "red", lwd = 2)
+        }
+  
+mtext(side = 3, line =0.75, text = plot_title, cex = 1.5, font = 2, outer = TRUE)  
+  
+mtext(side = 2, line =0.25, text = "Predicted", cex = 1.25, font = 1, outer = TRUE)  
+
+mtext(side = 1, line =0.25, text = "Actual", cex = 1.25, font = 1, outer = TRUE)  
+
+  # Return metrics invisibly as a list
+  invisible(list(RMSE = rmse, MAE = mae, R2 = r2))
+}
+
+```
+
+
+```{r}
+#| label: fig-results_scatter_box
+#| fig-cap: "These plots show what the correct prediction value would be with a red line."
+#| fig-cap-location: top
+
+invisible(lapply("GRADEGPA", function(x){
+  
+      # identify course values in testing that aren't in training
+  
+    courseColumn <- ifelse("course" %in% colnames(data_list[[x]][["testing"]]), "course", "FIRST_MATH_COURSE_CATNBR")
+  
+  missing <- setdiff(data_list[[x]][["testing"]][[courseColumn]],data_list[[x]][["training"]][[courseColumn]])
+  
+  missingFilter <- !data_list[[x]][["testing"]][[courseColumn]] %in% missing
+  
+        # remove 2025
+  remove2025 <- data_list[[x]][["testing"]][["class_year"]] != 2025
+
+regression_diagnostics(pred = thePredictions[[x]],
+                       reference = data_list[[x]][["testing"]][[x]][missingFilter & remove2025],
+                       plot_title = "Predicted vs Actual")
+})
+)
+
+```
+
+
+
+```{r}
+#| label: fig-density
+#| fig-cap: "The model tends to predict towards the center, while most students earn an 'A'."
+#| fig-cap-location: top
+    
+# Density plot
+xLim <- range(aligned[,c("GRADEGPA", "pred")])
+
+ref <- aligned[,"GRADEGPA"]
+pred <- aligned[,"pred"]
+
+plot(density(ref), 
+     col = "dodgerblue3", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "GPA")
+lines(density(pred), 
+      col = "darkorange2", 
+      lwd = 2)
+legend("topleft", legend = c("Actual", "Predicted"), 
+       col = c("dodgerblue3", "darkorange2"), lwd = 2)
+
+mtext(text = "Predicted vs Actual",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "as a density plot",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+```
+
+
+```{r}
+#| label: fig-heatmap
+#| fig-height: 3.5
+#| fig-width: 7
+#| fig-cap: "The heatmap shows grade expectations increase with ACT Math and high school GPA."
+#| fig-cap-location: top
+
+
+# ACTUAL vs PREDICTED HEATMAP
+predictionMap(data = aligned, 
+              plot_title = "Predicted vs Actual for 2024, all courses")
+
+
+```
+
+## Selection of model optimum binary cut-off or threshold
+
+The model has the highest accuracy in separating into high/low (or succeed/at-risk) populations at a predicted grade of 2.4, between an actual grade of C-plus (2.3) and B-minus (2.7).  
+
+
+```{r}
+#| label: fig-threshold
+#| fig-height: 5
+#| fig-width: 8
+#| fig-cap: "Selection of model optimum cut-off"
+#| fig-cap-location: top
+
+
+# Cumulative accuracy
+# Where I calculate a binary confusion matrix, and gradually increase the upper bound,
+# so that everything equal-or-less-than is considered accurate
+
+cumAcc <- lapply(round(seq(from = 0.1, to = 3.9, by = 0.1),1), function(x){
+  
+  createCM(aligned, cuts = c(0,x,4))
+  
+})
+
+par(mar=c(5.1,4.1,4.1,7.6), bg="ivory")
+
+plot(x = 0.5,
+  ylim = c(0,1),
+     xlim = c(0,length(cumAcc)),
+  xaxt = "n",
+  las = 2,
+     ylab = "",
+     xlab = "",
+  type = "n")
+
+rect(xleft = par("usr")[1] ,
+     ybottom = par("usr")[3] ,
+     xright = par("usr")[2],
+     ytop = par("usr")[4],
+     col = "grey95")
+
+grid(col="gray90", lwd = 2, lty = 1)
+
+sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> lines(col = "firebrick", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> lines(col = "dodgerblue", lwd = 2)
+sapply(cumAcc, function(x) {x[["byClass"]][["Recall"]]}) |> lines(col = "gold", lwd = 2)
+
+axis(side = 1, at = 1:(length(cumAcc)+1), labels = round(seq(from = 0.1, to = 4.0, by = 0.1),1))
+
+legend("topright",
+       col = c("firebrick","dodgerblue","gold"),
+       legend = c("Kappa","Precision","Recall"),
+       lwd =4,
+       inset = c(-0.175,0),
+       xpd = TRUE,
+       bg = "snow"
+       )
+
+mtext(side=3, font = 2, cex = 1.619, line = 1.619, text = "Confusion matrix metrics from binary discretization")
+mtext(side=1, line = 3, "Upper GPA Bound")
+
+# Admission mistake point
+points(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+         col = "dodgerblue",
+       pch = 16,
+       cex = 1.1
+)
+
+text(x = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){which(x == max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE))})(),
+         y = sapply(cumAcc, function(x) {x[["byClass"]][["Precision"]]}) |> (\(x){max(x[x<max(x,na.rm=TRUE)], na.rm = TRUE)})(),
+  labels = "Admission 'mistake' candidates\n     (predictably failed)",
+  pos = 4)
+
+
+# Optimum (Kappa)
+points(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+       y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+       col = "firebrick",
+       pch = "|",
+       cex = 1.319
+)
+
+text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(x == max(x, na.rm = TRUE))})(),
+     y = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> max(na.rm=TRUE),
+     labels = "Model\noptimum",
+     pos = 1)
+
+```
+
+
+
+```{r}
+#| label: fig-binary_cm
+#| fig-cap: "Confusion matrix at model binary optimum" 
+#| fig-cap-location: top
+
+createCM(aligned, cuts = c(0,2.4,4)) |> drawCM(title = "Binary optimum")
+
+```
+
+
+```{r}
+#| label: tbl-risk
+#| tbl-cap: "Actual failure rates of 'Success' and 'At Risk' populations at model binary optimum"
+
+if(is_html) {
+
+combined |>
+  kbl(caption = "Predicted vs Actual Grade Categories",
+      col.names = c("Actual: Fail (<1.7)", "Actual: Pass (≥1.7)"),
+      align = "c",
+      escape = FALSE) |>
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                font_size = 18) |>
+  add_header_above(c("Predicted Grade" = 1, "Actual Grade" = 2),
+                   bold = TRUE, font_size = 20) |>
+  row_spec(0, bold = TRUE, font_size = 20, background = "#e6f2ff")
+
+} else if (is_pdf) {
+
+ combined |>
+    as.data.frame() |>
+    tibble::rownames_to_column("Predicted Grade") |>
+    kbl(booktabs = TRUE,
+        col.names = c("Predicted Grade", "Actual: Fail (<1.7)", "Actual: Pass (≥1.7)"),
+        align = "c",
+        escape = FALSE) |>
+    kable_styling(latex_options = c("striped", "hold_position"),
+                  full_width = FALSE) |>
+    add_header_above(c(" " = 1, "Actual Grade" = 2)) |>
+    row_spec(0, bold = TRUE)
+
+} else {
+
+combined |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Predicted Grade") |>
+  flextable() |>
+  set_header_labels(
+    values = list(
+      "Predicted Grade" = "Predicted Grade",
+      "[0,1.7)" = "Actual: Fail (<1.7)",
+      "[1.7,4]" = "Actual: Pass (≥1.7)"
+    )
+  ) |>
+  add_header_row(
+    values = c("", "Actual Grade"),
+    colwidths = c(1, 2)
+  ) |>
+  theme_booktabs() |>
+  bold(part = "header") |>
+  set_caption("Predicted vs Actual Grade Categories") |>
+  align(align = "center", part = "all") |>
+  autofit()
+
+}
+
+```
+
+
+
+Students predicted to have a grade less than 2.4 are a high-risk group of students. `r precision`% of these `r conf_table |> as.matrix() |> (\(x){sum(x[1,])})()` students actually did fail, or `r recall`% of the total of students who failed.  (`r recall`% recall and `r precision`% precision).
+
+This compares to the risk of students predicted to have a grade more than 2.4. Only `r conf_table[2,1]` of these `r conf_table |> as.matrix() |> (\(x){sum(x[2,])})()` students failed, or `r conf_table[2,1] |> (\(x){x/sum(conf_table[2,]) })() |> round(2) |> (\(x){100*x})()  `%.
+
+The following histograms compare the ranges of grades predicted and actually received.  In @fig-pred_hist_actual, 69 students predicted to get a grade less than 2.4 received a grade of zero.  In @fig-pred_hist_predict, of the students who actually received a grade less than 2.4, only nine of them were predicted to get a grade less than one.
+
+```{r}
+#| label: fig-pred_hist_actual
+#| fig-cap: "Illustration of prediction accuracy: where the histogram shows the actual grades received for the grades predicted in the dotted box." 
+#| fig-cap-location: top
+
+suppressWarnings(
+predictionHistogram(data = aligned,
+                    title = NA,
+                    show = "actual",
+                    cap = TRUE,
+                    cuts = c(0,2.4,4),
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE),
+   legend_params=(list("x" = "top"))                  
+                    )
+)
+
+# note that this aligns with
+
+# > table(aligned$GRADEGPA[aligned$pred < 2.4])
+
+#  0 0.7   1 1.3 1.7   2 2.3 2.7   3 3.3 3.7   4 
+#  69  30  27  21  32  41  32  43  66  50  35  61 
+
+```
+
+
+
+```{r}
+#| label: fig-pred_hist_predict
+#| fig-cap: "Illustration of prediction accuracy: where the histogram shows the predicted grades for the actual grades received in the dotted box." 
+#| fig-cap-location: top
+
+suppressWarnings(
+predictionHistogram(data = aligned,
+                    title = NA,
+                    show = "predict",
+                    cap = TRUE, 
+                    cuts = c(0,2.4,4),
+                    hist_params = list(freq = TRUE, right = FALSE, labels = TRUE),
+   legend_params=(list("x" = "topleft")))
+)
+
+```
+
+
+
+This model also shows a high precision point at a predicted GPA of 0.9.  These candidates would predictably fail, and could be considered an admissions mistake.  However, there are only eight people so identified (out of 1,759), suggesting nearly all students admitted to the U have a strong expectation of passing initial math courses.  
+
+```{r}
+#| label: fig-fail_cm
+#| fig-cap: "Confusion matrix for 'admission mistake' candidates" 
+#| fig-cap-location: top
+
+createCM(aligned, cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
+
+```
+
+
+
+
+## Variable importance  
+
+```{r}
+#| label: fig-importance
+#| fig-cap: "Variable importance to the model"
+#| fig-cap-location: top
+#| fig-height: 5
+
+
+print(plot(
+varImp(model_list[["GRADEGPA"]]),
+15,
+main = "Relative variable importance"
+
+))
+
+
+```
+
+```{r}
+#| label: fig-performance
+#| fig-cap: "Theory of performance"
+#| fig-cap-location: top
+#| fig.width: 10.5
+#| fig.height: 4
+
+displayPerformance()
+
+```
+
+
+```{r}
+
+# Box plots of z-scores vs grades
+
+zBox <- function(data, column, 
+                 box_params = list(),
+                 axis_params = list(),
+                 title_params = list(),
+                 title = NA
+                 ){
+  
+  thePlot <- boxplot(get(column) ~ GRADEGPA,
+                     data = data,
+                     ylab = "",
+                     xlab = "",
+                     xaxt = "n",
+                     yaxt = "n",
+                     outline = FALSE
+                     )
+  
+  rect(xleft = par("usr")[1],
+       ybottom = par("usr")[3],
+       xright = par("usr")[2],
+       ytop = par("usr")[4],
+       col = "gray95")
+
+  grid(col = "gray90", lty =1, lwd = 2)
+  
+  default_box_params <- list( 
+    formula = as.formula(paste(column, " ~ GRADEGPA")),
+    data = data,
+    ylab = "",
+    xlab = "",
+    outline = FALSE,
+    col = "lavender",
+    add = TRUE
+    )
+  
+  box_params <- modifyList(default_box_params, box_params)
+  do.call(boxplot, box_params)
+  
+  default_axis_params <- list(
+    side = c(1,2),
+    font = c(1,1),
+    cex = c(1.2,1.2),
+    line = c(2.32,2.31),
+    text = c("Math grade", "Z-score")
+  )
+
+  axis_params <- modifyList(default_axis_params, axis_params)
+  do.call(mtext, axis_params)
+    
+  default_title_params <- list(
+        side = c(3,3),
+    font = c(2,3),
+    cex = c(2.05, 1.25),
+    line = c(1.69, 0.5),
+    text = c(title, "Z-score distance to prior median successful student")
+  )
+  
+  title_params <- modifyList(default_title_params, title_params)
+  do.call(mtext, title_params)
+
+  
+}
+
+```
+
+
+```{r}
+#| label: fig-gpa
+#| fig-cap: "#1 Variable: High school GPA"
+#| fig-cap-location: top
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "HSGPA",
+     title = "High school GPA",
+     axis_params = list(text = c("Math grade", "High school GPA")),
+     box_params = list(col="lightsteelblue1", las=1),
+     title_params = list(text = c("High school GPA","") ))
+
+```
+
+
+```{r}
+#| label: fig-gpa_z
+#| fig-cap: "#2 Variable: High school GPA z-score"
+#| fig-cap-location: top
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "HSGPA.z",
+     title = "High school GPA",
+     box_params = list(col="lightsteelblue2", las=1))
+
+```
+
+
+```{r}
+#| label: fig-dist
+#| fig-cap: "#3 Variable: Combined z-score distance"
+#| fig-cap-location: top
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "dist",
+     title = "Combined distance",
+     box_params = list(col="beige"))
+     
+     
+```     
+
+```{r}
+#| label: fig-act_z
+#| fig-cap: "#4 Variable: ACT Math z-score"
+#| fig-cap-location: top
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "ACTMATH.z",
+     title = "ACT Math",
+     box_params = list(col="pink2", las=1))
+
+
+```
+
+```{r}
+#| label: fig-act
+#| fig-cap: "#5 Variable: ACT Math"
+#| fig-cap-location: top
+
+zBox(data = data_list[["GRADEGPA"]][["training"]], 
+     column = "ACTMATH",
+     title = "ACT Math",
+     axis_params = list(text = c("Math grade", "ACT Math")),
+     box_params = list(col="pink1", las=1),
+     title_params = list(text = c("ACT math", "")))
+
+
+```
+
+
+```{r}
+#| label: fig-yr_diff
+#| fig-cap: "#6 Variable: Years to initial math course"
+#| fig-cap-location: top
+
+# Density plot
+xLim <- c(-0.5,4) #   range(aligned[,"yr_diff"])
+
+success_ref <- aligned[aligned$cut_1.7 == "[0,1.7)","yr_diff"]
+fail_ref <- aligned[aligned$cut_1.7 == "[1.7,4]","yr_diff"]
+
+plot(density(success_ref), 
+     col = "seagreen4", 
+     lwd = 2, 
+     xlim = xLim,
+     main = "", 
+     xlab = "Yrs to initial math course")
+lines(density(fail_ref), 
+      col = "mediumorchid4", 
+      lwd = 2)
+legend("topright", legend = c(">=1.7", "<1.7"), 
+       col = c("seagreen4", "mediumorchid4"), lwd = 2)
+
+mtext(text = "Years to initial math course",
+      side = 3,
+      line = 1.7,
+      font = 2,
+      cex = 2,
+      )
+
+mtext(text = "broken out by GPA",
+      side = 3,
+      line = 0.3,
+      font = 1,
+      cex = 1.3,
+      )
+
+```
+
+There is a small tendency for people who fail to take the initial math course after the first year. (Most students (`r cut(aligned$yr_diff, breaks = c(-100,0,1, 100), right = FALSE ) |> table(useNA="always") |> proportions() |> round(2) |> (\(x){x*100})() |> (\(x){x["[0,1)"]})()`% in 2024) take their initial math course in the first year.)
+
+# REFERENCES
+
+```{r}
+#| label: fig-guide
+#| fig-cap: "How to interpret a confusion matrix"
+#| fig-cap-location: top
+
+drawGuide()
+
+```
+
+## Training data
+
+```{r eval=TRUE}
+
+
+skim(data_list[["GRADEGPA"]][["training"]])
+
+
+```
+
+---
+[^1]: Anderson, N. H., & Butzin, C. A. 1974. Performance = motivation X ability: An integration-theoretical analysis. Journal of Personality and Social Psychology, 30(5): 598–604. <https://doi.org/10.1037/h0037447>
