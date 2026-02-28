@@ -44,10 +44,15 @@ library(patchwork)
 library(kableExtra)
 library(flextable)
 
+library(extrafont)
+loadfonts(device = "pdf")
+
 source(here::here("Functions", "Predict Math Success Functions.R"))
 source(here::here("Functions", "Draw Confusion Matrix vC6.R"))
 
 is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwise renders base R
+
+is_pdf <- knitr::is_latex_output()
 
 model_version <- "vH4"
 
@@ -331,6 +336,12 @@ displayPipeline()
 #| label: tbl-results
 #| tbl-cap: "Regression Results"
 
+normTable <- normResults |>
+  (\(x){do.call(rbind,x)})() |>
+  (\(x){round(x,2)})() |>
+  as.data.frame() |>
+  tibble::rownames_to_column(" ")
+
 
 if (is_html) {
 normResults |>
@@ -350,14 +361,16 @@ normResults |>
   row_spec(1:1, background = c("#ffffff", "#f9f9f9")) |> # alternating rows
   add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
 
+} else if (is_pdf) {
+  # kableExtra PDF/LaTeX version
+  normTable |>
+    kbl(booktabs = TRUE, align = "c",
+        col.names = c("", "RMSE", "MAE", "R-sq",
+            "NRMSE (Range)", "NMAE (Range)", "NRMSE (SD)", "NMAE (SD)")) |>
+    kable_styling(latex_options = c("striped", "hold_position")) |>
+    add_header_above(c(" " = 1, "Raw Metrics" = 3, "Normalized Metrics" = 4))
+
 } else {
-
-
-normTable <- normResults |>
-  (\(x){do.call(rbind,x)})() |>
-  (\(x){round(x,2)})() |>
-  as.data.frame() |>
-  tibble::rownames_to_column(" ")
 
 normTable |>
   flextable() |>
@@ -648,6 +661,20 @@ combined |>
   add_header_above(c("Predicted Grade" = 1, "Actual Grade" = 2),
                    bold = TRUE, font_size = 20) |>
   row_spec(0, bold = TRUE, font_size = 20, background = "#e6f2ff")
+
+} else if (is_pdf) {
+
+ combined |>
+    as.data.frame() |>
+    tibble::rownames_to_column("Predicted Grade") |>
+    kbl(booktabs = TRUE,
+        col.names = c("Predicted Grade", "Actual: Fail (<1.7)", "Actual: Pass (≥1.7)"),
+        align = "c",
+        escape = FALSE) |>
+    kable_styling(latex_options = c("striped", "hold_position"),
+                  full_width = FALSE) |>
+    add_header_above(c(" " = 1, "Actual Grade" = 2)) |>
+    row_spec(0, bold = TRUE)
 
 } else {
 
