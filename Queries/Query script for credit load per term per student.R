@@ -4,15 +4,25 @@
 ## CONNECTION ##
 ################
 
-library(DBI)
-con.ds <- DBI::dbConnect(odbc::odbc(), 
-                         Driver = "Oracle in OraClient19Home1", 
+# library(DBI)
+#con.ds <- DBI::dbConnect(odbc::odbc(), 
+ #                        Driver = "Oracle in OraClient19Home1", 
                          # Host = "ocm-campus01.it.utah.edu", 
                          # SVC = "biprodusr.sys.utah.edu",
-                         DBQ = "//ocm-campus01.it.utah.edu:2080/biprodusr.sys.utah.edu",
-                         UID = Sys.getenv("userid"),
-                         PWD = Sys.getenv("pwd"),
-                         Port = 2080)
+  #                       DBQ = "//ocm-campus01.it.utah.edu:2080/biprodusr.sys.utah.edu",
+  #                       UID = Sys.getenv("userid"),
+  #                       PWD = Sys.getenv("pwd"),
+   #                      Port = 2080)
+
+library(DBI)
+con.ds <- DBI::dbConnect(odbc::odbc(), 
+                        Driver = "Oracle in instantclient_23_0", 
+                         Host = "ocm-campus01.it.utah.edu", 
+                      SVC = "biprodusr.sys.utah.edu",
+                      DBQ = "//ocm-campus01.it.utah.edu:2080/biprodusr.sys.utah.edu",
+                       UID = Sys.getenv("userid"),
+                       PWD = Sys.getenv("pwd"),
+                      Port = 2080)
 
 ###########
 ## QUERY ##
