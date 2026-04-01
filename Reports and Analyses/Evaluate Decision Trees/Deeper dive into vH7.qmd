@@ -1,5 +1,5 @@
 ---
-title: "Deeper Dive into vH6"
+title: "Deeper Dive into vH7"
 format: 
   html: default
   gfm: default
@@ -58,7 +58,7 @@ is_html <- knitr::is_html_output() # Renders plotly in HTML renderings, otherwis
 
 is_pdf <- knitr::is_latex_output()
 
-model_version <- "vH6"
+model_version <- "vH7"
 
 ```
 
@@ -76,7 +76,7 @@ model_version <- "vH6"
 ## MODEL ##
 
 # Build file paths
-model_files <- here::here("Models", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " model.ubj"))
+model_files <- here::here("Models", paste("Decision Tree ", model_version, " GRADEGPA model.ubj"))
 
 # Read each model into a named list
 model_list <- setNames(
@@ -85,7 +85,7 @@ model_list <- setNames(
 )
 
 ## RECIPE ##
-recipe_files <- here::here("Models", paste0("Decision Tree ", model_version, " ", "GRADEGPA", " recipe.rds"))
+recipe_files <- here::here("Models", paste("Decision Tree ", model_version, " GRADEGPA recipe.rds"))
 
 recipe_list <- setNames(
   lapply(recipe_files, readRDS),
@@ -121,7 +121,9 @@ thePredictions <- recipe_list[["GRADEGPA"]] |>
   (\(x){
     xgb.DMatrix(
       data = x[setdiff(names(x), "GRADEGPA")],
-      label = as.numeric(x[["GRADEGPA"]])
+      label = as.numeric(x[["GRADEGPA"]],
+      weight = x[["weighting"]]                   
+                         )
     )
       })() |>
   (\(x){
@@ -462,7 +464,7 @@ text(x = sapply(cumAcc, function(x) {x[["overall"]][["Kappa"]]}) |> (\(x){which(
 #| fig-cap: "Confusion matrix at model binary optimum" 
 #| fig-cap-location: top
 
-createCM(aligned, cuts = c(0,3.1,4)) |> drawCM(title = "Binary optimum")
+createCM(aligned, cuts = c(0,1.8,4)) |> drawCM(title = "Binary optimum")
 
 ```
 
@@ -593,7 +595,7 @@ This model also shows a high precision point at a predicted GPA of 0.9.  These c
 #| fig-cap: "Confusion matrix for 'admission mistake' candidates" 
 #| fig-cap-location: top
 
-createCM(aligned, cuts = c(0,1.4,4)) |> drawCM(title = "Predictably failed with good precision")
+createCM(aligned, cuts = c(0,0.9,4)) |> drawCM(title = "Predictably failed with good precision")
 
 ```
 

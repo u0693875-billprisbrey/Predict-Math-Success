@@ -848,6 +848,35 @@ Y <- xgb_prep$GRADEGPA
 
 dTrain <- xgb.DMatrix(data = X, label = Y, weight = trainData$weighting)
 
+xgb_cv_bayes <- function(eta, max_depth, min_child_weight, 
+                         subsample, colsample_bytree,
+                         gamma, lambda, alpha) {
+  set.seed(123)
+  m <- xgb.cv(
+    data = dTrain,
+    nrounds = 6000,
+    early_stopping_rounds = 50,
+    nfold = 10,
+    verbose = 0,
+    params = list(
+      objective = "reg:squarederror",
+      eta = eta,
+      max_depth = as.integer(max_depth),
+      min_child_weight = as.integer(min_child_weight),
+      subsample = subsample,
+      colsample_bytree = colsample_bytree,
+      gamma = gamma,
+      lambda = lambda,
+      alpha = alpha
+    )
+  )
+  
+  list(
+    Score = -min(m$evaluation_log$test_rmse_mean),  # negative because BayesianOptimization maximizes
+    nrounds = which.min(m$evaluation_log$test_rmse_mean)
+  )
+}
+
 # Define search bounds
 bounds <- list(
   eta               = c(0.001, 0.01),
@@ -885,10 +914,34 @@ endTime <- Sys.time()
 
 print(endTime-startTime)
 
+> getBestPars(bayes_result)
+$eta
+[1] 0.004397132
+
+$max_depth
+[1] 4
+
+$min_child_weight
+[1] 45
+
+$subsample
+[1] 0.7023901
+
+$colsample_bytree
+[1] 0.6580249
+
+$gamma
+[1] 9.175519
+
+$lambda
+[1] 28.97361
+
+$alpha
+[1] 0.97604
 
 
-
-
+> bayes_result$scoreSummary[which.max(Score), nrounds]
+[1] 4315
 
 
 
@@ -927,42 +980,44 @@ final_model <- xgb.train(
 ##########  
 
 xgb.save(final_model, here::here("Models", paste("Decision Tree ", model_version, " GRADEGPA model.ubj")) )
-saveRDS(xgb_recipe, here::here("Models","Decision Tree ", model_version, " GRADEGPA recipe.rds"))
+saveRDS(xgb_recipe, here::here("Models",paste("Decision Tree ", model_version, " GRADEGPA recipe.rds")) )
 
 
-## SOME INVESTIGATION FROM vH6; not updated to vH7##
+## SOME INVESTIGATION for vH7
 
 # xgb.importance(model = final_model) |> xgb.plot.importance()
 
 # > xgb.importance(model = final_model)
-# Feature        Gain       Cover   Frequency
-# <char>       <num>       <num>       <num>
-#   1:               HSGPA 0.560098028 0.122396062 0.120292025
-# 2:           ACTMATH.z 0.073526565 0.082733294 0.090677649
-# 3:            APCREDIT 0.037786933 0.032034074 0.036465743
-# 4:             HSGPA.z 0.036735310 0.090126952 0.089329839
-# 5:             yr_diff 0.036067798 0.081486467 0.078547361
-# 6:             ACTMATH 0.035860067 0.067770336 0.062710595
-# 7:              course 0.031345025 0.076273208 0.069636840
-# 8:             RESSTAT 0.027672044 0.018321388 0.017558967
-# 9:                dist 0.022858965 0.073429287 0.072557095
-# 10:             age_cut 0.020796894 0.030984360 0.028566080
-# 11:          class_year 0.017495197 0.048431624 0.048371396
-# 12:             ACTCOMP 0.014491484 0.054094482 0.045750655
-# 13:              ACTSCI 0.013950058 0.046034407 0.047135904
-# 14:             ACTENGL 0.013817670 0.043734284 0.049606889
-# 15:         cohort_year 0.013350930 0.037452666 0.043354549
-# 16:              season 0.012305123 0.010230237 0.014189442
-# 17: FIRST_GEN_STATUS_CD 0.010958551 0.017251713 0.017821041
-# 18:           ETHNICITY 0.008324897 0.034599547 0.030550356
-# 19:           HSPRIVATE 0.004322750 0.012615978 0.010220891
-# 20:             FA_PELL 0.003255034 0.008941379 0.009771621
-# 21:                 SEX 0.002868161 0.005417703 0.009621864
-# 22:              HONORS 0.001337475 0.004322949 0.003931112
-# 23:         FIRST_GEN_U 0.000775040 0.001317602 0.003332085
-# Feature        Gain       Cover   Frequency
-# <char>       <num>       <num>       <num>
-  
+
+# Feature         Gain        Cover    Frequency
+# <char>        <num>        <num>        <num>
+#   1:               HSGPA 0.4229650409 0.1023486999 0.0955371347
+# 2:             HSGPA.z 0.1416666643 0.0739268874 0.0815331156
+# 3:            APCREDIT 0.0618534543 0.0513962403 0.0468265930
+# 4:           ACTMATH.z 0.0559497877 0.0758164411 0.0886293226
+# 5:             ACTMATH 0.0538409704 0.0659509197 0.0644938458
+# 6:                dist 0.0347260872 0.0567021839 0.0753370175
+# 7:             yr_diff 0.0307334233 0.0884356279 0.0742275810
+# 8:              course 0.0284983784 0.0789027338 0.0684710709
+# 9:             RESSTAT 0.0280459804 0.0317488815 0.0220422005
+# 10:          class_year 0.0175158637 0.0454562213 0.0516829942
+# 11:             ACTCOMP 0.0156539018 0.0593017676 0.0478941639
+# 12:             age_cut 0.0147093053 0.0343067406 0.0280080382
+# 13:              ACTSCI 0.0146925580 0.0512879802 0.0491710625
+# 14:         cohort_year 0.0138382041 0.0377711965 0.0458846186
+# 15:             ACTENGL 0.0133843657 0.0367347660 0.0460311480
+# 16: FIRST_GEN_STATUS_CD 0.0127801899 0.0185587733 0.0226492506
+# 17:              HONORS 0.0082101788 0.0053965856 0.0052541238
+# 18:              season 0.0075621117 0.0099270540 0.0150506573
+# 19:           ETHNICITY 0.0062597401 0.0321223660 0.0242610734
+# 20:             FA_PELL 0.0046432948 0.0124405890 0.0136062966
+# 1:           HSPRIVATE 0.0045265721 0.0177638103 0.0110315666
+# 22:                 SEX 0.0036148955 0.0059479993 0.0117014151
+# 23:         FIRST_GEN_Y 0.0031440592 0.0052807242 0.0060914343
+# 24:         FIRST_GEN_U 0.0009285027 0.0009673006 0.0037469647
+# 25:        course_level 0.0002564699 0.0015075098 0.0008373106
+# Feature         Gain        Cover    Frequency
+# <char>        <num>        <num>        <num>  
   ## EVALUATION ## 
   
 #   xgb_test <- bake(xgb_recipe, new_data = testData)
@@ -970,24 +1025,18 @@ saveRDS(xgb_recipe, here::here("Models","Decision Tree ", model_version, " GRADE
 # X <- xgb_test[setdiff(names(xgb_test), "GRADEGPA")]
 # Y <- xgb_test$GRADEGPA
 
-# dTest <- xgb.DMatrix(data = X, label = Y)
+# dTest <- xgb.DMatrix(data = X, label = Y, weight = testData$weighting)
 
 # predictions <- predict(final_model, dTest)
 
 # > sqrt(mean((predictions - Y)^2))
-# [1] 0.9609721
-# > 
-#  > # MAE
-#  > mean(abs(predictions - Y))
-# [1] 0.7049025
-# > 
-#  > # Correlation
-#  > cor(predictions, Y)
-# [1] 0.5552423
-
+# [1] 1.093141
+# > mean(abs(predictions - Y))
+# [1] 0.887903
+# > cor(predictions, Y)
+# [1] 0.5419226
 # > cor(predictions, Y)^2
-# [1] 0.308294
-
+# [1] 0.2936801
 
 
 
